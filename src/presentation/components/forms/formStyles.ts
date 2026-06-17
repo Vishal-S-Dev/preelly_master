@@ -1,0 +1,192 @@
+import { Platform, StyleSheet } from 'react-native';
+import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
+
+export const FORM_COLORS = {
+  label: '#2D3142',
+  text: '#111827',
+  formLable: '#21357C',
+  placeholder: '#9CA3AF',
+  helper: '#9CA3AF',
+  inputBg: '#F3F4FB',
+  inputBgFocused: '#EEF0FF',
+  borderFocus: '#C7D2FE',
+  borderActive: '#6B7280',
+  error: '#DC2626',
+  primary: '#2563EB',
+  skeleton: '#E5E7EB',
+};
+
+export const formStyles = StyleSheet.create({
+  progressTrack: {
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: '#E5E7EB',
+    marginBottom: 0,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: FORM_COLORS.primary,
+  },
+  progressLabel: {
+    marginBottom: 8,
+    fontSize: wp('3.2%'),
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  fieldWrap: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: wp('3.9%'),
+    fontWeight: '500',
+    color: FORM_COLORS.formLable,
+    marginBottom: 8,
+  },
+  formLable: {
+    fontSize: wp('3.9%'),
+    fontWeight: '600',
+    color: FORM_COLORS.formLable,
+    marginBottom: 8,
+  },
+  helper: {
+    marginTop: 6,
+    fontSize: wp('3.2%'),
+    color: FORM_COLORS.helper,
+  },
+  control: {
+    minHeight: 52,
+    borderRadius: 14,
+    backgroundColor: FORM_COLORS.inputBg,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  controlFocused: {
+    backgroundColor: FORM_COLORS.inputBgFocused,
+    borderColor: FORM_COLORS.borderFocus,
+  },
+  controlDisabled: {
+    opacity: 0.55,
+  },
+  controlText: {
+    flex: 1,
+    fontSize: wp('3.8%'),
+    color: FORM_COLORS.formLable,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+  },
+  placeholderText: {
+    color: FORM_COLORS.placeholder,
+  },
+  suffix: {
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    color: FORM_COLORS.text,
+  },
+  radioRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  radioPill: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioPillActive: {
+    backgroundColor: '#EEF3FB',
+    borderColor: '#C8D8F0',
+  },
+  radioText: {
+    fontSize: wp('3.3%'),
+    fontWeight: '500',
+    color: '#1F2937',
+    textAlign: 'center',
+  },
+  radioTextActive: {
+    color: FORM_COLORS.formLable,
+    fontWeight: '600',
+  },
+  checkboxWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  checkboxChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minHeight: 34,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    backgroundColor: '#FFFFFF',
+    maxWidth: '100%',
+  },
+  checkboxChipSelected: {
+    backgroundColor: '#EEF3FB',
+    borderColor: '#C8D8F0',
+  },
+  checkboxChipLabel: {
+    fontSize: wp('3.6%'),
+    color: '#1F2937',
+    fontWeight: '500',
+    flexShrink: 1,
+  },
+  checkboxCheckCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#C8C8C8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  checkboxCheckCircleSelected: {
+    backgroundColor: '#34C759',
+  },
+  checkboxViewAllChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minHeight: 34,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: '#2563EB',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxViewAllText: {
+    fontSize: wp('3.6%'),
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  sheetItem: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E7EB',
+  },
+  sheetItemText: {
+    fontSize: wp('4.3%'),
+    color: FORM_COLORS.text,
+    fontWeight: '400',
+  },
+  skeleton: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: FORM_COLORS.skeleton,
+    marginBottom: 20,
+  },
+});
