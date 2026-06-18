@@ -75,6 +75,7 @@ export const subCategoryStyles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 16,
+    marginBottom: 16
   },
 });
 

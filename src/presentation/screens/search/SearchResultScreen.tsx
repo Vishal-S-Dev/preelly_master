@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -20,9 +20,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, {
+  interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { SEARCH_CITIES } from '../../../constants/searchConstants';
 import { SearchListingItem } from '../../../types/search.types';
@@ -32,6 +34,7 @@ import {
   SearchSortOption,
 } from '../../../types/searchFilter.types';
 import { FilterChip } from '../../components/search/FilterChip';
+import { SearchHeaderPill } from '../../components/search/SearchHeaderPill';
 import {
   SEARCH_RESULT_GRID_GAP,
   SEARCH_RESULT_GRID_PADDING,
@@ -48,48 +51,26 @@ import {
 import { RootStackParamList } from '../../navigation/types';
 import { useAppDispatch } from '../../hooks/useRedux';
 import { saveProduct } from '../../redux/slices/productSlice';
+import { PANEL_ANIMATION_MS, PANEL_HEIGHT } from '../../utils/searchMotion';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+type PanelMode = 'none' | 'filter' | 'sort';
 
-const HeaderPill = memo<{
-  label: string;
-  icon?: string;
-  onPress: () => void;
-  theme: ReturnType<typeof useAppTheme>;
-}>(({ label, icon, onPress, theme }) => {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+const SEARCH_CHIP_CONFIG = [
+  { id: 'filter', label: 'Filter' },
+  { id: 'region', label: 'Region' },
+  { id: 'price', label: 'Price' },
+  { id: 'kilometres', label: 'Kilometres' },
+  { id: 'year', label: 'Year' },
+] as const;
 
-  return (
-    <AnimatedPressable
-      onPress={onPress}
-      onPressIn={() => {
-        scale.value = withSpring(0.95, { damping: 14 });
-      }}
-      onPressOut={() => {
-        scale.value = withSpring(1, { damping: 14 });
-      }}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={[
-        styles.headerPill,
-        {
-          backgroundColor: theme.background,
-          borderColor: theme.subText + '22',
-          shadowColor: '#000',
-        },
-        animStyle,
-      ]}
-    >
-      {icon ? <Icon name={icon} size={16} color={theme.text} /> : null}
-      <Text style={[styles.headerPillText, { color: theme.text }]}>{label}</Text>
-    </AnimatedPressable>
-  );
-});
+type FilterChipId = (typeof SEARCH_CHIP_CONFIG)[number]['id'];
 
-HeaderPill.displayName = 'HeaderPill';
+const SORT_CHIP_LABELS: Record<SearchSortOption, string> = {
+  newest: 'Newest to Oldest',
+  price_desc: 'Price Highest to Lowest',
+  price_asc: 'Price Lowest to Highest',
+  popular: 'Most Popular',
+};
 
 const resolveResultLabel = (filters: SearchFilterParams): string => {
   if (filters.keyword?.trim()) {
@@ -147,11 +128,12 @@ export const SearchResultScreen: React.FC = () => {
   const dispatch = useAppDispatch();
 
   const filterSheetRef = useRef<BottomSheetModal>(null);
-  const sortSheetRef = useRef<BottomSheetModal>(null);
+  const panelProgress = useSharedValue(0);
 
   const [filters, setFilters] = useState<SearchFilterParams>(() => mapRouteToFilters(route.params));
   const [sort, setSort] = useState<SearchSortOption>('newest');
   const [savedOverrides, setSavedOverrides] = useState<Record<string, boolean>>({});
+  const [panelMode, setPanelMode] = useState<PanelMode>('none');
 
   const [draftCategoryId, setDraftCategoryId] = useState(filters.categoryId);
   const [draftCity, setDraftCity] = useState(filters.city ?? 'All Cities');
@@ -264,10 +246,64 @@ export const SearchResultScreen: React.FC = () => {
     filterSheetRef.current?.dismiss();
   }, [filters.keyword]);
 
-  const handleSortSelect = useCallback((option: SearchSortOption) => {
-    setSort(option);
-    sortSheetRef.current?.dismiss();
-  }, []);
+  const closePanel = useCallback(() => {
+    panelProgress.value = withTiming(0, { duration: 200 }, finished => {
+      if (finished) {
+        runOnJS(setPanelMode)('none');
+      }
+    });
+  }, [panelProgress]);
+
+  const handleSortSelect = useCallback(
+    (option: SearchSortOption) => {
+      setSort(option);
+      closePanel();
+    },
+    [closePanel],
+  );
+
+  const toggleFilterPanel = useCallback(() => {
+    if (panelMode === 'filter') {
+      closePanel();
+      return;
+    }
+    if (panelMode === 'sort') {
+      setPanelMode('filter');
+      return;
+    }
+    setPanelMode('filter');
+    panelProgress.value = withTiming(1, { duration: PANEL_ANIMATION_MS });
+  }, [closePanel, panelMode, panelProgress]);
+
+  const toggleSortPanel = useCallback(() => {
+    if (panelMode === 'sort') {
+      closePanel();
+      return;
+    }
+    if (panelMode === 'filter') {
+      setPanelMode('sort');
+      return;
+    }
+    setPanelMode('sort');
+    panelProgress.value = withTiming(1, { duration: PANEL_ANIMATION_MS });
+  }, [closePanel, panelMode, panelProgress]);
+
+  const handleFilterChipPress = useCallback(
+    (chipId: FilterChipId) => {
+      if (chipId === 'filter') {
+        openCategoryFilter();
+        return;
+      }
+      openFilterSheet(chipId);
+    },
+    [openCategoryFilter, openFilterSheet],
+  );
+
+  const panelAnimatedStyle = useAnimatedStyle(() => ({
+    height: interpolate(panelProgress.value, [0, 1], [0, PANEL_HEIGHT]),
+    opacity: interpolate(panelProgress.value, [0, 1], [0, 1]),
+    transform: [{ translateY: interpolate(panelProgress.value, [0, 1], [-10, 0]) }],
+  }));
 
   const handleRefresh = useCallback(() => {
     searchQuery.refetch();
@@ -307,6 +343,79 @@ export const SearchResultScreen: React.FC = () => {
   );
 
   const keyExtractor = useCallback((item: SearchListingItem) => item.id, []);
+
+  const filterChipSelected = useCallback(
+    (chipId: FilterChipId) => {
+      if (chipId === 'region') {
+        return Boolean(filters.city && filters.city !== 'All Cities');
+      }
+      if (chipId === 'price') {
+        return Boolean(filters.minPrice) || Boolean(filters.maxPrice);
+      }
+      if (chipId === 'year') {
+        return Boolean(filters.year);
+      }
+      if (chipId === 'kilometres') {
+        return Boolean(filters.maxKilometers);
+      }
+      return activeFilterCount > 0;
+    },
+    [activeFilterCount, filters],
+  );
+
+  const renderFilterPanel = useMemo(
+    () => (
+      <FlatList
+        data={SEARCH_CHIP_CONFIG}
+        horizontal
+        keyExtractor={item => item.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipList}
+        renderItem={({ item }) => (
+          <FilterChip
+            label={
+              item.id === 'filter' && activeFilterCount > 0
+                ? `Filter (${activeFilterCount})`
+                : item.label
+            }
+            icon={item.id === 'filter' ? 'tune-variant' : undefined}
+            variant="outline"
+            selected={filterChipSelected(item.id)}
+            badgeCount={item.id === 'filter' ? activeFilterCount : undefined}
+            onPress={() => handleFilterChipPress(item.id)}
+            accessibilityHint={
+              item.id === 'filter'
+                ? 'Opens full category filter screen'
+                : `Opens ${item.label} filter options`
+            }
+          />
+        )}
+      />
+    ),
+    [activeFilterCount, filterChipSelected, handleFilterChipPress],
+  );
+
+  const renderSortPanel = useMemo(
+    () => (
+      <FlatList
+        data={SEARCH_SORT_OPTIONS}
+        horizontal
+        keyExtractor={item => item.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipList}
+        renderItem={({ item }) => (
+          <FilterChip
+            label={SORT_CHIP_LABELS[item.id]}
+            variant="outline"
+            selected={sort === item.id}
+            onPress={() => handleSortSelect(item.id)}
+            accessibilityHint={`Sort results by ${item.label}`}
+          />
+        )}
+      />
+    ),
+    [handleSortSelect, sort],
+  );
 
   const listHeader = useMemo(
     () => (
@@ -371,28 +480,35 @@ export const SearchResultScreen: React.FC = () => {
         <Pressable
           style={[styles.iconButton, { backgroundColor: theme.card }]}
           onPress={() => navigation.goBack()}
+          android_ripple={{ color: theme.subText + '33', borderless: true }}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
           <Icon name="arrow-left" size={22} color={theme.text} />
         </Pressable>
 
-        <HeaderPill
-          label="Filter"
-          icon="tune-variant"
-          onPress={openCategoryFilter}
-          theme={theme}
-        />
-        <HeaderPill
-          label="Sort"
-          icon="sort"
-          onPress={() => sortSheetRef.current?.present()}
-          theme={theme}
-        />
+        <View style={styles.headerPills}>
+          <SearchHeaderPill
+            label="Filter"
+            icon="tune-variant"
+            active={panelMode === 'filter'}
+            badgeCount={activeFilterCount > 0 ? activeFilterCount : undefined}
+            onPress={toggleFilterPanel}
+            accessibilityHint="Toggle filter options panel"
+          />
+          <SearchHeaderPill
+            label="Sort"
+            icon="sort"
+            active={panelMode === 'sort'}
+            onPress={toggleSortPanel}
+            accessibilityHint="Toggle sort options panel"
+          />
+        </View>
 
         <Pressable
-          style={[styles.iconButton, { backgroundColor: theme.card, marginLeft: 'auto' }]}
+          style={[styles.iconButton, { backgroundColor: theme.card }]}
           onPress={handleOpenSearch}
+          android_ripple={{ color: theme.subText + '33', borderless: true }}
           accessibilityRole="button"
           accessibilityLabel="Open search"
           accessibilityHint="Returns to search screen"
@@ -401,27 +517,10 @@ export const SearchResultScreen: React.FC = () => {
         </Pressable>
       </View>
 
-      <FlatList
-        data={SEARCH_CHIP_CONFIG}
-        horizontal
-        keyExtractor={item => item.id}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipList}
-        style={styles.chipListWrap}
-        renderItem={({ item }) => (
-          <FilterChip
-            label={item.id === 'filter' && activeFilterCount > 0 ? `Filter (${activeFilterCount})` : item.label}
-            selected={
-              (item.id === 'region' && Boolean(filters.city && filters.city !== 'All Cities')) ||
-              (item.id === 'price' && (Boolean(filters.minPrice) || Boolean(filters.maxPrice))) ||
-              (item.id === 'year' && Boolean(filters.year)) ||
-              (item.id === 'kilometres' && Boolean(filters.maxKilometers))
-            }
-            badgeCount={item.id === 'filter' ? activeFilterCount : undefined}
-            onPress={() => openFilterSheet(item.id as typeof activeChip)}
-          />
-        )}
-      />
+      <Animated.View style={[styles.panelContainer, panelAnimatedStyle]}>
+        {panelMode === 'filter' ? renderFilterPanel : null}
+        {panelMode === 'sort' ? renderSortPanel : null}
+      </Animated.View>
 
       <FlatList
         data={products}
@@ -589,49 +688,9 @@ export const SearchResultScreen: React.FC = () => {
           </View>
         </BottomSheetScrollView>
       </BottomSheetModal>
-
-      <BottomSheetModal
-        ref={sortSheetRef}
-        snapPoints={['42%']}
-        backdropComponent={renderBackdrop}
-        enablePanDownToClose
-      >
-        <BottomSheetScrollView contentContainerStyle={styles.sheetContent}>
-          <Text style={[styles.sheetTitle, { color: theme.text }]}>Sort By</Text>
-          {SEARCH_SORT_OPTIONS.map(option => {
-            const selected = sort === option.id;
-            return (
-              <Pressable
-                key={option.id}
-                style={[
-                  styles.sortRow,
-                  { borderBottomColor: theme.subText + '22' },
-                  selected && { backgroundColor: theme.primary + '12' },
-                ]}
-                onPress={() => handleSortSelect(option.id)}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-              >
-                <Text style={[styles.sortRowText, { color: selected ? theme.primary : theme.text }]}>
-                  {option.label}
-                </Text>
-                {selected ? <Icon name="check" size={18} color={theme.primary} /> : null}
-              </Pressable>
-            );
-          })}
-        </BottomSheetScrollView>
-      </BottomSheetModal>
     </SafeAreaView>
   );
 };
-
-const SEARCH_CHIP_CONFIG = [
-  { id: 'filter', label: 'Filter' },
-  { id: 'region', label: 'Region' },
-  { id: 'price', label: 'Price' },
-  { id: 'kilometres', label: 'Kilometres' },
-  { id: 'year', label: 'Year' },
-] as const;
 
 const styles = StyleSheet.create({
   screen: {
@@ -644,6 +703,11 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     gap: 8,
   },
+  headerPills: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+  },
   iconButton: {
     width: 40,
     height: 40,
@@ -651,34 +715,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 20,
-    borderWidth: 1,
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  headerPillText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  chipListWrap: {
-    maxHeight: 44,
-    marginBottom: 8,
+  panelContainer: {
+    overflow: 'hidden',
   },
   chipList: {
     paddingHorizontal: 16,
-    paddingBottom: 4,
+    paddingVertical: 4,
+    alignItems: 'center',
   },
   resultHeader: {
-    paddingHorizontal: SEARCH_RESULT_GRID_PADDING,
+    paddingHorizontal: 16,//SEARCH_RESULT_GRID_PADDING,
     paddingBottom: 12,
+
     gap: 4,
   },
   resultTitle: {
@@ -807,17 +855,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
-  },
-  sortRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 4,
-  },
-  sortRowText: {
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

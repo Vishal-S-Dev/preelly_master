@@ -162,6 +162,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: 16,
     gap: 10,
+    marginBottom: 16
   },
   card: {
     width: '31%',

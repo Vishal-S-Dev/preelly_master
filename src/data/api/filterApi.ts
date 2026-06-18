@@ -12,6 +12,37 @@ interface ApiListResponse<T> {
   data?: T;
 }
 
+interface WebFilterValue {
+  id: string;
+  name: string;
+}
+
+interface WebFilterItem {
+  filterId: string;
+  filterName: string;
+  slug: string;
+  values?: WebFilterValue[];
+}
+
+interface WebFiltersPayload {
+  categoryId?: string;
+  filters?: WebFilterItem[];
+}
+
+const mapWebFilterToDynamic = (filter: WebFilterItem): DynamicFilterField => {
+  const title = filter.filterName.toLowerCase();
+  return {
+    id: filter.filterId,
+    fieldKey: filter.slug,
+    fieldTitle: filter.filterName,
+    fieldType: title.includes('color') ? 'color' : 'multi_select',
+    options: (filter.values ?? []).map(value => ({
+      value: value.id,
+      label: value.name,
+    })),
+  };
+};
+
 const normalizeEmirates = (payload: EmiratesItem[] | ApiListResponse<EmiratesItem[]>): EmiratesItem[] => {
   if (Array.isArray(payload)) {
     return payload;
@@ -49,7 +80,11 @@ const mapFormFieldToFilter = (field: FormField): DynamicFilterField => ({
 });
 
 const normalizeDynamicFilters = (
-  payload: DynamicFilterField[] | FormField[] | ApiListResponse<DynamicFilterField[] | FormField[]>,
+  payload:
+    | DynamicFilterField[]
+    | FormField[]
+    | WebFiltersPayload
+    | ApiListResponse<DynamicFilterField[] | FormField[] | WebFiltersPayload>,
 ): DynamicFilterField[] => {
   if (Array.isArray(payload)) {
     if (payload.length === 0) {
@@ -64,8 +99,17 @@ const normalizeDynamicFilters = (
     return payload as DynamicFilterField[];
   }
 
-  const data = payload.data ?? [];
-  return normalizeDynamicFilters(data);
+  if (payload && typeof payload === 'object') {
+    if ('filters' in payload && Array.isArray(payload.filters)) {
+      return payload.filters.map(mapWebFilterToDynamic);
+    }
+
+    if ('data' in payload && payload.data != null) {
+      return normalizeDynamicFilters(payload.data);
+    }
+  }
+
+  return [];
 };
 
 export const FilterApi = {

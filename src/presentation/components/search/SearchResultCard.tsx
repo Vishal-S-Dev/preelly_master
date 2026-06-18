@@ -10,8 +10,8 @@ import Animated, {
 import { SearchListingItem } from '../../../types/search.types';
 import { useAppTheme } from '../../hooks/useAppTheme';
 
-const GRID_HORIZONTAL_PADDING = 16;
-const GRID_GAP = 10;
+const GRID_HORIZONTAL_PADDING = 0;
+const GRID_GAP = 2;
 
 interface Props {
   item: SearchListingItem;
@@ -30,7 +30,7 @@ export const SearchResultCard = memo<Props>(({ item, onPress, onFavorite }) => {
     () => (width - GRID_HORIZONTAL_PADDING * 2 - GRID_GAP) / 2,
     [width],
   );
-  const cardHeight = useMemo(() => cardWidth * 1.38, [cardWidth]);
+  const cardHeight = useMemo(() => cardWidth * 1.58, [cardWidth]);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -84,13 +84,13 @@ export const SearchResultCard = memo<Props>(({ item, onPress, onFavorite }) => {
         </View>
       ) : null}
 
-      {item.hasVideo ? (
+      {/*{item.hasVideo ? (
         <View style={styles.playBadge} pointerEvents="none">
           <Icon name="play" size={14} color="#FFFFFF" />
         </View>
-      ) : null}
+      ) : null}*/}
 
-      {onFavorite ? (
+      {/*{onFavorite ? (
         <Pressable
           style={styles.favoriteBtn}
           onPress={() => onFavorite(item)}
@@ -104,7 +104,7 @@ export const SearchResultCard = memo<Props>(({ item, onPress, onFavorite }) => {
             color={item.isSaved ? theme.danger : '#FFFFFF'}
           />
         </Pressable>
-      ) : null}
+      ) : null}*/}
 
       <View style={styles.topContent} pointerEvents="none">
         <Text style={styles.title} numberOfLines={3}>
@@ -131,7 +131,7 @@ export const SEARCH_RESULT_GRID_PADDING = GRID_HORIZONTAL_PADDING;
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: 1,
     overflow: 'hidden',
     backgroundColor: '#1F2937',
     shadowOpacity: 0.1,

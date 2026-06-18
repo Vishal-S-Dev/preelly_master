@@ -53,9 +53,10 @@ const buildQueryParams = (query: ProductSearchQuery): Record<string, string | nu
     limit: query.limit ?? SEARCH_PAGE_LIMIT,
   };
 
-  if (query.keyword?.trim()) {
-    params.search = query.keyword.trim();
-  }
+  // Temporarily omit `search` from product API params — filter via category/subcategory instead.
+  // if (query.keyword?.trim()) {
+  //   params.search = query.keyword.trim();
+  // }
   const categoryId = resolveCategoryId(query.categoryId);
   if (categoryId) {
     params.categoryId = categoryId;
@@ -69,9 +70,9 @@ const buildQueryParams = (query: ProductSearchQuery): Record<string, string | nu
   if (typeof query.maxPrice === 'number' && query.maxPrice > 0) {
     params.maxPrice = query.maxPrice;
   }
-  if (query.subCategoryId) {
+  /*if (query.subCategoryId) {
     params.subCategoryId = query.subCategoryId;
-  }
+  }*/
   if (query.makeModelId) {
     params.makeModelId = query.makeModelId;
   }

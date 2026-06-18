@@ -17,8 +17,13 @@ import {
   DEFAULT_PRICE_MAX,
   DEFAULT_PRICE_MIN,
 } from '../../../types/categoryFilter.types';
-import { SearchFilterParams } from '../../../types/searchFilter.types';
 import { Category } from '../../../types/category.types';
+import { isPropertyCategory } from '../../../utils/isPropertyCategory';
+import {
+  PropertySubcategoryAccordion,
+  PropertySubcategorySelection,
+} from '../../components/createPost/PropertySubcategoryAccordion';
+import { SubcategoryListSkeleton } from '../../components/createPost/SubcategoryListSkeleton';
 import { CategoryGrid } from '../../components/search/CategoryGrid';
 import { CategoryFilterSkeleton } from '../../components/filter/CategoryFilterSkeleton';
 import { DynamicFilterRenderer } from '../../components/filter/DynamicFilterRenderer';
@@ -32,32 +37,10 @@ import { SubCategoryChip, subCategoryStyles } from '../../components/filter/SubC
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDynamicFilters } from '../../hooks/useDynamicFilters';
 import { useEmirates } from '../../hooks/useEmirates';
+import { usePropertyCategories } from '../../hooks/usePropertyCategories';
 import { useSubcategories } from '../../hooks/useSubcategories';
 import { RootStackParamList } from '../../navigation/types';
-
-const isMotorsCategory = (name?: string): boolean => name?.trim().toLowerCase() === 'motors';
-
-const payloadToSearchFilters = (
-  payload: CategoryFilterPayload,
-  keyword?: string,
-): SearchFilterParams => ({
-  keyword: payload.searchKeyword?.trim() || keyword,
-  city: payload.emirateNames[0],
-  emirates: payload.emirates,
-  categoryId: payload.categoryId,
-  subCategoryId: payload.subCategoryId,
-  categoryName: payload.categoryName,
-  subCategoryName: payload.subCategoryName,
-  makeModelId: payload.makeModelId,
-  trimId: payload.trimId,
-  minPrice: payload.minPrice,
-  maxPrice: payload.maxPrice,
-  yearFrom: payload.yearFrom,
-  yearTo: payload.yearTo,
-  minKilometers: payload.minKilometers,
-  maxKilometers: payload.maxKilometers ? String(payload.maxKilometers) : undefined,
-  dynamicFilters: payload.filters,
-});
+import { isMotorsCategory, payloadToSearchFilters } from './categoryFilterUtils';
 
 export const CategoryFilterScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -95,9 +78,13 @@ export const CategoryFilterScreen: React.FC = () => {
   const [dynamicValues, setDynamicValues] = useState<Record<string, string | string[]>>(
     initial?.filters ?? {},
   );
+  const [expandedPropertyCategoryId, setExpandedPropertyCategoryId] = useState<string | null>(null);
+
+  const isProperty = isPropertyCategory(categoryName);
 
   const emiratesQuery = useEmirates();
-  const subcategoriesQuery = useSubcategories(categoryId || undefined);
+  const subcategoriesQuery = useSubcategories(isProperty ? undefined : categoryId || undefined);
+  const propertyCategoriesQuery = usePropertyCategories(isProperty && Boolean(categoryId));
   const makeModelsQuery = useSubcategories(
     isMotorsCategory(categoryName) && subCategoryId ? subCategoryId : undefined,
   );
@@ -125,6 +112,7 @@ export const CategoryFilterScreen: React.FC = () => {
     setCategoryName(name);
     setSubCategoryId('');
     setSubCategoryName('');
+    setExpandedPropertyCategoryId(null);
     setMakeModelId('');
     setMakeModelName('');
     setTrimId('');
@@ -143,6 +131,17 @@ export const CategoryFilterScreen: React.FC = () => {
       setDynamicValues({});
     },
     [],
+  );
+
+  const onTogglePropertyExpand = useCallback((parentId: string) => {
+    setExpandedPropertyCategoryId(prev => (prev === parentId ? null : parentId));
+  }, []);
+
+  const onSelectPropertySubcategory = useCallback(
+    (selection: PropertySubcategorySelection) => {
+      handleSubcategorySelect(selection.subcategoryId, selection.name);
+    },
+    [handleSubcategorySelect],
   );
 
   const handleDynamicChange = useCallback((fieldKey: string, value: string | string[]) => {
@@ -202,6 +201,7 @@ export const CategoryFilterScreen: React.FC = () => {
     setCategoryName(route.params?.categoryName ?? '');
     setSubCategoryId('');
     setSubCategoryName('');
+    setExpandedPropertyCategoryId(null);
     setMakeModelId('');
     setMakeModelName('');
     setTrimId('');
@@ -290,7 +290,36 @@ export const CategoryFilterScreen: React.FC = () => {
         {categoryId ? (
           <>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Sub Category</Text>
-            {subcategoriesQuery.isLoading ? (
+            {isProperty ? (
+              propertyCategoriesQuery.isLoading ? (
+                <View style={styles.accordionWrap}>
+                  <SubcategoryListSkeleton count={4} />
+                </View>
+              ) : propertyCategoriesQuery.isError ? (
+                <Pressable
+                  onPress={() => propertyCategoriesQuery.refetch()}
+                  style={styles.retryWrap}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry loading property categories"
+                >
+                  <Text style={{ color: theme.primary }}>Retry property categories</Text>
+                </Pressable>
+              ) : (propertyCategoriesQuery.data ?? []).length === 0 ? (
+                <View style={styles.retryWrap}>
+                  <Text style={{ color: theme.subText }}>No property categories available.</Text>
+                </View>
+              ) : (
+                <View style={styles.accordionWrap}>
+                  <PropertySubcategoryAccordion
+                    categories={propertyCategoriesQuery.data ?? []}
+                    expandedCategoryId={expandedPropertyCategoryId}
+                    selectedSubcategoryId={subCategoryId || undefined}
+                    onToggleExpand={onTogglePropertyExpand}
+                    onSelectSubcategory={onSelectPropertySubcategory}
+                  />
+                </View>
+              )
+            ) : subcategoriesQuery.isLoading ? (
               <ActivityIndicator color={theme.primary} style={styles.inlineLoader} />
             ) : subcategoriesQuery.isError ? (
               <Pressable onPress={() => subcategoriesQuery.refetch()} style={styles.retryWrap}>
@@ -350,6 +379,20 @@ export const CategoryFilterScreen: React.FC = () => {
 
         {subCategoryId ? (
           <>
+            {dynamicFiltersQuery.isLoading ? (
+              <ActivityIndicator color={theme.primary} style={styles.inlineLoader} />
+            ) : dynamicFiltersQuery.isError ? (
+              <Pressable onPress={() => dynamicFiltersQuery.refetch()} style={styles.retryWrap}>
+                <Text style={{ color: theme.primary }}>Retry filters</Text>
+              </Pressable>
+            ) : (
+              <DynamicFilterRenderer
+                fields={dynamicFiltersQuery.data ?? []}
+                values={dynamicValues}
+                onChange={handleDynamicChange}
+              />
+            )}
+
             <View style={styles.yearRow}>
               <View style={styles.yearField}>
                 <Text style={[styles.yearLabel, { color: theme.text }]}>Year</Text>
@@ -397,20 +440,6 @@ export const CategoryFilterScreen: React.FC = () => {
                 </View>
               </View>
             </View>
-
-            {dynamicFiltersQuery.isLoading ? (
-              <ActivityIndicator color={theme.primary} style={styles.inlineLoader} />
-            ) : dynamicFiltersQuery.isError ? (
-              <Pressable onPress={() => dynamicFiltersQuery.refetch()} style={styles.retryWrap}>
-                <Text style={{ color: theme.primary }}>Retry filters</Text>
-              </Pressable>
-            ) : (
-              <DynamicFilterRenderer
-                fields={dynamicFiltersQuery.data ?? []}
-                values={dynamicValues}
-                onChange={handleDynamicChange}
-              />
-            )}
           </>
         ) : null}
       </ScrollView>
@@ -485,6 +514,9 @@ const styles = StyleSheet.create({
   retryWrap: {
     paddingHorizontal: 16,
     paddingBottom: 12,
+  },
+  accordionWrap: {
+    paddingHorizontal: 16,
   },
   inlineLoader: {
     marginBottom: 16,

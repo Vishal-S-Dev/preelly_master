@@ -18,15 +18,9 @@ export const SearchFilterSkeleton = memo(() => {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <ShimmerBox style={styles.backBtn} borderRadius={20} />
-        <ShimmerBox style={styles.pill} borderRadius={20} />
-        <ShimmerBox style={styles.pill} borderRadius={20} />
+        <ShimmerBox style={styles.pill} borderRadius={24} />
+        <ShimmerBox style={styles.pill} borderRadius={24} />
         <ShimmerBox style={styles.searchBtn} borderRadius={20} />
-      </View>
-
-      <View style={styles.chipRow}>
-        {Array.from({ length: 5 }).map((_, index) => (
-          <ShimmerBox key={index} style={styles.chip} borderRadius={20} />
-        ))}
       </View>
 
       <View style={styles.countBlock}>
@@ -66,8 +60,8 @@ const styles = StyleSheet.create({
     height: 40,
   },
   pill: {
-    width: 72,
-    height: 38,
+    flex: 1,
+    height: 48,
   },
   searchBtn: {
     width: 40,
