@@ -1,13 +1,13 @@
 /** Thread screen tokens (reference: navy header, gray/lavender bubbles). */
 export const THREAD_UI = {
-  background: '#FFFFFF',
+  background: '#FAFBFE',
   headerBorder: '#E5E7EB',
   primary: '#1A237E',
   primaryLight: '#E8EAF6',
   incomingBubble: '#F2F2F7',
-  outgoingBubble: '#E8EAF6',
-  incomingText: '#1F2937',
-  outgoingText: '#1F2937',
+  outgoingBubble: '#E8EFFF',
+  incomingText: '#4A5568',
+  outgoingText: '#4A5568',
   textMuted: '#757575',
   textSecondary: '#6B7280',
   onlineGreen: '#22C55E',
@@ -15,7 +15,7 @@ export const THREAD_UI = {
   divider: '#E5E7EB',
   chipBorder: '#E5E7EB',
   inputBorder: '#E5E7EB',
-  timestamp: '#9CA3AF',
+  timestamp: '#8B95A8',
 } as const;
 
 export const QUICK_REPLIES = [

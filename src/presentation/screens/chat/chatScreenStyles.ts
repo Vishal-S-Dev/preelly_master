@@ -7,8 +7,8 @@ export const CHAT_ACCENT = {
   notificationRed: '#EF4444',
 } as const;
 
-const PRODUCT_CIRCLE = 60;
-const OVERLAP_AVATAR = 34;
+const PRODUCT_CIRCLE = 64;
+const OVERLAP_AVATAR = 36;
 
 export const getChatScreenStyles = (theme: AppTheme) => {
   const divider = theme.subText + '33';
@@ -183,12 +183,13 @@ export const getChatScreenStyles = (theme: AppTheme) => {
     row: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 6,
+      paddingVertical: 10,
     },
     productVisual: {
-      width: PRODUCT_CIRCLE + 8,
-      height: PRODUCT_CIRCLE + 8,
-      marginRight: 12,
+      position: 'relative',
+      width: PRODUCT_CIRCLE + 10,
+      height: PRODUCT_CIRCLE + 10,
+      marginRight: 14,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -200,10 +201,10 @@ export const getChatScreenStyles = (theme: AppTheme) => {
     },
     overlapAvatarWrap: {
       position: 'absolute',
-      right: 0,
-      bottom: 0,
-      width: OVERLAP_AVATAR + 4,
-      height: OVERLAP_AVATAR + 4,
+      right: -2,
+      bottom: -2,
+      width: OVERLAP_AVATAR + 6,
+      height: OVERLAP_AVATAR + 6,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -211,17 +212,17 @@ export const getChatScreenStyles = (theme: AppTheme) => {
       width: OVERLAP_AVATAR,
       height: OVERLAP_AVATAR,
       borderRadius: OVERLAP_AVATAR / 2,
-      borderWidth: 2,
+      borderWidth: 2.5,
       borderColor: theme.background,
       backgroundColor: placeholder,
     },
     overlapStatusDot: {
       position: 'absolute',
-      right: 0,
-      bottom: 0,
-      width: 10,
-      height: 10,
-      borderRadius: 5,
+      right: 1,
+      bottom: 1,
+      width: 11,
+      height: 11,
+      borderRadius: 5.5,
       borderWidth: 2,
       borderColor: theme.background,
     },
@@ -234,32 +235,37 @@ export const getChatScreenStyles = (theme: AppTheme) => {
     rowText: {
       flex: 1,
       minWidth: 0,
+      justifyContent: 'center',
+      gap: 3,
     },
     productTitle: {
       fontSize: 16,
       fontWeight: '700',
       color: theme.text,
+      letterSpacing: -0.2,
     },
     nameRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 4,
+      marginTop: 1,
     },
     contactName: {
       fontSize: 14,
+      fontWeight: '500',
       color: theme.subText,
-      marginRight: 4,
-      maxWidth: '85%',
+      marginRight: 2,
+      flexShrink: 1,
     },
     previewGrey: {
       fontSize: 14,
-      color: theme.subText,
-      marginTop: 4,
+      fontWeight: '400',
+      color: theme.subText + 'AA',
+      marginTop: 1,
     },
     unreadLine: {
       fontSize: 14,
-      color: theme.subText,
-      marginTop: 4,
+      color: theme.subText + 'AA',
+      marginTop: 1,
     },
     unreadBold: {
       fontWeight: '700',

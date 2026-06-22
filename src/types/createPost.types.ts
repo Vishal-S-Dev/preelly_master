@@ -24,6 +24,8 @@ export interface CreatePostImageAsset {
   id: string;
   uri: string;
   fromVideo?: boolean;
+  caption?: string;
+  order?: number;
 }
 
 export interface CreatePostDynamicField {

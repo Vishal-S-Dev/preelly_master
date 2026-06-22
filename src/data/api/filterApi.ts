@@ -43,11 +43,30 @@ const mapWebFilterToDynamic = (filter: WebFilterItem): DynamicFilterField => {
   };
 };
 
-const normalizeEmirates = (payload: EmiratesItem[] | ApiListResponse<EmiratesItem[]>): EmiratesItem[] => {
+const normalizeEmirates = (payload: unknown): EmiratesItem[] => {
+  let list: unknown[] = [];
+
   if (Array.isArray(payload)) {
-    return payload;
+    list = payload;
+  } else if (payload && typeof payload === 'object') {
+    const record = payload as ApiListResponse<EmiratesItem[]> & { emirates?: EmiratesItem[] };
+    if (Array.isArray(record.data)) {
+      list = record.data;
+    } else if (Array.isArray(record.emirates)) {
+      list = record.emirates;
+    } else if (record.data && typeof record.data === 'object' && Array.isArray((record.data as { emirates?: EmiratesItem[] }).emirates)) {
+      list = (record.data as { emirates: EmiratesItem[] }).emirates;
+    }
   }
-  return payload.data ?? [];
+
+  return list
+    .map((item, index) => {
+      const source = item as Partial<EmiratesItem> & { id?: string; label?: string };
+      const name = String(source.name ?? source.label ?? '').trim();
+      const id = String(source._id ?? source.id ?? name ?? `emirate-${index}`).trim();
+      return { _id: id, name };
+    })
+    .filter(item => item._id.length > 0 && item.name.length > 0);
 };
 
 const mapFormFieldType = (field: FormField): DynamicFilterField['fieldType'] => {

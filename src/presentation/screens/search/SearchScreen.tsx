@@ -15,12 +15,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
-  DEFAULT_SEARCH_CITY,
   POPULAR_LISTING_SECTIONS,
-  SEARCH_CITIES,
   SEARCH_SUGGESTIONS_MIN_LENGTH,
 } from '../../../constants/searchConstants';
-import { SearchCity, SearchListingItem } from '../../../types/search.types';
+import { SearchListingItem } from '../../../types/search.types';
 import { Category } from '../../../types/category.types';
 import {
   DEFAULT_PRICE_MAX,
@@ -34,13 +32,12 @@ import {
 } from '../../components/createPost/PropertySubcategoryAccordion';
 import { SubcategoryListSkeleton } from '../../components/createPost/SubcategoryListSkeleton';
 import { DynamicFilterRenderer } from '../../components/filter/DynamicFilterRenderer';
-import {
-  FilterDropdown,
-  mapCategoriesToDropdownOptions,
-} from '../../components/filter/FilterDropdown';
+import { EmirateFilterChips } from '../../components/filter/EmirateFilterChips';
+import { FilterDropdown, mapCategoriesToDropdownOptions } from '../../components/filter/FilterDropdown';
 import { PriceRangeSlider } from '../../components/filter/PriceRangeSlider';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDynamicFilters } from '../../hooks/useDynamicFilters';
+import { useEmirates } from '../../hooks/useEmirates';
 import { usePopularListings } from '../../hooks/usePopularListings';
 import { usePopularSearches } from '../../hooks/usePopularSearches';
 import { usePropertyCategories } from '../../hooks/usePropertyCategories';
@@ -52,7 +49,6 @@ import { CREATE_POST_CATEGORIES } from '../../../constants/createPostConstants';
 import { isMotorsCategory, payloadToSearchFilters } from './categoryFilterUtils';
 import { AccordionCategory } from '../../components/search/AccordionCategory';
 import { CategoryGrid } from '../../components/search/CategoryGrid';
-import { CityChip } from '../../components/search/CityChip';
 import { SubCategoryChip, subCategoryStyles } from '../../components/filter/SubCategoryChip';
 import { HorizontalVideoListing } from '../../components/search/HorizontalVideoListing';
 import { RecentSearches } from '../../components/search/RecentSearches';
@@ -99,8 +95,7 @@ export const SearchScreen: React.FC = () => {
   const inputRef = useRef<TextInput>(null);
 
   const [query, setQuery] = useState(route.params?.initialQuery ?? '');
-  const [selectedCity, setSelectedCity] =
-    useState<SearchCity>(DEFAULT_SEARCH_CITY);
+  const [selectedEmirates, setSelectedEmirates] = useState<string[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | undefined>();
   const [expandedPropertyCategoryId, setExpandedPropertyCategoryId] = useState<string | null>(null);
@@ -134,6 +129,12 @@ export const SearchScreen: React.FC = () => {
   const popularQuery = usePopularSearches(10);
   const suggestionsQuery = useSearchSuggestions(query);
   const listingsQuery = usePopularListings(8);
+  const emiratesQuery = useEmirates();
+  const emirates = emiratesQuery.data ?? [];
+  const emirateNameMap = useMemo(
+    () => new Map(emirates.map(item => [item._id, item.name])),
+    [emirates],
+  );
   const subcategoriesQuery = useSubcategories(isProperty ? undefined : selectedCategoryId);
   const propertyCategoriesQuery = usePropertyCategories(isProperty && Boolean(selectedCategoryId));
   const makeModelsQuery = useSubcategories(
@@ -160,11 +161,15 @@ export const SearchScreen: React.FC = () => {
     [navigation],
   );
 
-  const buildCityParam = useCallback(
-    (city: SearchCity = selectedCity) =>
-      city !== 'All Cities' ? city : undefined,
-    [selectedCity],
-  );
+  const buildLocationSearchParams = useCallback((): Pick<SearchFilterParams, 'city' | 'emirates'> => {
+    const emirateNames = selectedEmirates
+      .map(id => emirateNameMap.get(id))
+      .filter((name): name is string => Boolean(name));
+    return {
+      emirates: selectedEmirates.length ? selectedEmirates : undefined,
+      city: emirateNames[0],
+    };
+  }, [emirateNameMap, selectedEmirates]);
 
   const executeSearch = useCallback(
     async (keyword: string) => {
@@ -178,21 +183,10 @@ export const SearchScreen: React.FC = () => {
       await addRecentSearch(trimmed);
       openSearchFilter({
         keyword: trimmed,
-        city: buildCityParam(),
+        ...buildLocationSearchParams(),
       });
     },
-    [addRecentSearch, buildCityParam, openSearchFilter],
-  );
-
-  const handleCityPress = useCallback(
-    (city: SearchCity) => {
-      setSelectedCity(city);
-      openSearchFilter({
-        keyword: query.trim() || undefined,
-        city: city !== 'All Cities' ? city : undefined,
-      });
-    },
-    [openSearchFilter, query],
+    [addRecentSearch, buildLocationSearchParams, openSearchFilter],
   );
 
   const resetCategoryFilters = useCallback(() => {
@@ -250,10 +244,12 @@ export const SearchScreen: React.FC = () => {
   }, []);
 
   const buildFilterPayload = useCallback(() => {
-    const cityName = selectedCity !== 'All Cities' ? selectedCity : undefined;
+    const emirateNames = selectedEmirates
+      .map(id => emirateNameMap.get(id))
+      .filter((name): name is string => Boolean(name));
     return {
-      emirates: [],
-      emirateNames: cityName ? [cityName] : [],
+      emirates: selectedEmirates,
+      emirateNames,
       categoryId: selectedCategoryId ?? '',
       categoryName: selectedCategoryName ?? '',
       subCategoryId: subCategoryId,
@@ -268,7 +264,7 @@ export const SearchScreen: React.FC = () => {
       yearTo: yearTo.trim() || undefined,
       minKilometers: minKm.trim() ? Number(minKm) : undefined,
       maxKilometers: maxKm.trim() ? Number(maxKm) : undefined,
-      searchKeyword: query.trim() || subCategoryName || undefined,
+      searchKeyword: query.trim() || undefined,
       filters: dynamicValues,
     };
   }, [
@@ -282,7 +278,8 @@ export const SearchScreen: React.FC = () => {
     query,
     selectedCategoryId,
     selectedCategoryName,
-    selectedCity,
+    selectedEmirates,
+    emirateNameMap,
     subCategoryId,
     subCategoryName,
     trimId,
@@ -301,11 +298,8 @@ export const SearchScreen: React.FC = () => {
     }
     const payload = buildFilterPayload();
     const searchParams = payloadToSearchFilters(payload, query.trim() || undefined);
-    openSearchFilter({
-      ...searchParams,
-      city: buildCityParam(),
-    });
-  }, [buildFilterPayload, buildCityParam, openSearchFilter, query, selectedCategoryId]);
+    openSearchFilter(searchParams);
+  }, [buildFilterPayload, openSearchFilter, query, selectedCategoryId]);
 
   const propertySubcategorySection = useMemo(() => {
     if (propertyCategoriesQuery.isLoading) {
@@ -503,16 +497,14 @@ export const SearchScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>City</Text>
-          <View style={styles.chipWrap}>
-            {SEARCH_CITIES.map(city => (
-              <CityChip
-                key={city}
-                label={city}
-                selected={city === selectedCity}
-                onPress={handleCityPress}
-              />
-            ))}
-          </View>
+          <EmirateFilterChips
+            emirates={emirates}
+            selectedIds={selectedEmirates}
+            onChange={setSelectedEmirates}
+            isLoading={emiratesQuery.isLoading && emirates.length === 0}
+            isError={emiratesQuery.isError}
+            onRetry={() => emiratesQuery.refetch()}
+          />
         </View>
 
         <View style={styles.section}>

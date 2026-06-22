@@ -40,6 +40,8 @@ interface CreatePostStore extends CreatePostDraft {
   setImages: (images: CreatePostImageAsset[]) => void;
   addImages: (images: CreatePostImageAsset[]) => void;
   removeImage: (id: string) => void;
+  replaceImage: (id: string, updates: Partial<Omit<CreatePostImageAsset, 'id'>>) => void;
+  updateImage: (id: string, updates: Partial<Pick<CreatePostImageAsset, 'caption' | 'order'>>) => void;
   reorderImages: (from: number, to: number) => void;
   setTitle: (title: string) => void;
   setDescription: (description: string) => void;
@@ -117,6 +119,14 @@ export const useCreatePostStore = create<CreatePostStore>()(
         })),
       removeImage: id =>
         set(state => ({ images: state.images.filter(img => img.id !== id) })),
+      replaceImage: (id, updates) =>
+        set(state => ({
+          images: state.images.map(img => (img.id === id ? { ...img, ...updates } : img)),
+        })),
+      updateImage: (id, updates) =>
+        set(state => ({
+          images: state.images.map(img => (img.id === id ? { ...img, ...updates } : img)),
+        })),
       reorderImages: (from, to) =>
         set(state => {
           const next = [...state.images];

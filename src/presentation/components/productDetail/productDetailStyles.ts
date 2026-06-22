@@ -3,7 +3,7 @@ import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
 } from 'react-native-responsive-screen';
-import { QV_COLORS } from '../../presentation/components/productQuickView/productQuickViewStyles.ts';
+//import { QV_COLORS } from '../../presentation/components/productQuickView/productQuickViewStyles.ts';
 
 export const PD_COLORS = {
   bg: '#F8FAFC',
@@ -39,9 +39,10 @@ export const pdStyles = StyleSheet.create({
     }),
   },
 
+
   detail_section: {
-    backgroundColor: PD_COLORS.card,
-    marginHorizontal: wp('4%'),
+    //backgroundColor: PD_COLORS.card,
+    //marginHorizontal: wp('4%'),
     marginTop: hp('1.4%'),
     borderRadius: 16,
     padding: wp('1.5%'),
@@ -115,7 +116,7 @@ export const pdStyles = StyleSheet.create({
   },
   availableText: { color: '#FFF', fontWeight: '700', fontSize: wp('3.2%') },
   productTitle: {
-    fontSize: wp('5.2%'),
+    fontSize: wp('4.6%'),
     fontWeight: '800',
     color: PD_COLORS.text,
     lineHeight: wp('6.8%'),
@@ -158,7 +159,7 @@ export const pdStyles = StyleSheet.create({
   },
   overviewCell: {
     width: '30%',
-    minWidth: wp('27%'),
+    minWidth: wp('25%'),
     marginBottom: hp('1.2%'),
   },
   overviewLabel: {

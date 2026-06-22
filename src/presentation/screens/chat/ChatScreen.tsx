@@ -27,8 +27,8 @@ type ChatNav = NativeStackNavigationProp<RootStackParamList>;
 
 const FILTERS: ChatFilter[] = ['All', 'Buying', 'Selling', 'Unread', 'Following'];
 
-const VerifiedBadge: React.FC<{ theme: AppTheme }> = ({ theme }) => (
-  <Icon name="check-decagram" size={16} color={theme.primary} style={{ marginLeft: 2 }} />
+const VerifiedBadge: React.FC = () => (
+  <Icon name="check-decagram" size={15} color="#2563EB" style={{ marginLeft: 2 }} />
 );
 
 const ProductChatRow: React.FC<{
@@ -40,12 +40,21 @@ const ProductChatRow: React.FC<{
   <Pressable
     style={styles.row}
     android_ripple={{ color: theme.card }}
-    onPress={onPress}>
+    onPress={onPress}
+  >
     <View style={styles.productVisual}>
-      <Image
-        source={{ uri:  item.productImageUri }}
-        style={styles.productCircle}
-      />
+      <Image source={{ uri: item.productImageUri }} style={styles.productCircle} />
+      <View style={styles.overlapAvatarWrap}>
+        <Image source={{ uri: item.contactAvatarUri }} style={styles.overlapAvatar} />
+        {item.overlapDot !== 'none' ? (
+          <View
+            style={[
+              styles.overlapStatusDot,
+              item.overlapDot === 'red' ? styles.dotRed : styles.dotGreen,
+            ]}
+          />
+        ) : null}
+      </View>
     </View>
     <View style={styles.rowText}>
       <Text style={styles.productTitle} numberOfLines={1}>
@@ -55,7 +64,7 @@ const ProductChatRow: React.FC<{
         <Text style={styles.contactName} numberOfLines={1}>
           {item.contactName}
         </Text>
-        {item.contactVerified ? <VerifiedBadge theme={theme} /> : null}
+        {item.contactVerified ? <VerifiedBadge /> : null}
       </View>
       {item.unreadLabel ? (
         <Text style={styles.unreadLine} numberOfLines={1}>
@@ -235,7 +244,7 @@ export const ChatScreen: React.FC = () => {
               <Text style={styles.headerName} numberOfLines={1}>
                 {user?.name ?? 'Messages'}
               </Text>
-              {user?.isVerified ? <VerifiedBadge theme={theme} /> : null}
+              {user?.isVerified ? <VerifiedBadge /> : null}
             </View>
             <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
           </View>

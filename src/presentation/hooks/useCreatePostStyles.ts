@@ -61,6 +61,11 @@ export const getCreatePostStyles = (theme: AppTheme) =>
       marginBottom: 12,
       marginTop: 8,
     },
+    photoLimitText: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: theme.subText,
+    },
     content: { flexGrow: 1, paddingHorizontal: 16 },
     categoryScrollContent: { paddingTop: 8, paddingBottom: 24 },
     footer: {
@@ -159,6 +164,7 @@ export const getCreatePostStyles = (theme: AppTheme) =>
       gap: 6,
     },
     secondaryBtnText: { color: '#21357C', fontWeight: '700' },
+    secondaryBtnDisabled: { opacity: 0.45 },
     helperBanner: {
       backgroundColor: '#FFF4E5',
       borderRadius: 10,

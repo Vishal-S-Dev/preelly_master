@@ -89,7 +89,7 @@ export const PreviewStepScreen: React.FC<Props> = ({ navigation }) => {
         />
         <Text style={styles.sectionTitle}>{store.title}</Text>
         <Text style={styles.subtitle}>{store.description}</Text>
-        <PhotoGrid images={store.images} onRemove={() => undefined} styles={styles} />
+        <PhotoGrid images={store.images} onRemove={() => undefined} styles={styles} readOnly />
       </ScrollView>
       <View style={{ backgroundColor: styles.screen.backgroundColor, paddingBottom: Math.max(insets.bottom, 12) }}>
         <View style={styles.footer}>

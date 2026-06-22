@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   focusRing: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 999,
     borderWidth: 2,
   },

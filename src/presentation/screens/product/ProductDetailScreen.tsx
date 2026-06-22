@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  Alert, Dimensions,
   Linking,
   Pressable,
   RefreshControl,
@@ -35,7 +35,7 @@ import { useShareSheet } from '../../context/ShareSheetContext';
 import { productToSharePayload } from '../../../utils/shareLinks';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
-
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { productId, product: seedProduct } = route.params;
   const dispatch = useAppDispatch();
@@ -154,8 +154,27 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
             />
           }
         >
-          <ProductImageCarousel images={detail.images} />
-          <ProductHeaderCard detail={detail} />
+          <View style={styles.topView}>
+            <ProductImageCarousel images={detail.images} />
+            <View
+              style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}
+            >
+              <ProductHeaderCard detail={detail} />
+
+              <View style={pdStyles.detail_section}>
+                <ProductStatsRow
+                  likesCount={detail.product.likesCount}
+                  commentsCount={detail.commentsCount}
+                  sharesCount={detail.sharesCount}
+                  viewsCount={detail.viewsCount}
+                  isLiked={isLiked}
+                  isSaved={isSaved}
+                  onLike={handleLike}
+                  onSave={handleSave}
+                />
+              </View>
+            </View>
+          </View>
 
           {/*<View style={pdStyles.section}>
             <ProductStatsRow
@@ -170,7 +189,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
             />
           </View>*/}
 
-          <View style={pdStyles.detail_section}>
+          {/*<View style={pdStyles.detail_section}>
             <ProductStatsRow
               likesCount={detail.product.likesCount}
               commentsCount={detail.commentsCount}
@@ -181,7 +200,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
               onLike={handleLike}
               onSave={handleSave}
             />
-          </View>
+          </View>*/}
 
           <View style={pdStyles.section}>
             <Text style={pdStyles.sectionTitle}>Overview</Text>
@@ -198,7 +217,9 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           {detail.showFeatureSection ? (
             <View style={pdStyles.section}>
               <Text style={pdStyles.sectionTitle}>Features</Text>
-              <ProductFeaturesAccordion attributes={detail.productMultiAttributes} />
+              <ProductFeaturesAccordion
+                attributes={detail.productMultiAttributes}
+              />
             </View>
           ) : null}
 
@@ -230,11 +251,11 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
           ) : null}
 
-          {detail.categories.length > 0 ? (
+          {/*{detail.categories.length > 0 ? (
             <View style={pdStyles.section}>
               <ProductCategoriesAccordion categories={detail.categories} />
             </View>
-          ) : null}
+          ) : null}*/}
         </ScrollView>
       </Animated.View>
 
@@ -289,7 +310,13 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   topRight: { flexDirection: 'row', gap: 10 },
-  actions: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 0 },
+  actions: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 0,
+  },
   chatLoader: {
     position: 'absolute',
     right: 24,
@@ -297,5 +324,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.92)',
     borderRadius: 20,
     padding: 8,
+  },
+  topView: {
+    width: '100%',
+    height: SCREEN_HEIGHT * 0.8, // 40% of screen height
   },
 });

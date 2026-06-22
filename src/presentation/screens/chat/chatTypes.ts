@@ -1,4 +1,5 @@
 import { ChatThread } from '../../../domain/models/ChatThread';
+import { getDisplayAvatarUri } from '../../../utils/mediaUrl';
 
 export type ChatFilter = 'All' | 'Buying' | 'Selling' | 'Unread' | 'Following';
 
@@ -87,7 +88,8 @@ export function mapThreadsToChatRows(threads: ChatThread[]): ChatRow[] {
       contactName: other.name,
       contactVerified: other.isVerified,
       productImageUri: thread.productImageUrl || PLACEHOLDER,
-      contactAvatarUri: other.avatarUrl || PLACEHOLDER,
+      contactAvatarUri:
+        getDisplayAvatarUri(other.avatarUrl, other.name) || PLACEHOLDER,
       overlapDot,
       ...(unread > 0
         ? {

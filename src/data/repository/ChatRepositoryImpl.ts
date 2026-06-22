@@ -7,7 +7,7 @@ import {
 import { ChatMessage, ChatParticipant, ChatThread, ChatThreadKind } from '../../domain/models/ChatThread';
 import { User } from '../../domain/models/User';
 import { ChatRepository, ChatThreadWithMessages } from '../../domain/repository/ChatRepository';
-import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { getDisplayAvatarUri, resolveMediaUrl } from '../../utils/mediaUrl';
 
 const refId = (ref: string | { _id?: string } | null | undefined): string | null => {
   if (ref == null) {
@@ -23,11 +23,14 @@ const mapParticipant = (ref: ChatUserRefDTO | string | null | undefined): ChatPa
   if (!ref || typeof ref === 'string') {
     return { id: ref ?? '', name: 'User', avatarUrl: '', isVerified: false };
   }
-  const avatar = ref.avatar ? resolveMediaUrl(ref.avatar) : '';
+  const avatarUrl =
+    typeof ref !== 'string' && ref
+      ? getDisplayAvatarUri(ref.avatar, ref.name || ref.username) ?? ''
+      : '';
   return {
     id: ref._id,
     name: ref.name || ref.username || 'User',
-    avatarUrl: avatar,
+    avatarUrl,
     isVerified: Boolean(ref.isVerified),
   };
 };
@@ -36,14 +39,15 @@ const productImageFromDto = (product: ChatDocumentDTO['product']): string => {
   if (!product || typeof product === 'string') {
     return '';
   }
+  if (product.images?.length) {
+    const firstImage = product.images.find(path => !path.toLowerCase().endsWith('.mp4'));
+    return resolveMediaUrl(firstImage ?? product.images[0]) || '';
+  }
+  if (typeof product.image === 'string' && product.image.trim()) {
+    return resolveMediaUrl(product.image) || '';
+  }
   if (product.video) {
     return resolveMediaUrl(product.video) || '';
-  }
-  if (product.images?.length) {
-    return resolveMediaUrl(product.images[0]) || '';
-  }
-  if (typeof product.image === 'string' && product.image.startsWith('http')) {
-    return product.image;
   }
   return '';
 };

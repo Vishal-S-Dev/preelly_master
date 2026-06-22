@@ -237,9 +237,7 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
                 selfAvatar={selfAvatar}
                 selfName={user?.name ?? 'You'}
               />
-              <Text style={[styles.msgTime, isSelf ? styles.msgTimeSelf : styles.msgTimeOther]}>
-                {formatMessageTime(m.createdAt)}
-              </Text>
+              <Text style={styles.msgTime}>{formatMessageTime(m.createdAt)}</Text>
             </View>
           );
         })}
@@ -502,50 +500,47 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   msgBlock: {
-    marginBottom: 8,
+    marginBottom: 14,
   },
   msgRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    maxWidth: '88%',
+    alignItems: 'flex-start',
+    gap: 10,
+    maxWidth: '82%',
   },
   msgRowSelf: {
     alignSelf: 'flex-end',
-    flexDirection: 'row-reverse',
   },
   msgRowOther: {
     alignSelf: 'flex-start',
   },
   msgAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: THREAD_UI.incomingBubble,
   },
   bubble: {
+    flexShrink: 1,
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     maxWidth: '100%',
   },
   bubbleIncoming: {
     backgroundColor: THREAD_UI.incomingBubble,
-    borderBottomLeftRadius: 4,
   },
   bubbleOutgoing: {
     backgroundColor: THREAD_UI.outgoingBubble,
-    borderBottomRightRadius: 4,
   },
   callBubble: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 1,
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: THREAD_UI.chipBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   callBubbleText: {
     fontSize: 14,
@@ -556,17 +551,11 @@ const styles = StyleSheet.create({
     color: '#EF4444',
   },
   msgTime: {
-    fontSize: 10,
+    fontSize: 11,
     color: THREAD_UI.timestamp,
-    marginTop: 4,
-  },
-  msgTimeSelf: {
-    alignSelf: 'flex-end',
-    marginRight: 40,
-  },
-  msgTimeOther: {
-    alignSelf: 'flex-start',
-    marginLeft: 40,
+    marginTop: 6,
+    textAlign: 'center',
+    alignSelf: 'center',
   },
   listingBubble: {
     borderRadius: 16,

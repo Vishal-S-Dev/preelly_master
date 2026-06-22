@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   REFRESH_TOKEN: '/api/auth/refresh-token',
   FEED: '/api/videos/feed',
   PRODUCTS: '/api/products',
+  SEARCH: 'api/v1/web/search',
   CHATS: '/api/chats',
   CHATS_UNREAD_COUNT: '/api/chats/unread-count',
   PRODUCT_COMMENTS: '/api/products',

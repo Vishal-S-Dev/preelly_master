@@ -2,6 +2,7 @@ export interface ChatParticipant {
   id: string;
   name: string;
   avatarUrl: string;
+  avatar: string;
   isVerified: boolean;
 }
 
@@ -15,6 +16,7 @@ export interface ChatThread {
   productId: string | null;
   productTitle: string;
   productImageUrl: string;
+  product: Product;
   images: string[];
   buyer: ChatParticipant;
   seller: ChatParticipant;
@@ -42,4 +44,8 @@ export interface ChatMessage {
   read: boolean;
   readAt: string | null;
   callMeta?: ChatCallMeta | null;
+}
+export interface Product {
+  id: string;
+  images : string[];
 }

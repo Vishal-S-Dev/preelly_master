@@ -110,6 +110,7 @@ httpClient.interceptors.response.use(
       }
     }
 
+
     const message = error.response?.data?.message ?? error.message ?? 'Unexpected network error';
     // Keep original Axios error shape so callers can read response.data/code.
     (error as AxiosError<{ message?: string }> & { message: string }).message = message;

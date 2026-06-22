@@ -12,7 +12,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
-import { PD_COLORS, pdStyles } from './productDetailStyles';
+//import { PD_COLORS, pdStyles } from './productDetailStyles';
 
 interface Props {
   images: string[];
@@ -20,7 +20,7 @@ interface Props {
 
 export const ProductImageCarousel = memo<Props>(({ images }) => {
   const { width } = useWindowDimensions();
-  const carouselHeight = hp('44%');
+  const carouselHeight = hp('100%');
   const [index, setIndex] = useState(0);
   const listRef = useRef<FlatList<string>>(null);
 
@@ -51,7 +51,7 @@ export const ProductImageCarousel = memo<Props>(({ images }) => {
           height: carouselHeight,
           backgroundColor: '#000',
         }}
-        resizeMode="contain"
+        resizeMode="cover"
       />
     ),
     [carouselHeight, width],

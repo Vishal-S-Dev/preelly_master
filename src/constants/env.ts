@@ -14,9 +14,9 @@ const prodWebBaseUrl = normalize(process.env.PREELLY_WEB_API_BASE_URL_PROD);
 export const ENV = {
   API_BASE_URL:
     (__DEV__ ? devBaseUrl : prodBaseUrl) ??
-    (__DEV__ ? 'http://117.254.196.100:5002' : 'http://117.254.196.100:5002'),
+    (__DEV__ ? 'http://117.254.196.100:8029' : 'http://117.254.196.100:8029'),
   WEB_API_BASE_URL:
     (__DEV__ ? devWebBaseUrl : prodWebBaseUrl) ??
-    (__DEV__ ? 'http://117.254.196.100:3002' : 'http://117.254.196.100:3002'),
+    (__DEV__ ? 'http://117.254.196.100:8029' : 'http://117.254.196.100:8029'),
   API_TIMEOUT_MS: 12000,
 } as const;

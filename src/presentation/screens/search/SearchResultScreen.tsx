@@ -27,6 +27,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SEARCH_CITIES } from '../../../constants/searchConstants';
+import {
+  DEFAULT_PRICE_MAX,
+  DEFAULT_PRICE_MIN,
+} from '../../../types/categoryFilter.types';
 import { SearchListingItem } from '../../../types/search.types';
 import {
   SEARCH_SORT_OPTIONS,
@@ -34,6 +38,7 @@ import {
   SearchSortOption,
 } from '../../../types/searchFilter.types';
 import { FilterChip } from '../../components/search/FilterChip';
+import { PriceRangeSlider } from '../../components/filter/PriceRangeSlider';
 import { SearchHeaderPill } from '../../components/search/SearchHeaderPill';
 import {
   SEARCH_RESULT_GRID_GAP,
@@ -52,6 +57,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { useAppDispatch } from '../../hooks/useRedux';
 import { saveProduct } from '../../redux/slices/productSlice';
 import { PANEL_ANIMATION_MS, PANEL_HEIGHT } from '../../utils/searchMotion';
+import { isMotorsCategory } from './categoryFilterUtils';
 
 type PanelMode = 'none' | 'filter' | 'sort';
 
@@ -138,10 +144,10 @@ export const SearchResultScreen: React.FC = () => {
   const [draftCategoryId, setDraftCategoryId] = useState(filters.categoryId);
   const [draftCity, setDraftCity] = useState(filters.city ?? 'All Cities');
   const [draftMinPrice, setDraftMinPrice] = useState(
-    filters.minPrice ? String(filters.minPrice) : '',
+    filters.minPrice ?? DEFAULT_PRICE_MIN,
   );
   const [draftMaxPrice, setDraftMaxPrice] = useState(
-    filters.maxPrice ? String(filters.maxPrice) : '',
+    filters.maxPrice ?? DEFAULT_PRICE_MAX,
   );
   const [draftYear, setDraftYear] = useState(filters.year ?? '');
   const [draftMaxKm, setDraftMaxKm] = useState(filters.maxKilometers ?? '');
@@ -194,6 +200,28 @@ export const SearchResultScreen: React.FC = () => {
   const resultLabel = resolveResultLabel(filters);
   const activeFilterCount = countActiveFilters(filters);
 
+  const isMotors = useMemo(() => {
+    if (isMotorsCategory(filters.categoryName)) {
+      return true;
+    }
+    if (filters.categoryId) {
+      const category = rootCategories.find(item => item._id === filters.categoryId);
+      return isMotorsCategory(category?.name);
+    }
+    return false;
+  }, [filters.categoryId, filters.categoryName, rootCategories]);
+
+  const visibleFilterChips = useMemo(
+    () =>
+      SEARCH_CHIP_CONFIG.filter(chip => {
+        if (chip.id === 'kilometres' || chip.id === 'year') {
+          return isMotors;
+        }
+        return true;
+      }),
+    [isMotors],
+  );
+
   const isInitialLoading = searchQuery.isLoading && products.length === 0;
   const isRefreshing = searchQuery.isRefetching && !searchQuery.isFetchingNextPage;
 
@@ -209,8 +237,8 @@ export const SearchResultScreen: React.FC = () => {
       setActiveChip(chip);
       setDraftCategoryId(filters.categoryId);
       setDraftCity(filters.city ?? 'All Cities');
-      setDraftMinPrice(filters.minPrice ? String(filters.minPrice) : '');
-      setDraftMaxPrice(filters.maxPrice ? String(filters.maxPrice) : '');
+      setDraftMinPrice(filters.minPrice ?? DEFAULT_PRICE_MIN);
+      setDraftMaxPrice(filters.maxPrice ?? DEFAULT_PRICE_MAX);
       setDraftYear(filters.year ?? '');
       setDraftMaxKm(filters.maxKilometers ?? '');
       filterSheetRef.current?.present();
@@ -219,14 +247,14 @@ export const SearchResultScreen: React.FC = () => {
   );
 
   const applyFilters = useCallback(() => {
-    const min = draftMinPrice.trim() ? Number(draftMinPrice) : undefined;
-    const max = draftMaxPrice.trim() ? Number(draftMaxPrice) : undefined;
+    const min = draftMinPrice;
+    const max = draftMaxPrice;
     setFilters(prev => ({
       ...prev,
       categoryId: draftCategoryId,
       city: draftCity,
-      minPrice: Number.isFinite(min) ? min : undefined,
-      maxPrice: Number.isFinite(max) ? max : undefined,
+      minPrice: min !== DEFAULT_PRICE_MIN ? min : undefined,
+      maxPrice: max !== DEFAULT_PRICE_MAX ? max : undefined,
       year: draftYear.trim() || undefined,
       maxKilometers: draftMaxKm.trim() || undefined,
     }));
@@ -239,8 +267,8 @@ export const SearchResultScreen: React.FC = () => {
     });
     setDraftCategoryId(undefined);
     setDraftCity('All Cities');
-    setDraftMinPrice('');
-    setDraftMaxPrice('');
+    setDraftMinPrice(DEFAULT_PRICE_MIN);
+    setDraftMaxPrice(DEFAULT_PRICE_MAX);
     setDraftYear('');
     setDraftMaxKm('');
     filterSheetRef.current?.dismiss();
@@ -366,7 +394,7 @@ export const SearchResultScreen: React.FC = () => {
   const renderFilterPanel = useMemo(
     () => (
       <FlatList
-        data={SEARCH_CHIP_CONFIG}
+        data={visibleFilterChips}
         horizontal
         keyExtractor={item => item.id}
         showsHorizontalScrollIndicator={false}
@@ -392,7 +420,7 @@ export const SearchResultScreen: React.FC = () => {
         )}
       />
     ),
-    [activeFilterCount, filterChipSelected, handleFilterChipPress],
+    [activeFilterCount, filterChipSelected, handleFilterChipPress, visibleFilterChips],
   );
 
   const renderSortPanel = useMemo(
@@ -555,7 +583,7 @@ export const SearchResultScreen: React.FC = () => {
             {activeChip === 'region'
               ? 'Region'
               : activeChip === 'price'
-                ? 'Price Range'
+                ? ''
                 : activeChip === 'year'
                   ? 'Year'
                   : activeChip === 'kilometres'
@@ -592,28 +620,12 @@ export const SearchResultScreen: React.FC = () => {
           )}
 
           {(activeChip === 'filter' || activeChip === 'price') && (
-            <View style={styles.sheetSection}>
-              <Text style={[styles.sheetLabel, { color: theme.subText }]}>Price (AED)</Text>
-              <View style={styles.priceRow}>
-                <TextInput
-                  value={draftMinPrice}
-                  onChangeText={setDraftMinPrice}
-                  placeholder="Min"
-                  placeholderTextColor={theme.subText}
-                  keyboardType="number-pad"
-                  style={[styles.priceInput, { color: theme.text, borderColor: theme.subText + '33' }]}
-                />
-                <Text style={{ color: theme.subText }}>—</Text>
-                <TextInput
-                  value={draftMaxPrice}
-                  onChangeText={setDraftMaxPrice}
-                  placeholder="Max"
-                  placeholderTextColor={theme.subText}
-                  keyboardType="number-pad"
-                  style={[styles.priceInput, { color: theme.text, borderColor: theme.subText + '33' }]}
-                />
-              </View>
-            </View>
+            <PriceRangeSlider
+              minValue={draftMinPrice}
+              maxValue={draftMaxPrice}
+              onChangeMin={setDraftMinPrice}
+              onChangeMax={setDraftMaxPrice}
+            />
           )}
 
           {activeChip === 'filter' && (
@@ -644,7 +656,7 @@ export const SearchResultScreen: React.FC = () => {
             </View>
           )}
 
-          {(activeChip === 'filter' || activeChip === 'year') && (
+          {isMotors && (activeChip === 'filter' || activeChip === 'year') && (
             <View style={styles.sheetSection}>
               <Text style={[styles.sheetLabel, { color: theme.subText }]}>Year</Text>
               <TextInput
@@ -658,7 +670,7 @@ export const SearchResultScreen: React.FC = () => {
             </View>
           )}
 
-          {(activeChip === 'filter' || activeChip === 'kilometres') && (
+          {isMotors && (activeChip === 'filter' || activeChip === 'kilometres') && (
             <View style={styles.sheetSection}>
               <Text style={[styles.sheetLabel, { color: theme.subText }]}>Max Kilometres</Text>
               <TextInput

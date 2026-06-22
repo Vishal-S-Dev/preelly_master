@@ -69,7 +69,7 @@ export const TopHeader: React.FC<Props> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 10,
+    top: Platform.OS === 'ios' ? 54 : 50,
     left: 16,
     right: 16,
     flexDirection: 'row',

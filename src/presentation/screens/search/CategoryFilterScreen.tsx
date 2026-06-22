@@ -27,7 +27,7 @@ import { SubcategoryListSkeleton } from '../../components/createPost/Subcategory
 import { CategoryGrid } from '../../components/search/CategoryGrid';
 import { CategoryFilterSkeleton } from '../../components/filter/CategoryFilterSkeleton';
 import { DynamicFilterRenderer } from '../../components/filter/DynamicFilterRenderer';
-import { FilterCityChip, styles as cityChipStyles } from '../../components/filter/FilterCityChip';
+import { EmirateFilterChips } from '../../components/filter/EmirateFilterChips';
 import {
   FilterDropdown,
   mapCategoriesToDropdownOptions,
@@ -100,12 +100,6 @@ export const CategoryFilterScreen: React.FC = () => {
   );
 
   const isInitialLoading = emiratesQuery.isLoading && !emirates.length;
-
-  const toggleEmirate = useCallback((id: string) => {
-    setSelectedEmirates(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id],
-    );
-  }, []);
 
   const handleCategorySelect = useCallback((id: string, name: string) => {
     setCategoryId(id);
@@ -264,22 +258,14 @@ export const CategoryFilterScreen: React.FC = () => {
         </View>
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>City</Text>
-        {emiratesQuery.isError ? (
-          <Pressable onPress={() => emiratesQuery.refetch()} style={styles.retryWrap}>
-            <Text style={{ color: theme.primary }}>Retry loading cities</Text>
-          </Pressable>
-        ) : (
-          <View style={cityChipStyles.chipWrap}>
-            {emirates.map(item => (
-              <FilterCityChip
-                key={item._id}
-                label={item.name}
-                selected={selectedEmirates.includes(item._id)}
-                onPress={() => toggleEmirate(item._id)}
-              />
-            ))}
-          </View>
-        )}
+        <EmirateFilterChips
+          emirates={emirates}
+          selectedIds={selectedEmirates}
+          onChange={setSelectedEmirates}
+          isLoading={emiratesQuery.isLoading && emirates.length === 0}
+          isError={emiratesQuery.isError}
+          onRetry={() => emiratesQuery.refetch()}
+        />
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Categories</Text>
         <CategoryGrid

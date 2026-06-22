@@ -1,8 +1,9 @@
 import { API_ENDPOINTS, PAGINATION } from '../../constants/appConstants';
+import { ENV } from '../../constants/env';
 import { ProductDTO, ProductsResponseDTO } from '../dto/ProductDTO';
 import { httpClient } from './httpClient';
 
-const PRODUCTS_BASE_URL = 'http://117.254.196.100:5002';
+const PRODUCTS_BASE_URL = ENV.API_BASE_URL;
 
 const withBase = (path: string): string =>
   path.startsWith('http')

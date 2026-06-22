@@ -19,7 +19,7 @@ const mapImageAssets = (assets: Asset[]) =>
     }));
 
 export const useMediaPicker = () => {
-  const { video, images, setVideo, addImages } = useCreatePostStore();
+  const { video, images, setVideo, addImages, replaceImage } = useCreatePostStore();
 
   const pickVideoFromGallery = useCallback(async () => {
     const status = await requestMediaPermission('gallery');
@@ -120,10 +120,40 @@ export const useMediaPicker = () => {
     addImages(mapImageAssets(result.assets));
   }, [addImages, images.length]);
 
+  const pickImageToReplace = useCallback(
+    async (replaceId: string) => {
+      const status = await requestMediaPermission('gallery');
+      if (status === 'blocked') {
+        Alert.alert('Permission blocked', 'Open settings to allow photo library access.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: openAppSettings },
+        ]);
+        return;
+      }
+      if (status !== 'granted') {
+        showPermissionAlert('gallery', status);
+        return;
+      }
+
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: 1,
+      });
+      if (result.didCancel || !result.assets?.[0]?.uri) {
+        return;
+      }
+
+      const [asset] = mapImageAssets(result.assets);
+      replaceImage(replaceId, { uri: asset.uri, fromVideo: false });
+    },
+    [replaceImage],
+  );
+
   return {
     video,
     pickVideoFromGallery,
     captureVideo,
     pickImages,
+    pickImageToReplace,
   };
 };

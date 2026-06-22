@@ -1,10 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { VIDEO_CONSTRAINTS } from '../../../constants/createPostConstants';
 import { useCreatePostStore } from '../../../store/createPostStore';
-import { CreatePostStackParamList } from '../../../types/createPost.types';
+import { CreatePostImageAsset, CreatePostStackParamList } from '../../../types/createPost.types';
 import { AppInput } from '../../components/createPost/AppInput';
 import { CreatePostFooter, CreatePostHeader } from '../../components/createPost/StepIndicator';
 import { PhotoGrid } from '../../components/createPost/PhotoGrid';
@@ -17,19 +16,49 @@ type Props = NativeStackScreenProps<CreatePostStackParamList, 'CreatePostDetails
 
 export const AutoDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useCreatePostStyles();
-  const { subcategoryName, title, description, images, video, transcript, setTitle, setDescription, removeImage } =
-    useCreatePostStore();
-  const { pickImages } = useMediaPicker();
+  const {
+    subcategoryName,
+    title,
+    description,
+    images,
+    video,
+    transcript,
+    setTitle,
+    setDescription,
+    setImages,
+    removeImage,
+    updateImage,
+  } = useCreatePostStore();
+  const { pickImages, pickImageToReplace } = useMediaPicker();
   const [framePickerVisible, setFramePickerVisible] = useState(false);
   const displayImages = useMemo(() => filterRenderableCreatePostImages(images), [images]);
+  const atImageLimit = images.length >= VIDEO_CONSTRAINTS.maxImages;
+
+  const handlePhotosChange = useCallback(
+    (nextImages: CreatePostImageAsset[]) => {
+      setImages(nextImages);
+    },
+    [setImages],
+  );
+
+  const handleUpdateImage = useCallback(
+    (id: string, updates: Partial<CreatePostImageAsset>) => {
+      updateImage(id, updates);
+    },
+    [updateImage],
+  );
 
   const onNext = useCallback(() => {
     if (!title.trim() || !description.trim()) {
       Alert.alert('Required', 'Please add title and description.');
       return;
     }
+    if (displayImages.length === 0) {
+      Alert.alert('Required', 'Please add at least one photo.');
+      return;
+    }
     navigation.navigate('CreatePostFormStep');
-  }, [description, navigation, title]);
+  }, [description, displayImages.length, navigation, title]);
 
   return (
     <View style={styles.screen}>
@@ -62,16 +91,16 @@ export const AutoDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
           placeholder="Description"
         />
         <Text style={styles.sectionTitle}>
-          Photos (Max {VIDEO_CONSTRAINTS.maxImages})
+          Photos <Text style={styles.photoLimitText}>(Max {VIDEO_CONSTRAINTS.maxImages} images)</Text>
         </Text>
-        {/*<Text style={styles.subtitle}>
-          {displayImages.length}/{VIDEO_CONSTRAINTS.maxImages} added
-        </Text>*/}
 
         {displayImages.length > 0 ? (
           <PhotoGrid
             images={displayImages}
             onRemove={removeImage}
+            onReplace={pickImageToReplace}
+            onUpdate={handleUpdateImage}
+            onPhotosChange={handlePhotosChange}
             styles={styles}
           />
         ) : (
@@ -91,20 +120,19 @@ export const AutoDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
                 : Alert.alert('Upload video first')
             }
           >
-            {/*<Icon name="monitor-screenshot" size={18} color="#0066CC" />*/}
             <Text style={styles.secondaryBtnText}>Screen Grab</Text>
           </Pressable>
           <Pressable
-            style={styles.secondaryBtn}
+            style={[styles.secondaryBtn, atImageLimit && styles.secondaryBtnDisabled]}
+            disabled={atImageLimit}
             onPress={() => {
-              if (images.length >= VIDEO_CONSTRAINTS.maxImages) {
+              if (atImageLimit) {
                 Alert.alert('Limit reached', 'Maximum 10 photos allowed.');
                 return;
               }
               pickImages();
             }}
           >
-            {/*<Icon name="image-plus" size={18} color="#0066CC" />*/}
             <Text style={styles.secondaryBtnText}>Add Photos</Text>
           </Pressable>
         </View>

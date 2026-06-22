@@ -7,8 +7,10 @@ export const isMotorsCategory = (name?: string): boolean =>
 export const payloadToSearchFilters = (
   payload: CategoryFilterPayload,
   keyword?: string,
-): SearchFilterParams => ({
-  keyword: payload.searchKeyword?.trim() || keyword,
+): SearchFilterParams => {
+  const searchText = keyword?.trim() || payload.searchKeyword?.trim();
+  return {
+    keyword: searchText || undefined,
   city: payload.emirateNames[0],
   emirates: payload.emirates,
   categoryId: payload.categoryId,
@@ -24,4 +26,5 @@ export const payloadToSearchFilters = (
   minKilometers: payload.minKilometers,
   maxKilometers: payload.maxKilometers ? String(payload.maxKilometers) : undefined,
   dynamicFilters: payload.filters,
-});
+  };
+};
