@@ -3,6 +3,7 @@ import { httpClient } from './httpClient';
 import { LocationPayload } from '../../types/profileEdit.types';
 import { ProfileApiUserDTO } from '../../services/profile.service';
 import {
+  UserFollowStatusResponseDTO,
   UserFollowToggleResponseDTO,
   UserProfileDTO,
 } from '../../types/userProfile.types';
@@ -133,6 +134,14 @@ export const UserApi = {
     const { data } = await httpClient.post<UserFollowToggleResponseDTO>(
       `/api/user/${userId}/follow`,
       undefined,
+      { baseURL: API_BASE },
+    );
+    return unwrap(data);
+  },
+
+  async getFollowStatus(userId: string): Promise<UserFollowStatusResponseDTO> {
+    const { data } = await httpClient.get<UserFollowStatusResponseDTO>(
+      `/api/user/${userId}/follow-status`,
       { baseURL: API_BASE },
     );
     return unwrap(data);

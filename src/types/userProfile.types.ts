@@ -78,3 +78,9 @@ export interface UserFollowToggleResponseDTO {
   followerCount?: number;
   followingCount?: number;
 }
+
+export type UserFollowStatus = 'none' | 'pending' | 'active' | 'self' | 'blocked';
+
+export interface UserFollowStatusResponseDTO {
+  status: UserFollowStatus;
+}

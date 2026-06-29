@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
   SEARCH_SUGGESTIONS: '/api/v1/web/search/suggestions',
   EMIRATES: '/api/v1/web/emirates',
   WEB_FILTERS: '/api/v1/web/filters',
+  NOTIFICATIONS: '/api/user/notifications',
 } as const;
 
 export const PAGINATION = {

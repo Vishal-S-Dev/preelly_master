@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ProductDetailView } from '../../../types/product.types';
 import { pdStyles } from './productDetailStyles';
+import GradientPriceBadge from '../common/GradientPriceBadge';
 
 interface Props {
   detail: ProductDetailView;
@@ -15,9 +16,14 @@ export const ProductHeaderCard = memo<Props>(({ detail }) => {
   return (
     <View style={pdStyles.headerCard}>
       <View style={pdStyles.badgeRow}>
-        <View style={pdStyles.priceBadge}>
+        {/*<View style={pdStyles.priceBadge}>
           <Text style={pdStyles.priceBadgeText}>{priceLabel}</Text>
-        </View>
+        </View>*/}
+        <GradientPriceBadge
+          currency={product.currency}
+          price={product.price}
+          size="compact"
+        />
         <View style={pdStyles.availableBadge}>
           <Text style={pdStyles.availableText}>{availability}</Text>
         </View>

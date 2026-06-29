@@ -3,11 +3,10 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import {
-  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   FlatList,
-  Platform,
+  Pressable,
   RefreshControl,
   Share,
   Text,
@@ -28,8 +27,7 @@ import { ProductGridCard } from '../../components/profile/ProductGridCard';
 import { useProfileStyles } from '../../hooks/useProfileStyles';
 import { useProfileData } from '../../hooks/useProfileData';
 import { useAppDispatch } from '../../hooks/useRedux';
-import { logoutUser, updateAuthUser } from '../../redux/slices/authSlice';
-import { toggleTheme } from '../../redux/slices/themeSlice';
+import { updateAuthUser } from '../../redux/slices/authSlice';
 import { ProfileProductGridItem } from '../../../types/profile.types';
 import { requestMediaPermission, showPermissionAlert } from '../../../utils/mediaPermissions';
 import {
@@ -249,33 +247,8 @@ export const ProfileScreen: React.FC = () => {
   }, [uploadingAvatar]);
 
   const openMoreMenu = useCallback(() => {
-    const onToggleTheme = () => dispatch(toggleTheme());
-    const onLogout = () => dispatch(logoutUser());
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Toggle Theme', 'Logout', 'Cancel'],
-          destructiveButtonIndex: 1,
-          cancelButtonIndex: 2,
-        },
-        index => {
-          if (index === 0) {
-            onToggleTheme();
-          } else if (index === 1) {
-            onLogout();
-          }
-        },
-      );
-      return;
-    }
-
-    Alert.alert('Profile options', undefined, [
-      { text: 'Toggle Theme', onPress: onToggleTheme },
-      { text: 'Logout', style: 'destructive', onPress: onLogout },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  }, [dispatch]);
+    navigation.navigate('MySettings');
+  }, [navigation]);
 
   const onEditProfile = useCallback(() => {
     navigation.navigate('ProfileEdit');
@@ -339,6 +312,7 @@ export const ProfileScreen: React.FC = () => {
         initialIndex: index,
         seedProducts: reelProducts,
         listingSource: activeTab === 'posts' ? 'posts' : activeTab,
+        ownerMode: true,
       });
     },
     [activeTab, navigation, profile.id, reelProducts],
@@ -372,6 +346,17 @@ export const ProfileScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
+      <View style={profileTopBarStyles.wrap}>
+        <View style={profileTopBarStyles.spacer} />
+        <Pressable
+          onPress={() => navigation.navigate('Notifications')}
+          hitSlop={12}
+          style={profileTopBarStyles.bellBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Open notifications">
+          <Icon name="bell-outline" size={24} color={colors.text} />
+        </Pressable>
+      </View>
       <FlatList
         key={activeTab}
         data={loading && items.length === 0 ? [] : items}
@@ -408,4 +393,23 @@ export const ProfileScreen: React.FC = () => {
       />
     </SafeAreaView>
   );
+};
+
+const profileTopBarStyles = {
+  wrap: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'flex-end' as const,
+    paddingHorizontal: 20,
+    paddingBottom: 4,
+  },
+  spacer: {
+    flex: 1,
+  },
+  bellBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
 };

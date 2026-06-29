@@ -7,6 +7,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   ChatThread: { threadId: string };
   ProductDetail: { productId: string; product?: Product };
+  EditProduct: { productId: string; product?: Product };
   CreatePost: undefined;
   ProfileEdit: { requireCompletion?: boolean } | undefined;
   Login: undefined;
@@ -46,7 +47,11 @@ export type RootStackParamList = {
     initialIndex: number;
     seedProducts?: Product[];
     listingSource?: UserFeedListingSource;
+    ownerMode?: boolean;
   };
+  Notifications: undefined;
+  FollowRequests: undefined;
+  MySettings: undefined;
 };
 
 export type MainTabParamList = {

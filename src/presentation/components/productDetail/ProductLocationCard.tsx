@@ -7,11 +7,12 @@ interface Props {
   title: string;
   address: string;
   onShowMap?: () => void;
+  hideTitle?: boolean;
 }
 
-export const ProductLocationCard = memo<Props>(({ title, address, onShowMap }) => (
+export const ProductLocationCard = memo<Props>(({ title, address, onShowMap, hideTitle = false }) => (
   <View>
-    <Text style={pdStyles.sectionTitle}>Location</Text>
+    {!hideTitle ? <Text style={pdStyles.sectionTitle}>Location</Text> : null}
     <Text style={{ color: '#6B7280', fontSize: 13, marginBottom: 10 }}>{title}</Text>
     <ImageBackground
       source={{ uri: 'https://picsum.photos/seed/map-preview/900/400' }}

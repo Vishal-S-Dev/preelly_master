@@ -5,6 +5,7 @@ import CalendarIcon from '../../../../assets/icons/calender.svg';
 import KmIcon from '../../../../assets/icons/km.svg';
 import { ProductQuickViewData } from './productQuickViewTypes';
 import { qvStyles } from './productQuickViewStyles';
+import GradientPriceBadge from '../common/GradientPriceBadge';
 
 interface Props {
   data: ProductQuickViewData;
@@ -17,14 +18,23 @@ export const ProductMetaInfo: React.FC<Props> = ({ data, onTitlePress }) => {
   return (
     <>
       <View style={qvStyles.headerRow}>
-        <Pressable onPress={onTitlePress} disabled={!onTitlePress} style={{ flex: 1 }}>
+        <Pressable
+          onPress={onTitlePress}
+          disabled={!onTitlePress}
+          style={{ flex: 1 }}
+        >
           <Text style={qvStyles.title}>{product.title}</Text>
         </Pressable>
-        <View style={qvStyles.pricePill}>
+        {/*<View style={qvStyles.pricePill}>
           <Text style={qvStyles.priceText}>
             {product.currency} {product.price.toLocaleString()}
           </Text>
-        </View>
+        </View>*/}
+        <GradientPriceBadge
+          currency={product.currency}
+          price={product.price}
+          size="compact"
+        />
       </View>
 
       <View style={qvStyles.metaRow}>

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   ListRenderItem,
@@ -19,6 +20,10 @@ import { Product } from '../../../domain/models/Product';
 import { Loader } from '../../components/common/Loader';
 import { CommentsBottomSheet } from '../../components/comments/CommentsBottomSheet';
 import { ProductQuickViewSheet } from '../../components/productQuickView/ProductQuickViewSheet';
+import {
+  OwnerListingMenuAction,
+  OwnerListingMenuSheet,
+} from '../../components/reel/OwnerListingMenuSheet';
 import { ReelCard } from '../../components/ReelCard';
 import { ReelPlaybackProvider } from '../../context/ReelPlaybackContext';
 import { useShareSheet } from '../../context/ShareSheetContext';
@@ -52,6 +57,7 @@ export const UserFeedScreen: React.FC = () => {
     initialIndex,
     seedProducts,
     listingSource = 'posts',
+    ownerMode = false,
   } = route.params;
 
   const {
@@ -77,9 +83,11 @@ export const UserFeedScreen: React.FC = () => {
   const flatListRef = useRef<FlatList<Product>>(null);
   const quickViewRef = useRef<BottomSheetModal>(null);
   const commentsRef = useRef<BottomSheetModal>(null);
+  const ownerMenuRef = useRef<BottomSheetModal>(null);
   const [muted, setMuted] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [commentsProduct, setCommentsProduct] = useState<Product | null>(null);
+  const [ownerMenuProduct, setOwnerMenuProduct] = useState<Product | null>(null);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -146,9 +154,13 @@ export const UserFeedScreen: React.FC = () => {
 
   const handleOpenDetail = useCallback(
     (product: Product) => {
+      if (ownerMode) {
+        navigation.navigate('EditProduct', { productId: product.id, product });
+        return;
+      }
       navigation.navigate('ProductDetail', { productId: product.id, product });
     },
-    [navigation],
+    [navigation, ownerMode],
   );
 
   const handleShare = useCallback(
@@ -156,6 +168,56 @@ export const UserFeedScreen: React.FC = () => {
       openShare(productToSharePayload(product, 'reel'));
     },
     [openShare],
+  );
+
+  const handleOwnerMenu = useCallback((product: Product) => {
+    setOwnerMenuProduct(product);
+    requestAnimationFrame(() => {
+      ownerMenuRef.current?.present();
+    });
+  }, []);
+
+  const handleOwnerMenuDismiss = useCallback(() => {
+    setOwnerMenuProduct(null);
+  }, []);
+
+  const handleOwnerMenuAction = useCallback(
+    (action: OwnerListingMenuAction, product: Product) => {
+      if (action === 'delete') {
+        Alert.alert(
+          'Delete this Ad',
+          'Are you sure you want to delete this listing? This action cannot be undone.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: () => undefined,
+            },
+          ],
+        );
+        return;
+      }
+
+      if (action === 'edit') {
+        navigation.navigate('EditProduct', { productId: product.id, product });
+        return;
+      }
+
+      const labels: Record<string, string> = {
+        warehouse: 'Move to Warehouse',
+        insight: 'See Insight',
+        boost: 'Boost this Ad',
+        sold: 'Mark as sold',
+        unpublish: 'Unpublish this',
+      };
+
+      Alert.alert(
+        labels[action] ?? 'Listing action',
+        'This action will be available in a future update.',
+      );
+    },
+    [navigation],
   );
 
   const onScrollToIndexFailed = useCallback((info: { index: number }) => {
@@ -173,6 +235,7 @@ export const UserFeedScreen: React.FC = () => {
           isActive={index === activeIndex}
           muted={muted}
           fullscreenVideo
+          ownerMode={ownerMode}
           onTogglePause={togglePause}
           onLike={handleLike}
           onSave={handleSave}
@@ -180,6 +243,7 @@ export const UserFeedScreen: React.FC = () => {
           onComment={handleComment}
           onOpenDetail={handleOpenDetail}
           onShare={handleShare}
+          onOwnerMenu={ownerMode ? handleOwnerMenu : undefined}
           onOpenProfile={profileUserId => {
             if (profileUserId && profileUserId !== userId) {
               navigation.navigate('OtherProfile', { userId: profileUserId });
@@ -193,11 +257,13 @@ export const UserFeedScreen: React.FC = () => {
       handleComment,
       handleLike,
       handleOpenDetail,
+      handleOwnerMenu,
       handleShare,
       handleQuickView,
       handleSave,
       muted,
       navigation,
+      ownerMode,
       togglePause,
       userId,
     ],
@@ -287,6 +353,15 @@ export const UserFeedScreen: React.FC = () => {
           product={commentsProduct}
           onDismiss={handleCommentsDismiss}
         />
+
+        {ownerMode ? (
+          <OwnerListingMenuSheet
+            ref={ownerMenuRef}
+            product={ownerMenuProduct}
+            onDismiss={handleOwnerMenuDismiss}
+            onAction={handleOwnerMenuAction}
+          />
+        ) : null}
       </View>
     </ReelPlaybackProvider>
   );

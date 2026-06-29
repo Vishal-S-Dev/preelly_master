@@ -12,6 +12,7 @@ import { useProfileStyles } from '../../hooks/useProfileStyles';
 interface Props {
   followState: ProfileFollowState;
   followLoading?: boolean;
+  followStatusLoading?: boolean;
   onFollow: () => void;
   onMessage: () => void;
   onMore: () => void;
@@ -75,17 +76,20 @@ const PillButton: React.FC<{
 };
 
 export const UserProfileActionButtons = memo<Props>(
-  ({ followState, followLoading, onFollow, onMessage, onMore }) => {
+  ({ followState, followLoading, followStatusLoading, onFollow, onMessage, onMore }) => {
     const { styles, colors } = useProfileStyles();
     const followLabel = getFollowLabel(followState);
     const isFollowing = followState.following || followState.pending;
+    const isBlocked = followState.status === 'blocked';
+    const followButtonLoading = Boolean(followLoading || followStatusLoading);
 
     return (
       <View style={styles.actionsRow}>
         <PillButton
-          label={followLabel}
+          label={isBlocked ? 'Blocked' : followLabel}
           onPress={onFollow}
-          loading={followLoading}
+          loading={followButtonLoading}
+          disabled={isBlocked}
           variant={isFollowing ? 'secondary' : 'primary'}
           styles={styles}
           colors={colors}

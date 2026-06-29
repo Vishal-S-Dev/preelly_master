@@ -29,18 +29,9 @@ interface Props {
   onProfileView: () => void;
   onComment: () => void;
   onShare?: () => void;
+  ownerMode?: boolean;
+  onOwnerMenu?: () => void;
 }
-
-const ActionMetric: React.FC<{ icon: string; value: number; color?: string }> = ({
-  icon,
-  value,
-  color = '#fff',
-}) => (
-  <View style={styles.actionItem}>
-    <Icon name={icon} color={color} size={31} />
-    <Text style={styles.metric}>{value}</Text>
-  </View>
-);
 
 export const ActionButtons: React.FC<Props> = ({
   likesCount,
@@ -55,6 +46,8 @@ export const ActionButtons: React.FC<Props> = ({
   onProfileView,
   onComment,
   onShare,
+  ownerMode = false,
+  onOwnerMenu,
 }) => {
   const avatarUri = resolveAvatarUri(avatar);
 
@@ -66,59 +59,54 @@ export const ActionButtons: React.FC<Props> = ({
       ) : (
         <Icon name={'heart-outline'} color="#FFF" size={31} />
       )}
-      {/*<Icon
-        name={isLiked ? 'heart' : 'heart-outline'}
-        color="#FF2D55"
-        size={31}
-      />*/}
       <Text style={styles.metric}>{likesCount}</Text>
     </Pressable>
     <Pressable onPress={onComment} style={styles.actionItem}>
       <Ionicons name="chatbubble-ellipses" color="#fff" size={31} />
       <Text style={styles.metric}>{commentsCount}</Text>
     </Pressable>
-    {/*<ActionMetric icon="send-outline" value={sharesCount} />*/}
     <Pressable onPress={onShare} style={styles.actionItem} disabled={!onShare}>
       <Send width={45} height={45} />
       <Text style={styles.metric}>{sharesCount}</Text>
     </Pressable>
-    <Pressable onPress={onQuickView} style={styles.actionItem}>
-      <ViewIcon width={45} height={45} />
-    </Pressable>
-    <Pressable onPress={onSave} style={styles.actionItem}>
-      <Icon
-        name={isSaved ? 'bookmark' : 'bookmark-outline'}
-        color="#fff"
-        size={30}
-      />
-    </Pressable>
-    {/*<Pressable onPress={onQuickView} style={styles.actionItem}>
-      <Icon name={'scan-eye'} color="#fff" size={30} />
-    </Pressable>*/}
-    {/*<Pressable onPress={onProfileView}>
-      <View style={styles.profileWrap}>
-        <Image
-          source={{ uri: avatar ?? 'https://i.pravatar.cc/200?img=3' }}
-          style={styles.avatar}
+    {!ownerMode ? (
+      <Pressable onPress={onQuickView} style={styles.actionItem}>
+        <ViewIcon width={45} height={45} />
+      </Pressable>
+    ) : null}
+    {!ownerMode ? (
+      <Pressable onPress={onSave} style={styles.actionItem}>
+        <Icon
+          name={isSaved ? 'bookmark' : 'bookmark-outline'}
+          color="#fff"
+          size={30}
         />
-        <View style={styles.plusBadge}>
-          <Icon name="plus" color="#fff" size={12} />
-        </View>
-      </View>
-    </Pressable>*/}
-    <Pressable onPress={onProfileView}>
-      <View style={styles.profileWrap}>
-        {avatarUri ? (
-          <Image source={{ uri: avatarUri }} style={styles.avatar} />
-        ) : (
-          <AvatarIcon width={45} height={45} />
-        )}
+      </Pressable>
+    ) : null}
+    {!ownerMode ? (
+      <Pressable onPress={onProfileView}>
+        <View style={styles.profileWrap}>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+          ) : (
+            <AvatarIcon width={40} height={40} />
+          )}
 
-        <View style={styles.plusBadge}>
-          <Icon name="plus" color="#fff" size={12} />
+          <View style={styles.plusBadge}>
+            <Icon name="plus" color="#fff" size={12} />
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    ) : null}
+    {ownerMode && onOwnerMenu ? (
+      <Pressable
+        onPress={onOwnerMenu}
+        style={styles.actionItem}
+        accessibilityRole="button"
+        accessibilityLabel="More listing options">
+        <Icon name="dots-vertical" color="#fff" size={31} />
+      </Pressable>
+    ) : null}
   </View>
   );
 };
@@ -131,10 +119,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 8,
   },
-  actionItem: { alignItems: 'center', marginBottom: 16 },
-  metric: { color: '#fff', fontSize: 18 / 2, fontWeight: '700', marginTop: 6 },
+  actionItem: { alignItems: 'center', marginBottom: 8 },
+  metric: { color: '#fff', fontSize: 18 / 2, fontWeight: '700', marginTop: 2 },
   profileWrap: { marginTop: 6, position: 'relative' },
-  avatar: { width: 42, height: 42, borderRadius: 21, borderWidth: 2, borderColor: '#fff' },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 21,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
   plusBadge: {
     position: 'absolute',
     bottom: -6,

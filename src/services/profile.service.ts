@@ -7,6 +7,7 @@ import { UserApi } from '../data/api/UserApi';
 import { httpClient } from '../data/api/httpClient';
 import type { ProfileProductGridItem } from '../types/profile.types';
 import type {
+  UserFollowStatusResponseDTO,
   UserFollowToggleResponseDTO,
   UserProfileDTO,
 } from '../types/userProfile.types';
@@ -179,6 +180,10 @@ export const profileService = {
 
   async toggleFollow(userId: string): Promise<UserFollowToggleResponseDTO> {
     return UserApi.toggleFollow(userId);
+  },
+
+  async getFollowStatus(userId: string): Promise<UserFollowStatusResponseDTO> {
+    return UserApi.getFollowStatus(userId);
   },
 
   async getFollowersCount(userId: string): Promise<number> {

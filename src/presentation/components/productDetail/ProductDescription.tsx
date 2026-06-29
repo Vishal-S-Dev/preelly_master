@@ -9,15 +9,18 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 interface Props {
   title: string;
   description: string;
+  hideTitle?: boolean;
 }
 
-export const ProductDescription = memo<Props>(({ title, description }) => {
+export const ProductDescription = memo<Props>(({ title, description, hideTitle = false }) => {
   const [expanded, setExpanded] = useState(false);
   const preview = description.length > 160 ? `${description.slice(0, 160)}...` : description;
 
   return (
     <View>
-      <Text style={[pdStyles.sectionTitle, { marginBottom: 8 }]}>{title}</Text>
+      {!hideTitle ? (
+        <Text style={[pdStyles.sectionTitle, { marginBottom: 8 }]}>{title}</Text>
+      ) : null}
       <Text style={{ color: '#4B5563', lineHeight: 22, fontSize: 14 }}>
         {expanded ? description : preview}
       </Text>

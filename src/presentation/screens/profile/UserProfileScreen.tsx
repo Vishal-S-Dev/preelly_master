@@ -63,6 +63,7 @@ export const UserProfileScreen: React.FC = () => {
     refreshing,
     loadingMore,
     followLoading,
+    followStatusLoading,
     followState,
     error,
     statsFormatted,
@@ -112,6 +113,7 @@ export const UserProfileScreen: React.FC = () => {
             <UserProfileActionButtons
               followState={followState}
               followLoading={followLoading}
+              followStatusLoading={followStatusLoading}
               onFollow={toggleFollow}
               onMessage={onMessageUser}
               onMore={openMoreMenu}
@@ -126,6 +128,7 @@ export const UserProfileScreen: React.FC = () => {
     [
       error,
       followLoading,
+      followStatusLoading,
       followState,
       items.length,
       loading,

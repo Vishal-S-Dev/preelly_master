@@ -7,6 +7,7 @@ import {
   ProfileProductGridItem,
   ProfileUserView,
 } from '../../types/profile.types';
+import { UserFollowStatus } from '../../types/userProfile.types';
 import { useAppSelector } from './useRedux';
 
 const PAGE_SIZE = 18;
@@ -77,8 +78,23 @@ const resolveInitialFollowState = (
   return {
     following: isFollowing,
     pending: false,
-    status: isFollowing ? 'following' : 'none',
+    status: isFollowing ? 'active' : 'none',
   };
+};
+
+export const mapFollowStatusToState = (status?: UserFollowStatus | string): ProfileFollowState => {
+  switch (status) {
+    case 'active':
+      return { following: true, pending: false, status: 'active' };
+    case 'pending':
+      return { following: false, pending: true, status: 'pending' };
+    case 'blocked':
+      return { following: false, pending: false, status: 'blocked' };
+    case 'self':
+      return { following: false, pending: false, status: 'self' };
+    default:
+      return { following: false, pending: false, status: 'none' };
+  }
 };
 
 const emptyProfile = (userId: string): ProfileUserView => ({
@@ -102,7 +118,32 @@ export const useOtherUserProfileData = (userId: string) => {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [followStatusLoading, setFollowStatusLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isOwnProfile = Boolean(viewerUserId && viewerUserId === userId);
+
+  const loadFollowStatus = useCallback(async () => {
+    if (!userId || isOwnProfile || !viewerUserId) {
+      return;
+    }
+
+    setFollowStatusLoading(true);
+    try {
+      const { status } = await profileService.getFollowStatus(userId);
+      const followState = mapFollowStatusToState(status);
+      setProfile(current => {
+        if (!current) {
+          return current;
+        }
+        return { ...current, followState };
+      });
+    } catch {
+      // Keep profile-derived follow state as fallback.
+    } finally {
+      setFollowStatusLoading(false);
+    }
+  }, [isOwnProfile, userId, viewerUserId]);
 
   const loadProfileMeta = useCallback(async () => {
     if (!userId) {
@@ -184,11 +225,15 @@ export const useOtherUserProfileData = (userId: string) => {
     loadPosts(1, true);
   }, [loadProfileMeta, loadPosts]);
 
+  useEffect(() => {
+    void loadFollowStatus();
+  }, [loadFollowStatus]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadProfileMeta();
+    await Promise.all([loadProfileMeta(), loadFollowStatus()]);
     await loadPosts(1, true);
-  }, [loadPosts, loadProfileMeta]);
+  }, [loadFollowStatus, loadPosts, loadProfileMeta]);
 
   const onLoadMore = useCallback(() => {
     if (loading || loadingMore || refreshing || !hasMore) {
@@ -197,10 +242,8 @@ export const useOtherUserProfileData = (userId: string) => {
     loadPosts(page + 1, false);
   }, [hasMore, loadPosts, loading, loadingMore, page, refreshing]);
 
-  const isOwnProfile = Boolean(viewerUserId && viewerUserId === userId);
-
   const toggleFollow = useCallback(async () => {
-    if (!userId || followLoading || isOwnProfile) {
+    if (!userId || followLoading || followStatusLoading || isOwnProfile) {
       return;
     }
 
@@ -209,41 +252,43 @@ export const useOtherUserProfileData = (userId: string) => {
       pending: false,
       status: 'none',
     };
+
+    if (previousFollowState.status === 'blocked') {
+      return;
+    }
+
     const previousFollowers = profile?.stats.followers ?? 0;
+    const isConnected = previousFollowState.following || previousFollowState.pending;
+    const optimisticFollowState: ProfileFollowState = isConnected
+      ? { following: false, pending: false, status: 'none' }
+      : { following: false, pending: true, status: 'pending' };
+    const followerDelta = previousFollowState.following ? -1 : 0;
 
     setFollowLoading(true);
     setProfile(current => {
       if (!current) {
         return current;
       }
-      const nextFollowing = !current.followState?.following;
       return {
         ...current,
-        followState: {
-          following: nextFollowing,
-          pending: false,
-          status: nextFollowing ? 'following' : 'none',
-        },
+        followState: optimisticFollowState,
         stats: {
           ...current.stats,
-          followers: Math.max(0, current.stats.followers + (nextFollowing ? 1 : -1)),
+          followers: Math.max(0, current.stats.followers + followerDelta),
         },
       };
     });
 
     try {
       const response = await profileService.toggleFollow(userId);
+      const nextFollowState = mapFollowStatusToState(response.status);
       setProfile(current => {
         if (!current) {
           return current;
         }
         return {
           ...current,
-          followState: {
-            following: Boolean(response.following),
-            pending: Boolean(response.pending),
-            status: response.status,
-          },
+          followState: nextFollowState,
           stats: {
             ...current.stats,
             followers:
@@ -274,7 +319,14 @@ export const useOtherUserProfileData = (userId: string) => {
     } finally {
       setFollowLoading(false);
     }
-  }, [followLoading, isOwnProfile, profile?.followState, profile?.stats.followers, userId]);
+  }, [
+    followLoading,
+    followStatusLoading,
+    isOwnProfile,
+    profile?.followState,
+    profile?.stats.followers,
+    userId,
+  ]);
 
   const statsFormatted = useMemo(
     () => ({
@@ -299,6 +351,7 @@ export const useOtherUserProfileData = (userId: string) => {
     refreshing,
     loadingMore,
     followLoading,
+    followStatusLoading,
     followState,
     error,
     statsFormatted,

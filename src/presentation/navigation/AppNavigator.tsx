@@ -15,6 +15,7 @@ import {
 import { ChatNavigator } from './ChatNavigator';
 import { ChatThreadScreen } from '../screens/chat/ChatThreadScreen';
 import { ProductDetailScreen } from '../screens/product/ProductDetailScreen';
+import { EditProductScreen } from '../screens/product/EditProductScreen';
 import { CreatePostNavigator } from './CreatePostNavigator';
 import { ProfileEditScreen } from '../screens/profile/edit/ProfileEditScreen';
 import { OnboardingScreen } from '../screens/onboarding/OnboardingScreen';
@@ -29,6 +30,9 @@ import { UserFeedScreen } from '../screens/profile/UserFeedScreen';
 import { SearchScreen } from '../screens/search/SearchScreen';
 import { SearchResultScreen } from '../screens/search/SearchResultScreen.tsx';
 import { CategoryFilterScreen } from '../screens/search/CategoryFilterScreen';
+import { NotificationsScreen } from '../screens/notifications/NotificationsScreen';
+import { FollowRequestsScreen } from '../screens/notifications/FollowRequestsScreen';
+import { MySettingsScreen } from '../screens/settings/MySettingsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -167,6 +171,11 @@ export const AppNavigator: React.FC = () => {
               options={{ animation: 'slide_from_right' }}
             />
             <Stack.Screen
+              name="EditProduct"
+              component={EditProductScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
               name="CreatePost"
               component={CreatePostNavigator}
               options={{
@@ -214,6 +223,21 @@ export const AppNavigator: React.FC = () => {
               name="UserFeed"
               component={UserFeedScreen}
               options={{ animation: 'fade' }}
+            />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="FollowRequests"
+              component={FollowRequestsScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="MySettings"
+              component={MySettingsScreen}
+              options={{ animation: 'slide_from_right' }}
             />
           </>
         ) : (

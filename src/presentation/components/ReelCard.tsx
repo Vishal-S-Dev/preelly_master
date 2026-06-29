@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -10,7 +10,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Product } from '../../domain/models/Product';
 import { ActionButtons } from './ActionButtons';
+import { GradientPriceBadge } from './common/GradientPriceBadge';
 import { VideoPlayer, VideoPlayerFullscreen } from './VideoPlayer';
+import LinearGradient from "react-native-linear-gradient";
 
 interface Props {
   product: Product;
@@ -25,12 +27,15 @@ interface Props {
   onOpenProfile: (id: string) => void;
   onShare?: (product: Product) => void;
   fullscreenVideo?: boolean;
+  ownerMode?: boolean;
+  onOwnerMenu?: (product: Product) => void;
 }
 
 const areReelCardPropsEqual = (prev: Props, next: Props): boolean =>
   prev.product.id === next.product.id &&
   prev.isActive === next.isActive &&
   prev.muted === next.muted &&
+  prev.ownerMode === next.ownerMode &&
   prev.product.isPaused === next.product.isPaused &&
   prev.product.liked === next.product.liked &&
   prev.product.isSaved === next.product.isSaved &&
@@ -54,6 +59,8 @@ export const ReelCard: React.FC<Props> = React.memo(
     onOpenProfile,
     onShare,
     fullscreenVideo = false,
+    ownerMode = false,
+    onOwnerMenu,
   }) => {
     const heartScale = useSharedValue(0);
     const heartOpacity = useSharedValue(0);
@@ -110,11 +117,15 @@ export const ReelCard: React.FC<Props> = React.memo(
             isLiked={product.liked}
             isSaved={product.isSaved}
             avatar={product.seller?.avatar}
+            ownerMode={ownerMode}
             onLike={() => onLike(product.id)}
             onSave={() => onSave(product.id)}
             onQuickView={() => onQuickView(product)}
             onComment={() => onComment(product)}
             onShare={onShare ? () => onShare(product) : undefined}
+            onOwnerMenu={
+              ownerMode && onOwnerMenu ? () => onOwnerMenu(product) : undefined
+            }
             onProfileView={() => {
               const sellerId = product.seller?.id;
               if (sellerId) {
@@ -123,16 +134,25 @@ export const ReelCard: React.FC<Props> = React.memo(
             }}
           />
           {/* Bottom Content Section */}
+          <LinearGradient
+            colors={[
+              'rgba(2,2,2,0.89)',
+              'rgba(17,24,39,0)',
+            ]}
+            start={{ x: 0.5, y: 1 }}
+            end={{ x: 0.5, y: 0 }}
+            style={styles.bottomShadow}
+          />
           <View style={styles.bottom}>
             <View style={styles.row}>
               <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
                 {product.title}
               </Text>
-              <View style={styles.priceBadge}>
-                <Text style={styles.priceText}>
-                  {product.currency} {product.price.toLocaleString()}
-                </Text>
-              </View>
+              <GradientPriceBadge
+                currency={product.currency}
+                price={product.price}
+                size="compact"
+              />
             </View>
             <View style={styles.descRow}>
               <View style={styles.specsRow}>
@@ -198,8 +218,15 @@ const styles = StyleSheet.create({
     fontSize: 80,
   },
   bottomInfo: { paddingHorizontal: 16, paddingBottom: 110, paddingRight: 90 },
-  title: { color: '#fff', fontSize: 18, fontWeight: '800', flex: 1 },
-  description: { color: '#E2E8F0', marginTop: 6, fontSize: 14, },
+  title: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 10,
+  },
+  description: { color: '#E2E8F0', marginTop: 6, fontSize: 14 },
   badgeRow: {
     marginTop: 10,
     flexDirection: 'row',
@@ -256,14 +283,27 @@ const styles = StyleSheet.create({
     paddingBottom: 85,
     paddingHorizontal: 16,
   },
+  bottomShadow: {
+    paddingBottom: 0,
+    bottom: '0',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 240, // adjust as needed
+    justifyContent: 'flex-end',
+  },
   row: {
     flexDirection: 'row',
     width: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   descRow: {
     flexDirection: 'row',
     width: '100%',
-    marginTop: 4
+    marginTop: 6,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   priceRow: {
     flexDirection: 'row',
