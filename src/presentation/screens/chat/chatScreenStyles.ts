@@ -90,8 +90,38 @@ export const getChatScreenStyles = (theme: AppTheme) => {
       paddingLeft: 16,
       paddingRight: 8,
       paddingBottom: 12,
+    },
+    toolbarWrap: {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: divider,
+      overflow: 'hidden',
+    },
+    searchSlot: {
+      paddingHorizontal: 16,
+      overflow: 'hidden',
+    },
+    searchBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      height: 46,
+      borderRadius: 23,
+      borderWidth: 1,
+      borderColor: chipBorder,
+      backgroundColor: theme.background,
+      paddingHorizontal: 14,
+    },
+    searchInput: {
+      flex: 1,
+      marginHorizontal: 10,
+      fontSize: 15,
+      color: theme.text,
+      paddingVertical: 0,
+    },
+    searchCloseBtn: {
+      width: 28,
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     filterScroll: {
       flex: 1,

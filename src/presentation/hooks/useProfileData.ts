@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Product } from '../../domain/models/Product';
 import { User } from '../../domain/models/User';
 import { profileService } from '../../services/profile.service';
@@ -11,6 +11,13 @@ import { getDisplayAvatarUri, resolveMediaUrl } from '../../utils/mediaUrl';
 import { useAppSelector } from './useRedux';
 
 const PAGE_SIZE = 18;
+
+type ProfileTabCache = {
+  items: ProfileProductGridItem[];
+  reelProducts: Product[];
+  page: number;
+  hasMore: boolean;
+};
 
 const mergeById = <T extends { id: string }>(
   prev: T[],
@@ -90,6 +97,12 @@ export const useProfileData = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const tabCacheRef = useRef<Partial<Record<ProfileTabKey, ProfileTabCache>>>({});
+  const activeTabRef = useRef<ProfileTabKey>(activeTab);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
 
   const loadProfileMeta = useCallback(async () => {
     if (!userId) {
@@ -152,28 +165,61 @@ export const useProfileData = () => {
     [userId],
   );
 
+  const applyTabCache = useCallback((tab: ProfileTabKey) => {
+    const cached = tabCacheRef.current[tab];
+    if (!cached) {
+      return false;
+    }
+    setItems(cached.items);
+    setReelProducts(cached.reelProducts);
+    setPage(cached.page);
+    setHasMore(cached.hasMore);
+    setLoading(false);
+    return true;
+  }, []);
+
   const loadItems = useCallback(
-    async (tab: ProfileTabKey, nextPage = 1, replace = true) => {
-      if (replace) {
+    async (
+      tab: ProfileTabKey,
+      nextPage = 1,
+      replace = true,
+      options?: { background?: boolean },
+    ) => {
+      const cached = tabCacheRef.current[tab];
+      const showBlockingLoader = replace && !options?.background && !cached;
+
+      if (showBlockingLoader) {
         setLoading(true);
         setItems([]);
         setReelProducts([]);
         setPage(1);
-      } else {
+      } else if (!replace) {
         setLoadingMore(true);
+      } else if (replace && options?.background) {
+        setLoading(false);
       }
 
       try {
         const { rows, reelRows, more } = await fetchTabItems(tab, nextPage, replace);
-        let addedCount = 0;
-        setItems(prev => {
-          const { merged, addedCount: count } = mergeById(prev, rows, replace);
-          addedCount = count;
-          return merged;
-        });
-        setReelProducts(prev => mergeById(prev, reelRows, replace).merged);
-        setPage(nextPage);
-        setHasMore(more && (replace || addedCount > 0));
+        const previousItems = tabCacheRef.current[tab]?.items ?? [];
+        const previousReels = tabCacheRef.current[tab]?.reelProducts ?? [];
+        const { merged: mergedItems, addedCount } = mergeById(previousItems, rows, replace);
+        const { merged: mergedReels } = mergeById(previousReels, reelRows, replace);
+        const nextHasMore = more && (replace || addedCount > 0);
+
+        tabCacheRef.current[tab] = {
+          items: mergedItems,
+          reelProducts: mergedReels,
+          page: nextPage,
+          hasMore: nextHasMore,
+        };
+
+        if (activeTabRef.current === tab) {
+          setItems(mergedItems);
+          setReelProducts(mergedReels);
+          setPage(nextPage);
+          setHasMore(nextHasMore);
+        }
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -188,11 +234,13 @@ export const useProfileData = () => {
   }, [loadProfileMeta]);
 
   useEffect(() => {
-    loadItems(activeTab, 1, true);
-  }, [activeTab, loadItems]);
+    const hasCachedTab = applyTabCache(activeTab);
+    loadItems(activeTab, 1, true, { background: hasCachedTab });
+  }, [activeTab, applyTabCache, loadItems]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    delete tabCacheRef.current[activeTab];
     await loadProfileMeta();
     await loadItems(activeTab, 1, true);
   }, [activeTab, loadItems, loadProfileMeta]);
@@ -220,9 +268,20 @@ export const useProfileData = () => {
     loadItems(activeTab, page + 1, false);
   }, [activeTab, hasMore, loadItems, loading, loadingMore, page, refreshing]);
 
-  const onTabChange = useCallback((tab: ProfileTabKey) => {
-    setActiveTab(tab);
-  }, []);
+  const onTabChange = useCallback(
+    (tab: ProfileTabKey) => {
+      if (tab === activeTab) {
+        return;
+      }
+      if (!applyTabCache(tab)) {
+        setItems([]);
+        setReelProducts([]);
+        setLoading(true);
+      }
+      setActiveTab(tab);
+    },
+    [activeTab, applyTabCache],
+  );
 
   const statsFormatted = useMemo(
     () => ({

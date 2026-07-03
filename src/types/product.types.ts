@@ -74,6 +74,8 @@ export interface ProductDetailView {
   showFeatureSection: boolean;
   locationTitle: string;
   locationAddress: string;
+  locationLatitude?: number;
+  locationLongitude?: number;
   seller: ProductSellerInfo;
   similarAds: SimilarAdItem[];
   categories: ProductCategoryItem[];

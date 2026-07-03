@@ -39,7 +39,6 @@ export const pdStyles = StyleSheet.create({
     }),
   },
 
-
   detail_section: {
     //backgroundColor: PD_COLORS.card,
     //marginHorizontal: wp('4%'),
@@ -64,6 +63,23 @@ export const pdStyles = StyleSheet.create({
   },
   floatingBtn: {
     width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: PD_COLORS.glass,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: { elevation: 4 },
+    }),
+  },
+  floatingBtnEdit: {
+    width: wp('20%'),
     height: wp('10%'),
     borderRadius: wp('5%'),
     backgroundColor: PD_COLORS.glass,
@@ -214,6 +230,7 @@ export const pdStyles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   mapBtn: {
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -28,7 +28,7 @@ import { useProfileStyles } from '../../hooks/useProfileStyles';
 import { useProfileData } from '../../hooks/useProfileData';
 import { useAppDispatch } from '../../hooks/useRedux';
 import { updateAuthUser } from '../../redux/slices/authSlice';
-import { ProfileProductGridItem } from '../../../types/profile.types';
+import { ProfileUserView, ProfileProductGridItem, ProfileTabKey } from '../../../types/profile.types';
 import { requestMediaPermission, showPermissionAlert } from '../../../utils/mediaPermissions';
 import {
   toUploadableProfileImage,
@@ -37,17 +37,6 @@ import {
 import { UserApi } from '../../../data/api/UserApi';
 import { STORAGE_KEYS } from '../../../constants/appConstants';
 import { storage } from '../../../utils/storage';
-
-const GridSkeleton: React.FC = () => {
-  const { styles } = useProfileStyles();
-  return (
-    <View style={styles.skeletonGrid}>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <View key={`sk_${i}`} style={[styles.skeletonCell, { width: '32%', aspectRatio: 0.72 }]} />
-      ))}
-    </View>
-  );
-};
 
 const EmptyGrid: React.FC<{ tab: string }> = ({ tab }) => {
   const { styles, colors } = useProfileStyles();
@@ -66,6 +55,103 @@ const EmptyGrid: React.FC<{ tab: string }> = ({ tab }) => {
     </View>
   );
 };
+
+const GridSkeleton: React.FC = () => {
+  const { styles } = useProfileStyles();
+  return (
+    <View style={styles.skeletonGrid}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <View key={`sk_${i}`} style={[styles.skeletonCell, { width: '32%', aspectRatio: 0.72 }]} />
+      ))}
+    </View>
+  );
+};
+
+type ProfileStaticHeaderProps = {
+  profile: ProfileUserView;
+  statsFormatted: {
+    adsPosted: string;
+    followers: string;
+    following: string;
+  };
+  uploadingAvatar: boolean;
+  onEditAvatar: () => void;
+  onEditProfile: () => void;
+  onShareProfile: () => void;
+  onMore: () => void;
+};
+
+const ProfileStaticHeader = memo<ProfileStaticHeaderProps>(
+  ({
+    profile,
+    statsFormatted,
+    uploadingAvatar,
+    onEditAvatar,
+    onEditProfile,
+    onShareProfile,
+    onMore,
+  }) => (
+    <Animated.View entering={FadeInDown.duration(380)}>
+      <ProfileHeader
+        profile={profile}
+        onEditAvatar={onEditAvatar}
+        uploadingAvatar={uploadingAvatar}
+      />
+      <View style={{ paddingHorizontal: 20 }}>
+        <ProfileStats stats={profile.stats} formatted={statsFormatted} />
+        <ProfileActionButtons
+          onEditProfile={onEditProfile}
+          onShareProfile={onShareProfile}
+          onMore={onMore}
+        />
+        <ProfileBio lines={profile.bioLines} />
+      </View>
+    </Animated.View>
+  ),
+);
+
+ProfileStaticHeader.displayName = 'ProfileStaticHeader';
+
+type ProfileListHeaderProps = {
+  activeTab: ProfileTabKey;
+  onTabChange: (tab: ProfileTabKey) => void;
+  profile: ProfileUserView;
+  statsFormatted: ProfileStaticHeaderProps['statsFormatted'];
+  uploadingAvatar: boolean;
+  onEditAvatar: () => void;
+  onEditProfile: () => void;
+  onShareProfile: () => void;
+  onMore: () => void;
+};
+
+const ProfileListHeader = memo<ProfileListHeaderProps>(
+  ({
+    activeTab,
+    onTabChange,
+    profile,
+    statsFormatted,
+    uploadingAvatar,
+    onEditAvatar,
+    onEditProfile,
+    onShareProfile,
+    onMore,
+  }) => (
+    <>
+      <ProfileStaticHeader
+        profile={profile}
+        statsFormatted={statsFormatted}
+        uploadingAvatar={uploadingAvatar}
+        onEditAvatar={onEditAvatar}
+        onEditProfile={onEditProfile}
+        onShareProfile={onShareProfile}
+        onMore={onMore}
+      />
+      <ProfileTabs activeTab={activeTab} onChange={onTabChange} />
+    </>
+  ),
+);
+
+ProfileListHeader.displayName = 'ProfileListHeader';
 
 export const ProfileScreen: React.FC = () => {
   const { styles, colors } = useProfileStyles();
@@ -266,29 +352,20 @@ export const ProfileScreen: React.FC = () => {
 
   const listHeader = useMemo(
     () => (
-      <Animated.View entering={FadeInDown.duration(380)}>
-        <ProfileHeader
-          profile={profile}
-          onEditAvatar={openAvatarSheet}
-          uploadingAvatar={uploadingAvatar}
-        />
-        <View style={{ paddingHorizontal: 20 }}>
-          <ProfileStats stats={profile.stats} formatted={statsFormatted} />
-          <ProfileActionButtons
-            onEditProfile={onEditProfile}
-            onShareProfile={onShareProfile}
-            onMore={openMoreMenu}
-          />
-          <ProfileBio lines={profile.bioLines} />
-        </View>
-        <ProfileTabs activeTab={activeTab} onChange={onTabChange} />
-        {loading && items.length === 0 ? <GridSkeleton /> : null}
-      </Animated.View>
+      <ProfileListHeader
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        profile={profile}
+        statsFormatted={statsFormatted}
+        uploadingAvatar={uploadingAvatar}
+        onEditAvatar={openAvatarSheet}
+        onEditProfile={onEditProfile}
+        onShareProfile={onShareProfile}
+        onMore={openMoreMenu}
+      />
     ),
     [
       activeTab,
-      items.length,
-      loading,
       onEditProfile,
       onShareProfile,
       onTabChange,
@@ -328,11 +405,14 @@ export const ProfileScreen: React.FC = () => {
   const keyExtractor = useCallback((item: ProfileProductGridItem) => item.id, []);
 
   const listEmpty = useMemo(() => {
-    if (loading) {
-      return null;
+    if (loading && items.length === 0) {
+      return <GridSkeleton />;
     }
-    return <EmptyGrid tab={activeTab} />;
-  }, [activeTab, loading]);
+    if (!loading && items.length === 0) {
+      return <EmptyGrid tab={activeTab} />;
+    }
+    return null;
+  }, [activeTab, items.length, loading]);
 
   const footer = useMemo(
     () =>
@@ -358,8 +438,7 @@ export const ProfileScreen: React.FC = () => {
         </Pressable>
       </View>
       <FlatList
-        key={activeTab}
-        data={loading && items.length === 0 ? [] : items}
+        data={items}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         numColumns={3}
@@ -368,6 +447,7 @@ export const ProfileScreen: React.FC = () => {
         ListEmptyComponent={listEmpty}
         ListFooterComponent={footer}
         contentContainerStyle={styles.gridContent}
+        extraData={activeTab}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

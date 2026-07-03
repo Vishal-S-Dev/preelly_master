@@ -4,6 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useCreatePostStore } from '../../../store/createPostStore';
 import { CreatePostStackParamList } from '../../../types/createPost.types';
+import { isClassifiedsCategory } from '../../../utils/isClassifiedsCategory';
 import { isPropertyCategory } from '../../../utils/isPropertyCategory';
 import { CreatePostHeader } from '../../components/createPost/StepIndicator';
 import {
@@ -11,6 +12,7 @@ import {
   PropertySubcategorySelection,
 } from '../../components/createPost/PropertySubcategoryAccordion';
 import { SubcategoryListSkeleton } from '../../components/createPost/SubcategoryListSkeleton';
+import { useClassifiedsCategories } from '../../hooks/useClassifiedsCategories';
 import { useCreatePostStyles } from '../../hooks/useCreatePostStyles';
 import { usePropertyCategories } from '../../hooks/usePropertyCategories';
 import { useSubcategories } from '../../hooks/useSubcategories';
@@ -23,6 +25,8 @@ export const SubcategorySelectionScreen: React.FC<Props> = ({ navigation }) => {
     useCreatePostStore();
 
   const isProperty = isPropertyCategory(categoryName);
+  const isClassifieds = isClassifiedsCategory(categoryName);
+  const isNestedCategory = isProperty || isClassifieds;
 
   const {
     data: propertyCategories = [],
@@ -32,18 +36,34 @@ export const SubcategorySelectionScreen: React.FC<Props> = ({ navigation }) => {
   } = usePropertyCategories(isProperty);
 
   const {
+    data: classifiedsCategories = [],
+    isLoading: isClassifiedsLoading,
+    isError: isClassifiedsError,
+    refetch: refetchClassifieds,
+  } = useClassifiedsCategories(isClassifieds);
+
+  const {
     data: standardItems = [],
     isLoading: isStandardLoading,
     isError: isStandardError,
     refetch: refetchStandard,
-  } = useSubcategories(isProperty ? undefined : categoryId);
+  } = useSubcategories(isNestedCategory ? undefined : categoryId);
+
+  const nestedCategories = isProperty ? propertyCategories : classifiedsCategories;
+  const isNestedLoading = isProperty ? isPropertyLoading : isClassifiedsLoading;
+  const isNestedError = isProperty ? isPropertyError : isClassifiedsError;
+  const refetchNested = isProperty ? refetchProperty : refetchClassifieds;
+  const nestedEmptyTitle = isProperty
+    ? 'No Property Categories Available'
+    : 'No Classifieds Categories Available';
+  const nestedErrorTitle = isProperty
+    ? 'Unable to load property categories'
+    : 'Unable to load classifieds categories';
 
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
-  const [selectedParentId, setSelectedParentId] = useState<string | undefined>();
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | undefined>(
     subcategoryId,
   );
-  const [selectedSubcategoryName, setSelectedSubcategoryName] = useState<string | undefined>();
 
   const onSelectStandard = useCallback(
     (id: string, name: string) => {
@@ -57,59 +77,59 @@ export const SubcategorySelectionScreen: React.FC<Props> = ({ navigation }) => {
     setExpandedCategoryId(prev => (prev === parentId ? null : parentId));
   }, []);
 
-  const onSelectPropertySubcategory = useCallback(
+  const onSelectNestedSubcategory = useCallback(
     (selection: PropertySubcategorySelection) => {
-      setSelectedParentId(selection.parentId);
       setSelectedSubcategoryId(selection.subcategoryId);
-      setSelectedSubcategoryName(selection.name);
       setPropertySubcategory(selection.parentId, selection.subcategoryId, selection.name);
       navigation.navigate('CreatePostMediaStep');
     },
     [navigation, setPropertySubcategory],
   );
 
-  const propertyContent = useMemo(() => {
-    if (isPropertyLoading) {
+  const nestedContent = useMemo(() => {
+    if (isNestedLoading) {
       return <SubcategoryListSkeleton />;
     }
 
-    if (isPropertyError) {
+    if (isNestedError) {
       return (
         <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>Unable to load property categories</Text>
+          <Text style={styles.stateTitle}>{nestedErrorTitle}</Text>
           <Text style={styles.stateText}>Please check your connection and try again.</Text>
-          <Pressable style={styles.retryButton} onPress={() => refetchProperty()}>
+          <Pressable style={styles.retryButton} onPress={() => refetchNested()}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
         </View>
       );
     }
 
-    if (propertyCategories.length === 0) {
+    if (nestedCategories.length === 0) {
       return (
         <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>No Property Categories Available</Text>
+          <Text style={styles.stateTitle}>{nestedEmptyTitle}</Text>
         </View>
       );
     }
 
     return (
       <PropertySubcategoryAccordion
-        categories={propertyCategories}
+        categories={nestedCategories}
         expandedCategoryId={expandedCategoryId}
         selectedSubcategoryId={selectedSubcategoryId}
         onToggleExpand={onToggleExpand}
-        onSelectSubcategory={onSelectPropertySubcategory}
+        onSelectSubcategory={onSelectNestedSubcategory}
       />
     );
   }, [
     expandedCategoryId,
-    isPropertyError,
-    isPropertyLoading,
-    onSelectPropertySubcategory,
+    isNestedError,
+    isNestedLoading,
+    nestedCategories,
+    nestedEmptyTitle,
+    nestedErrorTitle,
+    onSelectNestedSubcategory,
     onToggleExpand,
-    propertyCategories,
-    refetchProperty,
+    refetchNested,
     selectedSubcategoryId,
     styles,
   ]);
@@ -162,7 +182,7 @@ export const SubcategorySelectionScreen: React.FC<Props> = ({ navigation }) => {
         onBack={() => navigation.goBack()}
       />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
-        {isProperty ? propertyContent : standardContent}
+        {isNestedCategory ? nestedContent : standardContent}
       </ScrollView>
     </View>
   );

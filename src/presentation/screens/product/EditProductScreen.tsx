@@ -15,6 +15,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { EditProductDetailSeed, EditProductStackParamList } from '../../../types/editProduct.types';
 import { RootStackParamList } from '../../navigation/types';
 import { useProductDetail } from '../../hooks/useProductDetail';
 import { useProductChatInit } from '../../hooks/useProductChatInit';
@@ -36,9 +37,7 @@ import { ProductImageCarousel } from '../../components/productDetail/ProductImag
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProduct'>;
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const showEditAlert = (section: string) => {
-  Alert.alert(`Edit ${section}`, 'This edit flow will be available in a future update.');
-};
+type EditFlowRoute = Exclude<keyof EditProductStackParamList, 'EditProductHydrate'>;
 
 export const EditProductScreen: React.FC<Props> = ({ navigation, route }) => {
   const { productId, product: seedProduct } = route.params;
@@ -114,10 +113,37 @@ export const EditProductScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const overlayTop = useMemo(() => Math.max(insets.top, 12), [insets.top]);
 
-  const handleEditOverview = useCallback(() => showEditAlert('Car Overview'), []);
-  const handleEditDescription = useCallback(() => showEditAlert('Description'), []);
-  const handleEditFeatures = useCallback(() => showEditAlert('Features'), []);
-  const handleEditLocation = useCallback(() => showEditAlert('Location'), []);
+  const buildDetailSeed = useCallback((): EditProductDetailSeed | undefined => {
+    if (!detail) {
+      return undefined;
+    }
+    return {
+      title: detail.product.title,
+      description: detail.description,
+      price: detail.product.price,
+      currency: detail.product.currency,
+      contactPhone: detail.contactPhone,
+      locationAddress: detail.locationAddress,
+      locateYourItem: detail.locationTitle,
+    };
+  }, [detail]);
+
+  const openEditFlow = useCallback(
+    (initialRoute?: EditFlowRoute) => {
+      navigation.navigate('EditProductFlow', {
+        productId,
+        initialRoute,
+        detailSeed: buildDetailSeed(),
+      });
+    },
+    [buildDetailSeed, navigation, productId],
+  );
+
+  const handleEditListing = useCallback(() => openEditFlow(), [openEditFlow]);
+  const handleEditOverview = useCallback(() => openEditFlow('EditProductFormStep'), [openEditFlow]);
+  const handleEditDescription = useCallback(() => openEditFlow('EditProductDetailsStep'), [openEditFlow]);
+  const handleEditFeatures = useCallback(() => openEditFlow('EditProductAdvancedFormStep'), [openEditFlow]);
+  const handleEditLocation = useCallback(() => openEditFlow('EditProductAdvancedFormStep'), [openEditFlow]);
 
   if (loading && !detail) {
     return (
@@ -140,7 +166,10 @@ export const EditProductScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <View style={pdStyles.screen}>
-      <Animated.View entering={FadeIn.duration(320)} style={StyleSheet.absoluteFill}>
+      <Animated.View
+        entering={FadeIn.duration(320)}
+        style={StyleSheet.absoluteFill}
+      >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={pdStyles.scrollContent}
@@ -150,10 +179,13 @@ export const EditProductScreen: React.FC<Props> = ({ navigation, route }) => {
               onRefresh={onRefresh}
               tintColor={PD_COLORS.primary}
             />
-          }>
+          }
+        >
           <View style={styles.topView}>
             <ProductImageCarousel images={detail.images} />
-            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+            <View
+              style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}
+            >
               <ProductHeaderCard detail={detail} />
 
               <View style={pdStyles.detail_section}>
@@ -172,12 +204,18 @@ export const EditProductScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
 
           <View style={pdStyles.section}>
-            <ProductSectionEditHeader title="Car Overview" onEdit={handleEditOverview} />
+            <ProductSectionEditHeader
+              title="Car Overview"
+              onEdit={handleEditOverview}
+            />
             <ProductOverviewGrid attributes={detail.productAttributes} />
           </View>
 
           <View style={pdStyles.section}>
-            <ProductSectionEditHeader title={detail.descriptionTitle} onEdit={handleEditDescription} />
+            <ProductSectionEditHeader
+              title={detail.descriptionTitle}
+              onEdit={handleEditDescription}
+            />
             <ProductDescription
               title={detail.descriptionTitle}
               description={detail.description}
@@ -187,31 +225,48 @@ export const EditProductScreen: React.FC<Props> = ({ navigation, route }) => {
 
           {detail.showFeatureSection ? (
             <View style={pdStyles.section}>
-              <ProductSectionEditHeader title="Features" onEdit={handleEditFeatures} />
-              <ProductFeaturesAccordion attributes={detail.productMultiAttributes} />
+              <ProductSectionEditHeader
+                title="Features"
+                onEdit={handleEditFeatures}
+              />
+              <ProductFeaturesAccordion
+                attributes={detail.productMultiAttributes}
+              />
             </View>
           ) : null}
 
           <View style={pdStyles.section}>
-            <ProductSectionEditHeader title="Location" onEdit={handleEditLocation} />
+            <ProductSectionEditHeader
+              title="Location"
+              onEdit={handleEditLocation}
+            />
             <ProductLocationCard
               title={detail.locationTitle}
               address={detail.locationAddress}
+              latitude={detail.locationLatitude}
+              longitude={detail.locationLongitude}
               hideTitle
-              onShowMap={() => Alert.alert('Map', 'Map navigation will open here.')}
+              onShowMap={() =>
+                Alert.alert('Map', 'Map navigation will open here.')
+              }
             />
           </View>
 
           <View style={pdStyles.section}>
             <SellerInfoCard
               seller={detail.seller}
-              onViewAll={() => Alert.alert('Seller', 'Seller listings will open here.')}
+              onViewAll={() =>
+                Alert.alert('Seller', 'Seller listings will open here.')
+              }
             />
           </View>
 
           {detail.similarAds.length > 0 ? (
             <View style={pdStyles.section}>
-              <SimilarAdsCarousel items={detail.similarAds} onPressItem={openSimilar} />
+              <SimilarAdsCarousel
+                items={detail.similarAds}
+                onPressItem={openSimilar}
+              />
             </View>
           ) : null}
         </ScrollView>
@@ -220,6 +275,13 @@ export const EditProductScreen: React.FC<Props> = ({ navigation, route }) => {
       <View style={[styles.topOverlay, { paddingTop: overlayTop }]}>
         <Pressable style={pdStyles.floatingBtn} onPress={handleBack}>
           <Icon name="arrow-left" size={22} color="#111827" />
+        </Pressable>
+        <Pressable
+          style={[pdStyles.floatingBtnEdit, styles.editListingBtn]}
+          onPress={handleEditListing}
+        >
+          <Icon name="pencil-outline" size={20} color={PD_COLORS.primary} />
+          <Text style={styles.editListingText}>Edit</Text>
         </Pressable>
       </View>
 
@@ -251,7 +313,19 @@ const styles = StyleSheet.create({
     right: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     zIndex: 20,
+  },
+  editListingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+  },
+  editListingText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: PD_COLORS.primary,
   },
   actions: {
     position: 'absolute',

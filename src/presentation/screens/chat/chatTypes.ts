@@ -103,6 +103,29 @@ export function mapThreadsToChatRows(threads: ChatThread[]): ChatRow[] {
   });
 }
 
+export function searchChatRows(rows: ChatRow[], query: string): ChatRow[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return rows;
+  }
+
+  return rows.filter(row => {
+    if (row.kind === 'product') {
+      return (
+        row.productTitle.toLowerCase().includes(normalized) ||
+        row.contactName.toLowerCase().includes(normalized) ||
+        row.previewText?.toLowerCase().includes(normalized) ||
+        row.unreadLabel?.toLowerCase().includes(normalized)
+      );
+    }
+
+    return (
+      row.userName.toLowerCase().includes(normalized) ||
+      row.activeStatus.toLowerCase().includes(normalized)
+    );
+  });
+}
+
 export function filterThreads(threads: ChatThread[], filter: ChatFilter): ChatThread[] {
   switch (filter) {
     case 'Buying':

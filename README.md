@@ -1,97 +1,245 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Preelly
 
-# Getting Started
+Preelly is a React Native mobile app (iOS & Android) for marketplace listings, reels, chat, and seller flows.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+---
 
-## Step 1: Start Metro
+## Prerequisites
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+Complete the official environment setup before running the app:
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+- [React Native — Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment)
+
+**Required tools**
+
+| Tool | Version |
+|------|---------|
+| Node.js | `>= 22.11.0` |
+| npm or Yarn | Latest stable |
+| Watchman | Recommended (macOS) |
+| Xcode | Latest (macOS only, for iOS) |
+| Android Studio | Latest (for Android) |
+| CocoaPods | Via Bundler (see iOS steps) |
+| JDK | 17 (for Android builds) |
+
+---
+
+## 1. Clone and install dependencies
 
 ```sh
-# Using npm
+git clone <repository-url>
+cd Preelly
+npm install
+```
+
+---
+
+## 2. Environment variables
+
+Copy the example env file and adjust API URLs if needed:
+
+```sh
+cp .env.example .env
+```
+
+Example variables (see `.env.example`):
+
+```env
+PREELLY_API_BASE_URL_DEV=http://117.254.196.100:5002
+PREELLY_API_BASE_URL_PROD=http://117.254.196.100:5002
+```
+
+After changing `.env`, restart Metro and rebuild the native app.
+
+---
+
+## 3. Start Metro (JavaScript bundler)
+
+Open a terminal in the project root and run:
+
+```sh
 npm start
-
-# OR using Yarn
-yarn start
 ```
 
-## Step 2: Build and run your app
+Keep this terminal running while developing.
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-sta
-### Android
+**Optional — clear Metro cache:**
 
 ```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+npm run start:reset
 ```
 
-### iOS
+---
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+## Run on Android
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+### Step 1: Prepare Android Studio
+
+1. Install [Android Studio](https://developer.android.com/studio).
+2. Open **SDK Manager** and install:
+   - Android SDK Platform (API 34 or higher recommended)
+   - Android SDK Build-Tools
+   - Android Emulator
+3. Create a virtual device: **Device Manager → Create Device** (e.g. Pixel 6).
+4. Ensure `ANDROID_HOME` is set (Android Studio usually configures this).
+
+### Step 2: Start an emulator or connect a device
+
+**Emulator:** Launch a device from Android Studio **Device Manager**.
+
+**Physical device:**
+
+1. Enable **Developer options** and **USB debugging** on the phone.
+2. Connect via USB and accept the debugging prompt.
+3. Verify connection:
+
+```sh
+adb devices
+```
+
+### Step 3: Install native dependencies (first time only)
+
+Dependencies are installed with `npm install`. No extra Android-specific install is required beyond Android Studio SDK setup.
+
+### Step 4: Run the app
+
+With Metro running (`npm start`), open a **new terminal** in the project root:
+
+```sh
+npm run android
+```
+
+This builds the debug APK, installs it on the emulator/device, and launches the app.
+
+### Step 5: Reload during development
+
+- Press **R** twice in the terminal where Metro is running, or
+- Open the dev menu: **Ctrl + M** (Windows/Linux) or **Cmd + M** (macOS) → **Reload**
+
+---
+
+## Run on iOS
+
+> iOS builds require **macOS** with **Xcode** installed.
+
+### Step 1: Install Xcode
+
+1. Install Xcode from the Mac App Store.
+2. Open Xcode once and accept the license.
+3. Install command line tools (if prompted):
+
+```sh
+xcode-select --install
+```
+
+### Step 2: Install Ruby gems (CocoaPods)
+
+From the project root, run **once** after clone (or after updating native dependencies):
 
 ```sh
 bundle install
 ```
 
-Then, and every time you update your native dependencies, run:
+### Step 3: Install iOS pods
 
 ```sh
+cd ios
 bundle exec pod install
+cd ..
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+Run this again whenever you add or update native iOS dependencies.
+
+### Step 4: Start the iOS Simulator (optional)
 
 ```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+open -a Simulator
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+Or pick a simulator from Xcode → **Window → Devices and Simulators**.
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+### Step 5: Run the app
 
-## Step 3: Modify your app
+With Metro running (`npm start`), open a **new terminal** in the project root:
 
-Now that you have successfully run the app, let's make changes!
+```sh
+npm run ios
+```
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+**Run on a specific simulator:**
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+```sh
+npx react-native run-ios --simulator="iPhone 16"
+```
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+**Run on a connected iPhone:**
 
-## Congratulations! :tada:
+1. Connect the device and trust the computer.
+2. Open `ios/Preelly.xcworkspace` in Xcode.
+3. Select your device as the run target and set your **Signing Team**.
+4. Run from Xcode, or:
 
-You've successfully run and modified your React Native App. :partying_face:
+```sh
+npm run ios -- --device
+```
 
-### Now what?
+### Step 6: Reload during development
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+- Press **R** in the iOS Simulator, or
+- **Cmd + D** → **Reload**
 
-# Troubleshooting
+---
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+## Quick reference
 
-# Learn More
+| Task | Command |
+|------|---------|
+| Start Metro | `npm start` |
+| Start Metro (reset cache) | `npm run start:reset` |
+| Run Android | `npm run android` |
+| Run iOS | `npm run ios` |
+| Run tests | `npm test` |
+| Lint | `npm run lint` |
 
-To learn more about React Native, take a look at the following resources:
+---
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+## Troubleshooting
+
+### Metro / bundler issues
+
+```sh
+npm run start:reset
+```
+
+### Android build fails
+
+```sh
+cd android && ./gradlew clean && cd ..
+npm run android
+```
+
+### iOS pod install fails
+
+```sh
+cd ios
+bundle exec pod deintegrate
+bundle exec pod install
+cd ..
+```
+
+### `.env` changes not applied
+
+1. Stop Metro.
+2. Rebuild the app: `npm run android` or `npm run ios`.
+
+### More help
+
+- [React Native Troubleshooting](https://reactnative.dev/docs/troubleshooting)
+- [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment)
+
+---
+
+## Learn more
+
+- [React Native documentation](https://reactnative.dev/docs/getting-started)
+- [Fast Refresh](https://reactnative.dev/docs/fast-refresh)

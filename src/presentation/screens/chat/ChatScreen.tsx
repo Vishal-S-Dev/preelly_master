@@ -8,7 +8,6 @@ import {
   ListRenderItem,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
   View,
 } from 'react-native';
@@ -19,13 +18,18 @@ import { AppTheme } from '../../theme/colors';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { fetchChats } from '../../redux/slices/chatSlice';
+import { ChatSearchToolbar } from '../../components/chat/ChatSearchToolbar';
 import { getChatScreenStyles, ChatScreenStyles } from './chatScreenStyles';
 import { RootStackParamList } from '../../navigation/types';
-import { ChatFilter, ChatRow, filterThreads, mapThreadsToChatRows } from './chatTypes';
+import {
+  ChatFilter,
+  ChatRow,
+  filterThreads,
+  mapThreadsToChatRows,
+  searchChatRows,
+} from './chatTypes';
 
 type ChatNav = NativeStackNavigationProp<RootStackParamList>;
-
-const FILTERS: ChatFilter[] = ['All', 'Buying', 'Selling', 'Unread', 'Following'];
 
 const VerifiedBadge: React.FC = () => (
   <Icon name="check-decagram" size={15} color="#2563EB" style={{ marginLeft: 2 }} />
@@ -119,6 +123,7 @@ export const ChatScreen: React.FC = () => {
   const totalUnread = useAppSelector(s => s.chat.totalUnread);
 
   const [activeFilter, setActiveFilter] = useState<ChatFilter>('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const headerPaddingTop = useMemo(() => Math.max(insets.top, 12), [insets.top]);
 
@@ -134,8 +139,9 @@ export const ChatScreen: React.FC = () => {
 
   const listData = useMemo(() => {
     const filtered = filterThreads(threads, activeFilter);
-    return mapThreadsToChatRows(filtered);
-  }, [threads, activeFilter]);
+    const rows = mapThreadsToChatRows(filtered);
+    return searchChatRows(rows, searchQuery);
+  }, [threads, activeFilter, searchQuery]);
 
   const headerSubtitle = useMemo(() => {
     if (!isAuthenticated || isGuest) {
@@ -213,6 +219,13 @@ export const ChatScreen: React.FC = () => {
         </View>
       );
     }
+    if (searchQuery.trim()) {
+      return (
+        <View style={styles.centerMessage}>
+          <Text style={styles.emptyBody}>No results for "{searchQuery.trim()}".</Text>
+        </View>
+      );
+    }
     return (
       <View style={styles.centerMessage}>
         <Text style={styles.emptyBody}>No conversations yet.</Text>
@@ -225,6 +238,7 @@ export const ChatScreen: React.FC = () => {
     isGuest,
     listData.length,
     loading,
+    searchQuery,
     styles,
     theme.primary,
   ]);
@@ -254,30 +268,14 @@ export const ChatScreen: React.FC = () => {
         </Pressable>
       </View>
 
-      <View style={styles.filterRow}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterScroll}
-          contentContainerStyle={styles.filterScrollContent}>
-          {FILTERS.map(label => {
-            const active = activeFilter === label;
-            return (
-              <Pressable
-                key={label}
-                onPress={() => setActiveFilter(label)}
-                style={[styles.chip, active ? styles.chipActive : styles.chipInactive]}>
-                <Text style={[styles.chipText, active ? styles.chipTextActive : styles.chipTextInactive]}>
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <Pressable style={styles.searchIconBtn} hitSlop={8}>
-          <Icon name="magnify" size={22} color={theme.text} />
-        </Pressable>
-      </View>
+      <ChatSearchToolbar
+        activeFilter={activeFilter}
+        onFilterChange={setActiveFilter}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        styles={styles}
+        theme={theme}
+      />
 
       <FlatList
         data={listData}
@@ -286,6 +284,8 @@ export const ChatScreen: React.FC = () => {
         contentContainerStyle={[styles.listContent, listData.length === 0 && styles.listContentEmpty]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={listEmpty}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
         }

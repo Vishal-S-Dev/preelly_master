@@ -34,4 +34,7 @@ export interface PropertyCategoriesResponse {
   success?: boolean;
   message?: string;
   data?: PropertyCategory[];
+  categories?: PropertyCategory[];
 }
+
+export type ClassifiedsCategoriesResponse = PropertyCategoriesResponse;

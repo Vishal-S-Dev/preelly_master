@@ -15,7 +15,10 @@ import {
 import { ChatNavigator } from './ChatNavigator';
 import { ChatThreadScreen } from '../screens/chat/ChatThreadScreen';
 import { ProductDetailScreen } from '../screens/product/ProductDetailScreen';
+import { ProductImageGalleryScreen } from '../screens/product/ProductImageGalleryScreen';
+import { ProductImageViewerScreen } from '../screens/product/ProductImageViewerScreen';
 import { EditProductScreen } from '../screens/product/EditProductScreen';
+import { EditProductFlowScreen } from '../screens/product/edit/screens/EditProductFlowScreen';
 import { CreatePostNavigator } from './CreatePostNavigator';
 import { ProfileEditScreen } from '../screens/profile/edit/ProfileEditScreen';
 import { OnboardingScreen } from '../screens/onboarding/OnboardingScreen';
@@ -171,9 +174,28 @@ export const AppNavigator: React.FC = () => {
               options={{ animation: 'slide_from_right' }}
             />
             <Stack.Screen
+              name="ProductImageGallery"
+              component={ProductImageGalleryScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="ProductImageViewer"
+              component={ProductImageViewerScreen}
+              options={{ animation: 'fade', presentation: 'fullScreenModal' }}
+            />
+            <Stack.Screen
               name="EditProduct"
               component={EditProductScreen}
               options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="EditProductFlow"
+              component={EditProductFlowScreen}
+              options={{
+                animation: 'slide_from_right',
+                presentation: 'fullScreenModal',
+                gestureEnabled: true,
+              }}
             />
             <Stack.Screen
               name="CreatePost"

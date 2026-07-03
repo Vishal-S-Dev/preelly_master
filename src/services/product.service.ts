@@ -7,6 +7,7 @@ import {
   ProductMultiAttributeDto,
   ProductVehicleFeatureDTO,
 } from '../data/dto/ProductDTO';
+import { extractProductLocationCoordinates } from '../utils/resolveLocationCoordinates';
 import {
   ProductAttribute,
   ProductDetailView,
@@ -358,7 +359,19 @@ const buildLocation = (dto: ProductDTO) => {
     ? addressParts.join(', ')
     : dto.location ?? title;
 
-  return { locationTitle: title, locationAddress };
+  const rootCoordinates = extractProductLocationCoordinates(
+    dto as unknown as Record<string, unknown>,
+  );
+  const nestedCoordinates = extractProductLocationCoordinates(dto.additionalFields);
+  const locationLatitude = rootCoordinates.latitude ?? nestedCoordinates.latitude;
+  const locationLongitude = rootCoordinates.longitude ?? nestedCoordinates.longitude;
+
+  return {
+    locationTitle: title,
+    locationAddress,
+    locationLatitude,
+    locationLongitude,
+  };
 };
 
 const buildSeller = (dto: ProductDTO, product: Product): ProductSellerInfo => {
@@ -468,6 +481,8 @@ export const mapProductDetailView = async (
     showFeatureSection,
     locationTitle: location.locationTitle,
     locationAddress: location.locationAddress,
+    locationLatitude: location.locationLatitude,
+    locationLongitude: location.locationLongitude,
     seller: buildSeller(dto, product),
     similarAds: await buildSimilar(product.id),
     categories: buildCategories(dto),

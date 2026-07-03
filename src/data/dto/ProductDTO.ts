@@ -70,6 +70,17 @@ export interface ProductContactOptionsDTO {
   whatsapp?: boolean;
 }
 
+export interface ProductAiExtractedDetailsDTO {
+  title?: string;
+  brand?: string | null;
+  model?: string | null;
+  year?: number | string | null;
+  price?: number | null;
+  currency?: string | null;
+  condition?: string | null;
+  raw?: Record<string, string | number | boolean | null>;
+}
+
 export interface ProductDTO {
   _id?: string;
   id?: string;
@@ -126,6 +137,12 @@ export interface ProductDTO {
   productAttributes?: ProductAttributeDto[];
   productMultiAttributes?: ProductMultiAttributeDto[];
   productPriceValue?: number;
+  aiExtractedDetails?: ProductAiExtractedDetailsDTO;
+  additionalFields?: Record<string, unknown>;
+  latitude?: number;
+  longitude?: number;
+  locationLatitude?: number;
+  locationLongitude?: number;
 }
 
 export interface ProductsResponseDTO {

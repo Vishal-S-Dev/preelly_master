@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { VIDEO_CONSTRAINTS } from '../../../constants/createPostConstants';
@@ -31,12 +31,41 @@ export const AutoDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
   } = useCreatePostStore();
   const { pickImages, pickImageToReplace } = useMediaPicker();
   const [framePickerVisible, setFramePickerVisible] = useState(false);
+  const [grabReplaceImageId, setGrabReplaceImageId] = useState<string | null>(null);
   const displayImages = useMemo(() => filterRenderableCreatePostImages(images), [images]);
-  const atImageLimit = images.length >= VIDEO_CONSTRAINTS.maxImages;
+  const atImageLimit = displayImages.length >= VIDEO_CONSTRAINTS.maxImages;
+
+  useEffect(() => {
+    const validImages = filterRenderableCreatePostImages(images);
+    if (validImages.length !== images.length) {
+      setImages(validImages);
+    }
+  }, [images, setImages]);
+
+  const openScreenGrab = useCallback((replaceImageId?: string) => {
+    if (!video) {
+      Alert.alert('Video required', 'Add a video to capture screenshots from.');
+      return;
+    }
+    setGrabReplaceImageId(replaceImageId ?? null);
+    setFramePickerVisible(true);
+  }, [video]);
+
+  const closeScreenGrab = useCallback(() => {
+    setFramePickerVisible(false);
+    setGrabReplaceImageId(null);
+  }, []);
+
+  const handleGrabImage = useCallback(
+    (imageId: string) => {
+      openScreenGrab(imageId);
+    },
+    [openScreenGrab],
+  );
 
   const handlePhotosChange = useCallback(
     (nextImages: CreatePostImageAsset[]) => {
-      setImages(nextImages);
+      setImages(filterRenderableCreatePostImages(nextImages));
     },
     [setImages],
   );
@@ -99,6 +128,7 @@ export const AutoDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
             images={displayImages}
             onRemove={removeImage}
             onReplace={pickImageToReplace}
+            onGrab={handleGrabImage}
             onUpdate={handleUpdateImage}
             onPhotosChange={handlePhotosChange}
             styles={styles}
@@ -114,11 +144,7 @@ export const AutoDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.photoActionRow}>
           <Pressable
             style={styles.secondaryBtn}
-            onPress={() =>
-              video
-                ? setFramePickerVisible(true)
-                : Alert.alert('Upload video first')
-            }
+            onPress={() => openScreenGrab()}
           >
             <Text style={styles.secondaryBtnText}>Screen Grab</Text>
           </Pressable>
@@ -146,7 +172,8 @@ export const AutoDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
       <VideoFramePickerModal
         visible={framePickerVisible}
         video={video ?? null}
-        onClose={() => setFramePickerVisible(false)}
+        replaceImageId={grabReplaceImageId}
+        onClose={closeScreenGrab}
       />
     </View>
   );

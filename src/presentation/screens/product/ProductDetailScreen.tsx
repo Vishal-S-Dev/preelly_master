@@ -118,6 +118,19 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const overlayTop = useMemo(() => Math.max(insets.top, 12), [insets.top]);
 
+  const openImageGallery = useCallback(() => {
+    if (!detail?.images.length) {
+      return;
+    }
+    navigation.navigate('ProductImageGallery', {
+      productId: detail.product.id,
+      title: detail.product.title,
+      images: detail.images,
+      product: detail.product,
+      isSaved,
+    });
+  }, [detail, isSaved, navigation]);
+
   if (loading && !detail) {
     return (
       <View style={[pdStyles.screen, styles.center]}>
@@ -155,7 +168,10 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           }
         >
           <View style={styles.topView}>
-            <ProductImageCarousel images={detail.images} />
+            <ProductImageCarousel
+              images={detail.images}
+              onCounterPress={openImageGallery}
+            />
             <View
               style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}
             >
@@ -227,6 +243,8 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
             <ProductLocationCard
               title={detail.locationTitle}
               address={detail.locationAddress}
+              latitude={detail.locationLatitude}
+              longitude={detail.locationLongitude}
               onShowMap={() =>
                 Alert.alert('Map', 'Map navigation will open here.')
               }
@@ -259,7 +277,10 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         </ScrollView>
       </Animated.View>
 
-      <View style={[styles.topOverlay, { paddingTop: overlayTop }]}>
+      <View
+        style={[styles.topOverlay, { paddingTop: overlayTop }]}
+        pointerEvents="box-none"
+      >
         <Pressable style={pdStyles.floatingBtn} onPress={handleBack}>
           <Icon name="arrow-left" size={22} color="#111827" />
         </Pressable>

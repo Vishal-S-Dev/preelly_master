@@ -142,5 +142,18 @@ export const ProductApi = {
     return { id: data?._id ?? data?.id ?? data?.data?._id };
   },
 
+  async updateProduct(productId: string, formData: FormData): Promise<{ id?: string }> {
+    const { data } = await httpClient.put<{ _id?: string; id?: string; data?: { _id?: string } }>(
+      `${API_ENDPOINTS.PRODUCTS}/${productId}`,
+      formData,
+      {
+        baseURL: PRODUCTS_BASE_URL,
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000,
+      },
+    );
+    return { id: data?._id ?? data?.id ?? data?.data?._id ?? productId };
+  },
+
   withBase,
 };

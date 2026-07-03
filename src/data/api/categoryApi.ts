@@ -2,8 +2,10 @@ import { API_ENDPOINTS } from '../../constants/appConstants';
 import {
   Category,
   CategoriesListResponse,
+  ClassifiedsCategoriesResponse,
   PropertyCategoriesResponse,
   PropertyCategory,
+  PropertySubcategory,
 } from '../../types/category.types';
 import { httpClient } from './httpClient';
 
@@ -40,9 +42,42 @@ export const CategoryApi = {
     const { data } = await httpClient.get<PropertyCategoriesResponse | PropertyCategory[]>(
       API_ENDPOINTS.PROPERTY_CATEGORIES,
     );
-    const list = Array.isArray(data) ? data : data.data ?? [];
-    return sortPropertyCategories(list);
+    return normalizeNestedCategories(data);
   },
+
+  async getClassifiedsCategories(): Promise<PropertyCategory[]> {
+    const { data } = await httpClient.get<ClassifiedsCategoriesResponse | PropertyCategory[]>(
+      API_ENDPOINTS.CLASSIFIEDS_CATEGORIES,
+    );
+    return normalizeNestedCategories(data);
+  },
+};
+
+const normalizeNestedCategories = (
+  payload: PropertyCategoriesResponse | PropertyCategory[] | ClassifiedsCategoriesResponse,
+): PropertyCategory[] => {
+  const list = Array.isArray(payload) ? payload : payload.data ?? payload.categories ?? [];
+  return sortPropertyCategories(
+    list.map(item => ({
+      ...item,
+      subcategories: normalizeNestedSubcategories(item.subcategories),
+    })),
+  );
+};
+
+const normalizeNestedSubcategories = (
+  subcategories?: PropertySubcategory[] | PropertyCategory[],
+): PropertySubcategory[] => {
+  if (!Array.isArray(subcategories)) {
+    return [];
+  }
+
+  return subcategories.map(item => ({
+    _id: item._id,
+    name: item.name,
+    slug: item.slug,
+    parentId: item.parentId,
+  }));
 };
 
 const PROPERTY_PARENT_ORDER = ['for rent', 'for sale', 'agent'];

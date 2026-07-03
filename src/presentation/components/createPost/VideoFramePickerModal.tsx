@@ -23,11 +23,13 @@ interface Props {
   visible: boolean;
   video: CreatePostMediaFile | null;
   onClose: () => void;
+  /** When set, captured frames replace this image instead of adding a new slot. */
+  replaceImageId?: string | null;
 }
 
-export const VideoFramePickerModal = memo<Props>(({ visible, video, onClose }) => {
+export const VideoFramePickerModal = memo<Props>(({ visible, video, onClose, replaceImageId }) => {
   const insets = useStableSafeAreaInsets();
-  const { images, addImages, removeImage, subcategoryName } = useCreatePostStore();
+  const { images, addImages, removeImage, replaceImage, subcategoryName } = useCreatePostStore();
   const [sessionCaptures, setSessionCaptures] = useState<CapturedFrame[]>([]);
 
   const {
@@ -53,6 +55,9 @@ export const VideoFramePickerModal = memo<Props>(({ visible, video, onClose }) =
     imageCount: images.length,
   });
 
+  const isReplaceMode = Boolean(replaceImageId?.trim());
+  const canCaptureFrame = isReplaceMode ? scrubberReady && !capturing : canCapture;
+
   useEffect(() => {
     if (!visible) {
       setSessionCaptures([]);
@@ -60,7 +65,7 @@ export const VideoFramePickerModal = memo<Props>(({ visible, video, onClose }) =
   }, [visible]);
 
   const handleCapture = useCallback(async () => {
-    if (remaining <= 0) {
+    if (!isReplaceMode && remaining <= 0) {
       Alert.alert('Limit reached', `Maximum ${VIDEO_CONSTRAINTS.maxImages} photos allowed.`);
       return;
     }
@@ -74,6 +79,12 @@ export const VideoFramePickerModal = memo<Props>(({ visible, video, onClose }) =
       return;
     }
 
+    if (isReplaceMode && replaceImageId) {
+      replaceImage(replaceImageId, { uri, fromVideo: true });
+      onClose();
+      return;
+    }
+
     const asset: CapturedFrame = {
       id: `frame_${Date.now()}_${Math.round(currentTime * 1000)}`,
       uri,
@@ -82,7 +93,16 @@ export const VideoFramePickerModal = memo<Props>(({ visible, video, onClose }) =
     };
     addImages([asset]);
     setSessionCaptures(prev => [...prev, asset]);
-  }, [addImages, captureFrame, currentTime, remaining]);
+  }, [
+    addImages,
+    captureFrame,
+    currentTime,
+    isReplaceMode,
+    onClose,
+    remaining,
+    replaceImage,
+    replaceImageId,
+  ]);
 
   const handleRemoveCapture = useCallback(
     (id: string) => {
@@ -94,7 +114,9 @@ export const VideoFramePickerModal = memo<Props>(({ visible, video, onClose }) =
 
   if (!video) return null;
 
-  const title = subcategoryName?.trim() || 'Screen Grab';
+  const title = isReplaceMode
+    ? 'Replace with screenshot'
+    : subcategoryName?.trim() || 'Screen Grab';
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
@@ -158,12 +180,14 @@ export const VideoFramePickerModal = memo<Props>(({ visible, video, onClose }) =
 
               <View style={styles.footer}>
                 <Text style={styles.remaining}>
-                  {remaining > 0
-                    ? `${remaining} photo slot${remaining === 1 ? '' : 's'} remaining`
-                    : 'Photo limit reached'}
+                  {isReplaceMode
+                    ? 'Scrub to a frame, then capture to replace this photo'
+                    : remaining > 0
+                      ? `${remaining} photo slot${remaining === 1 ? '' : 's'} remaining`
+                      : 'Photo limit reached'}
                 </Text>
                 <CaptureButton
-                  disabled={!canCapture}
+                  disabled={!canCaptureFrame}
                   loading={capturing}
                   onPress={handleCapture}
                 />

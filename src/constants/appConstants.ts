@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
   CATEGORIES_ROOTS: '/api/categories/roots',
   CATEGORIES: '/api/categories',
   PROPERTY_CATEGORIES: '/api/v1/web/categories/property-categories',
+  CLASSIFIEDS_CATEGORIES: '/api/v1/classifieds/categories',
   USER_FOLLOWERS: '/api/user',
   SEARCH_POPULAR: '/api/v1/web/search/popular',
   SEARCH_SUGGESTIONS: '/api/v1/web/search/suggestions',

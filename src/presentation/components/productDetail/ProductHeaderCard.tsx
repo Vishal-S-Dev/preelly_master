@@ -11,7 +11,7 @@ interface Props {
 
 export const ProductHeaderCard = memo<Props>(({ detail }) => {
   const { product, year, mileage, specsLabel, postedOnLabel, availability } = detail;
-  const priceLabel = `${product.currency} ${product.price.toLocaleString()}`;
+  //const priceLabel = `${product.currency} ${product.price.toLocaleString()}`;
 
   return (
     <View style={pdStyles.headerCard}>

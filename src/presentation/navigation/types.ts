@@ -1,4 +1,5 @@
 import { Product } from '../../domain/models/Product';
+import { EditProductDetailSeed, EditProductStackParamList } from '../../types/editProduct.types';
 
 export type UserFeedListingSource = 'posts' | 'saved' | 'liked';
 
@@ -7,7 +8,23 @@ export type RootStackParamList = {
   MainTabs: undefined;
   ChatThread: { threadId: string };
   ProductDetail: { productId: string; product?: Product };
+  ProductImageGallery: {
+    productId: string;
+    title: string;
+    images: string[];
+    product?: Product;
+    isSaved?: boolean;
+  };
+  ProductImageViewer: {
+    images: string[];
+    initialIndex?: number;
+  };
   EditProduct: { productId: string; product?: Product };
+  EditProductFlow: {
+    productId: string;
+    initialRoute?: Exclude<keyof EditProductStackParamList, 'EditProductHydrate'>;
+    detailSeed?: EditProductDetailSeed;
+  };
   CreatePost: undefined;
   ProfileEdit: { requireCompletion?: boolean } | undefined;
   Login: undefined;

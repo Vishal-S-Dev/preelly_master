@@ -17,6 +17,7 @@
     "@react-native-async-storage/async-storage": "^3.0.2",
     "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-native-community/datetimepicker": "^9.1.0",
+    "@react-native-community/geolocation": "^3.4.0",
     "@react-native-community/netinfo": "^12.0.1",
     "@react-native-vector-icons/common": "^13.0.1",
     "@react-native-vector-icons/lucide": "^13.1.2",
@@ -36,6 +37,7 @@
     "react-native-gesture-handler": "^2.31.2",
     "react-native-image-picker": "^8.2.1",
     "react-native-linear-gradient": "^2.8.3",
+    "react-native-maps": "^1.29.0",
     "react-native-permissions": "^5.5.1",
     "react-native-reanimated": "^4.3.0",
     "react-native-responsive-screen": "^1.4.2",
@@ -79,5 +81,21 @@
   },
   "engines": {
     "node": ">= 22.11.0"
+  },
+  "overrides": {
+    "metro": "0.85.0",
+    "metro-babel-transformer": "0.85.0",
+    "metro-cache": "0.85.0",
+    "metro-cache-key": "0.85.0",
+    "metro-config": "0.85.0",
+    "metro-core": "0.85.0",
+    "metro-file-map": "0.85.0",
+    "metro-minify-terser": "0.85.0",
+    "metro-resolver": "0.85.0",
+    "metro-runtime": "0.85.0",
+    "metro-source-map": "0.85.0",
+    "metro-symbolicate": "0.85.0",
+    "metro-transform-plugins": "0.85.0",
+    "metro-transform-worker": "0.85.0"
   }
 }

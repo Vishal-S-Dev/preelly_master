@@ -48,6 +48,7 @@ interface Props {
   images: CreatePostImageAsset[];
   onRemove: (id: string) => void;
   onReplace?: (id: string) => void;
+  onGrab?: (id: string) => void;
   onUpdate?: (id: string, updates: Partial<CreatePostImageAsset>) => void;
   onPhotosChange?: (images: CreatePostImageAsset[]) => void;
   styles: CreatePostStyles;
@@ -55,7 +56,7 @@ interface Props {
 }
 
 export const PhotoGrid = memo<Props>(
-  ({ images, onRemove, onReplace, onUpdate, onPhotosChange, styles, readOnly = false }) => {
+  ({ images, onRemove, onReplace, onGrab, onUpdate, onPhotosChange, styles, readOnly = false }) => {
     const [previewUri, setPreviewUri] = useState<string | null>(null);
     const [editingImage, setEditingImage] = useState<CreatePostImageAsset | null>(null);
     const [captionDraft, setCaptionDraft] = useState('');
@@ -120,7 +121,7 @@ export const PhotoGrid = memo<Props>(
             onPress={() =>
               Alert.alert('Photo options', undefined, [
                 { text: 'Replace', onPress: () => onReplace?.(image.id) },
-                { text: 'Grab', onPress: () => onReplace?.(image.id) },
+                ...(onGrab ? [{ text: 'Grab', onPress: () => onGrab(image.id) }] : []),
                 //{ text: 'Update caption', onPress: () => openCaptionEditor(image) },
                 { text: 'Cancel', style: 'cancel' },
               ])

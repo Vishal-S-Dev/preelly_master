@@ -153,7 +153,7 @@ export const profileService = {
   async getCurrentUserProfile(): Promise<ProfileApiUserDTO> {
     try {
       const { data } = await httpClient.get<ProfileApiUserDTO | { data: ProfileApiUserDTO }>(
-        '/user/profile',
+        '/api/user/profile',
         { baseURL: PROFILE_BASE },
       );
       return (data as { data?: ProfileApiUserDTO })?.data ?? (data as ProfileApiUserDTO);
