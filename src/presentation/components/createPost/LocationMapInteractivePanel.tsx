@@ -23,6 +23,7 @@ interface Props {
   markerCoordinate: MapCoordinate;
   isBusy: boolean;
   mapsLinked: boolean;
+  mapHeight?: number;
   onMapControllerReady: (controller: MapController | null) => void;
   onRegionChangeComplete: (region: MapRegion) => void;
   onMarkerDragEnd: (coordinate: MapCoordinate) => void;
@@ -39,6 +40,7 @@ export const LocationMapInteractivePanel = memo<Props>(
     markerCoordinate,
     isBusy,
     mapsLinked,
+    mapHeight,
     onMapControllerReady,
     onRegionChangeComplete,
     onMarkerDragEnd,
@@ -124,7 +126,10 @@ export const LocationMapInteractivePanel = memo<Props>(
 
     return (
       <View
-        style={mapStyles.mapShell}
+        style={[
+          mapStyles.mapShell,
+          mapHeight != null ? { height: mapHeight } : { flex: 1, height: undefined },
+        ]}
         onStartShouldSetResponder={() => true}
         onMoveShouldSetResponder={() => true}
       >

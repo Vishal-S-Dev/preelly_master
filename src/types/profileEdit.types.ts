@@ -8,6 +8,9 @@ export interface UserLocation {
   city?: string;
   building?: string;
   apartment?: string;
+  detailLocation?: string;
+  latitude?: number;
+  longitude?: number;
   fullAddress: string;
   isDefault: boolean;
 }
@@ -27,5 +30,7 @@ export interface LocationPayload {
   city?: string;
   building?: string;
   apartment?: string;
+  detailLocation?: string;
+  coordinates?: [number, number];
   isDefault?: boolean;
 }

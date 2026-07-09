@@ -14,10 +14,15 @@ type Props = NativeStackScreenProps<EditProductStackParamList, 'EditProductMedia
 
 export const EditMediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useCreatePostStyles();
-  const { categoryName, setVideo, remoteVideoUrl, images } = useEditProductStore();
-  const { video, pickVideoFromGallery, captureVideo } = useEditMediaPicker();
+  const { categoryName, setVideo, setRemoteVideoUrl, images } = useEditProductStore();
+  const { playbackVideo, pickVideoFromGallery, captureVideo } = useEditMediaPicker();
 
-  const hasExistingMedia = Boolean(video || remoteVideoUrl || images.length > 0);
+  const hasExistingMedia = Boolean(playbackVideo) || images.length > 0;
+
+  const clearVideo = useCallback(() => {
+    setVideo(null);
+    setRemoteVideoUrl(undefined);
+  }, [setRemoteVideoUrl, setVideo]);
 
   const onNext = useCallback(() => {
     if (!hasExistingMedia) {
@@ -31,21 +36,14 @@ export const EditMediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.screen}>
       <CreatePostHeader title={categoryName} backgroundColor={styles.screen.backgroundColor} onBack={() => navigation.goBack()} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
-        {!video ? (
+        {!playbackVideo ? (
           <>
-            {remoteVideoUrl ? (
-              <View style={styles.helperBanner}>
-                <Text style={styles.helperBannerText}>
-                  Current video is saved. Upload a new video only if you want to replace it.
-                </Text>
-              </View>
-            ) : null}
             <MediaPickerCard title="Upload Video" subtitle="Max video duration 2 mins (optional)" icon="cloud-upload-outline" onPress={pickVideoFromGallery} />
             <Text style={styles.orText}>Or</Text>
             <MediaPickerCard title="Capture Video" subtitle="Max video duration 2 mins (optional)" icon="video-outline" onPress={captureVideo} />
           </>
         ) : (
-          <VideoPreview video={video} onDelete={() => setVideo(null)} onReplace={pickVideoFromGallery} />
+          <VideoPreview video={playbackVideo} onDelete={clearVideo} onReplace={pickVideoFromGallery} />
         )}
         <View style={styles.tipBox}>
           <Icon name="image-filter-hdr" size={20} color="#0066CC" />

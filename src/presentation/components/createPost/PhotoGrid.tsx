@@ -157,6 +157,7 @@ export const PhotoGrid = memo<Props>(
           onLongPress={() => !readOnly && openCaptionEditor(image)}
         >
           <Image
+            key={image.uri}
             source={{ uri: image.uri }}
             style={[gridStyles.image, variant === 'half' ? gridStyles.imageHalf : null]}
             resizeMode="cover"
@@ -222,6 +223,7 @@ export const PhotoGrid = memo<Props>(
           >
             {previewUri ? (
               <Image
+                key={previewUri}
                 source={{ uri: previewUri }}
                 style={gridStyles.previewImage}
                 resizeMode="contain"

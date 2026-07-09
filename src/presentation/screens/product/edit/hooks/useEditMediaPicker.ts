@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { launchCamera, launchImageLibrary, Asset } from 'react-native-image-picker';
 import { VIDEO_CONSTRAINTS } from '../../../../../constants/createPostConstants';
 import { useEditProductStore } from '../../../../../store/editProductStore';
+import { resolveEditProductPlaybackVideo } from '../utils/editProductVideoUtils';
 import {
   openAppSettings,
   requestMediaPermission,
@@ -20,7 +21,18 @@ const mapImageAssets = (assets: Asset[]) =>
     }));
 
 export const useEditMediaPicker = () => {
-  const { video, images, setVideo, addImages, replaceImage } = useEditProductStore();
+  const { video, images, setVideo, setRemoteVideoUrl, addImages, replaceImage, remoteVideoUrl } =
+    useEditProductStore();
+
+  const assignVideo = useCallback(
+    (next: Parameters<typeof setVideo>[0]) => {
+      setVideo(next);
+      if (next) {
+        setRemoteVideoUrl(undefined);
+      }
+    },
+    [setRemoteVideoUrl, setVideo],
+  );
 
   const pickVideoFromGallery = useCallback(async () => {
     const status = await requestMediaPermission('gallery');
@@ -54,8 +66,8 @@ export const useEditMediaPicker = () => {
       Alert.alert('Invalid video', validation.error);
       return;
     }
-    setVideo(mapped);
-  }, [setVideo]);
+    assignVideo(mapped);
+  }, [assignVideo]);
 
   const captureVideo = useCallback(async () => {
     const status = await requestMediaPermission('camera');
@@ -89,8 +101,8 @@ export const useEditMediaPicker = () => {
       Alert.alert('Invalid video', validation.error);
       return;
     }
-    setVideo(mapped);
-  }, [setVideo]);
+    assignVideo(mapped);
+  }, [assignVideo]);
 
   const pickImages = useCallback(async () => {
     const status = await requestMediaPermission('gallery');
@@ -150,8 +162,11 @@ export const useEditMediaPicker = () => {
     [replaceImage],
   );
 
+  const playbackVideo = resolveEditProductPlaybackVideo(video, remoteVideoUrl);
+
   return {
     video,
+    playbackVideo,
     pickVideoFromGallery,
     captureVideo,
     pickImages,

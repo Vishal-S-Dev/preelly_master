@@ -21,14 +21,13 @@ export const EditDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
     title,
     description,
     images,
-    video,
     setTitle,
     setDescription,
     setImages,
     removeImage,
     updateImage,
   } = useEditProductStore();
-  const { pickImages, pickImageToReplace } = useEditMediaPicker();
+  const { pickImages, pickImageToReplace, playbackVideo } = useEditMediaPicker();
   const [framePickerVisible, setFramePickerVisible] = useState(false);
   const [grabReplaceImageId, setGrabReplaceImageId] = useState<string | null>(null);
 
@@ -43,13 +42,13 @@ export const EditDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
   }, [images, setImages]);
 
   const openScreenGrab = useCallback((replaceImageId?: string) => {
-    if (!video) {
+    if (!playbackVideo) {
       Alert.alert('Video required', 'Add a video to capture screenshots from.');
       return;
     }
     setGrabReplaceImageId(replaceImageId ?? null);
     setFramePickerVisible(true);
-  }, [video]);
+  }, [playbackVideo]);
 
   const closeScreenGrab = useCallback(() => {
     setFramePickerVisible(false);
@@ -159,7 +158,7 @@ export const EditDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
       />
       <EditVideoFramePickerModal
         visible={framePickerVisible}
-        video={video ?? null}
+        video={playbackVideo ?? null}
         replaceImageId={grabReplaceImageId}
         onClose={closeScreenGrab}
       />

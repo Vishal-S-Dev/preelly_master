@@ -10,6 +10,7 @@ import {
   mapAttributesToCanonicalFields,
   normalizeEditFieldKey,
 } from '../utils/propertyEditFieldMapping';
+import { resolveProductDtoVideoUrl } from '../utils/editProductVideoUtils';
 
 const normalizeRemotePath = (path: string): string => {
   const trimmed = path.trim();
@@ -201,7 +202,7 @@ export const mapProductDtoToEditDraft = (dto: ProductDTO): EditProductDraft => {
     locationAddress: dto.buildingStreetName ?? dto.location ?? '',
     locationLatitude: 24.4539,
     locationLongitude: 54.3773,
-    remoteVideoUrl: dto.video ? ProductApi.withBase(dto.video) : undefined,
+    remoteVideoUrl: resolveProductDtoVideoUrl(dto),
     video: null,
   };
 };

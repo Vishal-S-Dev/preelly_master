@@ -140,18 +140,28 @@ export const useEditProductStore = create<EditProductStore>()(
         }),
       replaceImage: (id, updates) =>
         set(state => {
-          const target = state.images.find(img => img.id === id);
+          const targetIndex = state.images.findIndex(img => img.id === id);
+          if (targetIndex < 0) {
+            return state;
+          }
+
+          const target = state.images[targetIndex];
           let removedRemoteImagePaths = state.removedRemoteImagePaths;
-          if (target?.isRemote && target.remotePath && updates.uri) {
+          if (target.isRemote && target.remotePath && updates.uri) {
             removedRemoteImagePaths = [...(state.removedRemoteImagePaths ?? []), target.remotePath];
           }
+
+          const nextImages = [...state.images];
+          nextImages[targetIndex] = {
+            ...target,
+            ...updates,
+            isRemote: false,
+            remotePath: undefined,
+          };
+
           return {
             removedRemoteImagePaths,
-            images: state.images.map(img =>
-              img.id === id
-                ? { ...img, ...updates, isRemote: false, remotePath: undefined }
-                : img,
-            ),
+            images: nextImages,
           };
         }),
       updateImage: (id, updates) =>

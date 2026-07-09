@@ -20,6 +20,7 @@ interface UseMapLocationPickerOptions {
   onCoordinateChange: (lat: number, lng: number) => void;
   onLocateYourItemChange: (value: string) => void;
   onAddressChange: (value: string) => void;
+  onDetailLocationChange?: (value: string) => void;
 }
 
 interface UseMapLocationPickerResult {
@@ -44,6 +45,7 @@ export const useMapLocationPicker = ({
   onCoordinateChange,
   onLocateYourItemChange,
   onAddressChange,
+  onDetailLocationChange,
 }: UseMapLocationPickerOptions): UseMapLocationPickerResult => {
   const mapControllerRef = useRef<MapController | null>(null);
   const geocodeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,8 +89,9 @@ export const useMapLocationPicker = ({
 
       onLocateYourItemChange(result.locateLabel);
       onAddressChange(result.buildingStreet);
+      onDetailLocationChange?.(result.formattedAddress);
     },
-    [onAddressChange, onLocateYourItemChange],
+    [onAddressChange, onDetailLocationChange, onLocateYourItemChange],
   );
 
   const scheduleReverseGeocode = useCallback(

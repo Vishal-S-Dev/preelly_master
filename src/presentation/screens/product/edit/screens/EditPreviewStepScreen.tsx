@@ -16,6 +16,7 @@ import { PhotoGrid } from '../../../../components/createPost/PhotoGrid';
 import { ReviewSection } from '../../../../components/createPost/ReviewSection';
 import { VideoPreview } from '../../../../components/createPost/VideoPreview';
 import { useCreatePostStyles } from '../../../../hooks/useCreatePostStyles';
+import { resolveEditProductPlaybackVideo } from '../utils/editProductVideoUtils';
 import { useDynamicForm } from '../../../../hooks/useDynamicForm';
 
 type Props = NativeStackScreenProps<EditProductStackParamList, 'EditProductPreviewStep'>;
@@ -38,6 +39,10 @@ export const EditPreviewStepScreen: React.FC<Props> = ({ navigation }) => {
     return step ? sortStepFields(step.fields) : [];
   }, [formData]);
   const formFields = useMemo(() => getProductFormFields(formData?.steps), [formData?.steps]);
+  const playbackVideo = useMemo(
+    () => resolveEditProductPlaybackVideo(store.video, store.remoteVideoUrl),
+    [store.remoteVideoUrl, store.video],
+  );
 
   const onSave = useCallback(async () => {
     const draft = store.getDraft();
@@ -69,8 +74,8 @@ export const EditPreviewStepScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.screen}>
       <CreatePostHeader title={store.categoryName} backgroundColor={styles.screen.backgroundColor} onBack={() => navigation.goBack()} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
-        {store.video ? (
-          <VideoPreview video={store.video} onDelete={() => undefined} onReplace={() => undefined} />
+        {playbackVideo ? (
+          <VideoPreview video={playbackVideo} onDelete={() => undefined} onReplace={() => undefined} />
         ) : null}
         <ReviewSection title="Basic Details" rows={buildFieldReviewRows(step3Fields, store.dynamicFields)} onEdit={() => navigation.navigate('EditProductFormStep')} styles={styles} />
         <ReviewSection title="Additional Details" rows={buildFieldReviewRows(step4Fields.filter(f => f.fieldType !== 'Checkbox'), store.dynamicFields)} onEdit={() => navigation.navigate('EditProductAdvancedFormStep')} styles={styles} />

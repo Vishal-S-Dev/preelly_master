@@ -3,6 +3,62 @@ import { createThumbnail } from 'react-native-create-thumbnail';
 import RNFS from 'react-native-fs';
 
 const FRAMES_DIR = `${RNFS.DocumentDirectoryPath}/post_ad_frames`;
+const REMOTE_VIDEO_CACHE_DIR = `${RNFS.CachesDirectoryPath}/remote_video_frames`;
+
+const isRemoteVideoUri = (uri: string): boolean => /^https?:\/\//i.test(uri.trim());
+
+const remoteVideoCacheKey = (uri: string): string => {
+  let hash = 0;
+  for (let i = 0; i < uri.length; i += 1) {
+    hash = (Math.imul(31, hash) + uri.charCodeAt(i)) | 0;
+  }
+  return `remote_${Math.abs(hash)}.mp4`;
+};
+
+const remoteVideoCache = new Map<string, Promise<string | null>>();
+
+/** Download remote MP4 to cache so native frame extractors receive a local file path. */
+export const resolveVideoUriForFrameCapture = async (videoUri: string): Promise<string> => {
+  const trimmed = videoUri.trim();
+  if (!trimmed || !isRemoteVideoUri(trimmed)) {
+    return normalizeVideoUri(trimmed);
+  }
+
+  const inFlight = remoteVideoCache.get(trimmed);
+  if (inFlight) {
+    const cached = await inFlight;
+    return cached ?? normalizeVideoUri(trimmed);
+  }
+
+  const downloadPromise = (async (): Promise<string | null> => {
+    try {
+      const cacheDirExists = await RNFS.exists(REMOTE_VIDEO_CACHE_DIR);
+      if (!cacheDirExists) {
+        await RNFS.mkdir(REMOTE_VIDEO_CACHE_DIR);
+      }
+
+      const destPath = `${REMOTE_VIDEO_CACHE_DIR}/${remoteVideoCacheKey(trimmed)}`;
+      if (await RNFS.exists(destPath)) {
+        return toDisplayUri(destPath);
+      }
+
+      const result = await RNFS.downloadFile({ fromUrl: trimmed, toFile: destPath }).promise;
+      if (result.statusCode >= 200 && result.statusCode < 300) {
+        return toDisplayUri(destPath);
+      }
+      return null;
+    } catch (error) {
+      if (__DEV__) {
+        console.log('[resolveVideoUriForFrameCapture] download failed', error);
+      }
+      return null;
+    }
+  })();
+
+  remoteVideoCache.set(trimmed, downloadPromise);
+  const localUri = await downloadPromise;
+  return localUri ?? normalizeVideoUri(trimmed);
+};
 
 /** Normalize local video URI for native thumbnail APIs. */
 export const normalizeVideoUri = (uri: string): string => {
@@ -99,10 +155,11 @@ export const captureVideoFrameLocally = async (
 ): Promise<string | null> => {
   const persist = options?.persist !== false;
   const candidates = timestampCandidatesMs(timeSec);
+  const resolvedUri = await resolveVideoUriForFrameCapture(videoUri);
 
   for (const timeStampMs of candidates) {
     try {
-      const tempPath = await extractThumbnail(videoUri, timeStampMs, options);
+      const tempPath = await extractThumbnail(resolvedUri, timeStampMs, options);
       if (!tempPath) continue;
 
       if (!persist) {

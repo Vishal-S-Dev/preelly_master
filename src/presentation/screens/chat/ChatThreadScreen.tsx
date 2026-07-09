@@ -304,7 +304,7 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.activeText}>Active Now</Text>
           </View>
         </View>
-        <Pressable
+        {/*<Pressable
           hitSlop={12}
           style={styles.headerBtn}
           onPress={() =>
@@ -331,7 +331,7 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
           }
         >
           <Feather name="video" size={22} color={THREAD_UI.primary} />
-        </Pressable>
+        </Pressable>*/}
       </View>
 
       <FlatList
@@ -515,23 +515,32 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   msgAvatar: {
-    width: 36,
-    height: 36,
+    width: 28,
+    height: 28,
     borderRadius: 18,
     backgroundColor: THREAD_UI.incomingBubble,
   },
   bubble: {
     flexShrink: 1,
-    borderRadius: 18,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomRightRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 12,
     maxWidth: '100%',
   },
+
   bubbleIncoming: {
     backgroundColor: THREAD_UI.incomingBubble,
   },
   bubbleOutgoing: {
     backgroundColor: THREAD_UI.outgoingBubble,
+    borderTopLeftRadius: 18,
+    borderBottomLeftRadius: 18,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 16,
   },
   callBubble: {
     flexDirection: 'row',
@@ -581,13 +590,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   quickRepliesScroll: {
-    maxHeight: 64,
+    maxHeight: 68,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: THREAD_UI.divider,
   },
   quickRepliesContent: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   quickChip: {
@@ -598,12 +607,12 @@ const styles = StyleSheet.create({
     borderColor: THREAD_UI.chipBorder,
     backgroundColor: THREAD_UI.background,
     marginRight: 8,
-    height : 38,
+    height: 38,
+    justifyContent: 'center',
   },
   quickChipText: {
     fontSize: 13,
     color: THREAD_UI.incomingText,
-
   },
   inputBar: {
     flexDirection: 'row',

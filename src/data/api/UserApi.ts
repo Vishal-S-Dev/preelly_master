@@ -17,9 +17,11 @@ export interface LocationDTO {
   city?: string;
   building?: string;
   apartment?: string;
+  detailLocation?: string;
   isDefault?: boolean;
-  coordinates?: {
+  coordinates?: [number, number] | {
     coordinates?: [number, number];
+    type?: string;
   };
 }
 
@@ -88,7 +90,7 @@ export const UserApi = {
   async getLocations(): Promise<LocationDTO[]> {
     try {
       const { data } = await httpClient.get<{ locations?: LocationDTO[] } | LocationDTO[]>(
-        '/user/locations',
+        '/api/user/locations',
         { baseURL: API_BASE },
       );
       if (Array.isArray(data)) {
@@ -102,7 +104,7 @@ export const UserApi = {
 
   async addLocation(payload: LocationPayload): Promise<LocationDTO> {
     const { data } = await httpClient.post<{ location?: LocationDTO } | LocationDTO>(
-      '/user/locations',
+      '/api/user/locations',
       payload,
       { baseURL: API_BASE },
     );
@@ -115,7 +117,7 @@ export const UserApi = {
 
   async updateLocation(locId: string, payload: LocationPayload): Promise<LocationDTO> {
     const { data } = await httpClient.put<{ location?: LocationDTO } | LocationDTO>(
-      `/user/locations/${locId}`,
+      `/api/user/locations/${locId}`,
       payload,
       { baseURL: API_BASE },
     );
@@ -127,7 +129,7 @@ export const UserApi = {
   },
 
   async deleteLocation(locId: string): Promise<void> {
-    await httpClient.delete(`/user/locations/${locId}`, { baseURL: API_BASE });
+    await httpClient.delete(`/api/user/locations/${locId}`, { baseURL: API_BASE });
   },
 
   async toggleFollow(userId: string): Promise<UserFollowToggleResponseDTO> {

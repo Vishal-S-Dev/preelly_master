@@ -4,7 +4,7 @@ import { VIDEO_CONSTRAINTS } from '../../constants/createPostConstants';
 import { CreatePostMediaFile } from '../../types/createPost.types';
 import { VideoFrameThumb } from '../../types/videoFrame.types';
 import { captureVideoFrame } from '../../utils/captureVideoFrame';
-import { captureVideoFrameLocally } from '../../utils/localVideoFrameCapture';
+import { captureVideoFrameLocally, resolveVideoUriForFrameCapture } from '../../utils/localVideoFrameCapture';
 import { throttle } from '../../utils/throttle';
 import { videoFrameCache } from '../../utils/videoFrameCache';
 import { buildScrubberFrames } from '../../utils/videoFrameThumbnails';
@@ -17,9 +17,16 @@ interface Options {
   video: CreatePostMediaFile | null;
   visible: boolean;
   imageCount: number;
+  /** Allows capture when the photo grid is full (replace-image flow). */
+  allowCaptureAtLimit?: boolean;
 }
 
-export const useVideoFrameCapture = ({ video, visible, imageCount }: Options) => {
+export const useVideoFrameCapture = ({
+  video,
+  visible,
+  imageCount,
+  allowCaptureAtLimit = false,
+}: Options) => {
   const videoRef = useRef<VideoRef>(null);
   const seekDoneRef = useRef<(() => void) | null>(null);
   const framesRef = useRef<VideoFrameThumb[]>([]);
@@ -35,7 +42,7 @@ export const useVideoFrameCapture = ({ video, visible, imageCount }: Options) =>
 
   const remaining = VIDEO_CONSTRAINTS.maxImages - imageCount;
   const scrubberReady = visible && !!video?.uri && duration > 0 && !videoError;
-  const canCapture = scrubberReady && !capturing && remaining > 0;
+  const canCapture = scrubberReady && !capturing && (allowCaptureAtLimit || remaining > 0);
 
   framesRef.current = frames;
 
@@ -85,11 +92,15 @@ export const useVideoFrameCapture = ({ video, visible, imageCount }: Options) =>
     }
 
     let cancelled = false;
-    const videoUri = video.uri;
     const snapshot = frames;
 
     const generateThumbnails = async () => {
+      if (!video?.uri) {
+        return;
+      }
+
       setThumbnailsLoading(true);
+      const videoUri = await resolveVideoUriForFrameCapture(video.uri);
       await new Promise<void>(resolve => setTimeout(resolve, THUMB_GEN_DELAY_MS));
       if (cancelled) return;
 
@@ -230,7 +241,7 @@ export const useVideoFrameCapture = ({ video, visible, imageCount }: Options) =>
   );
 
   const captureFrame = useCallback(async (): Promise<string | null> => {
-    if (!video?.uri || remaining <= 0) {
+    if (!video?.uri || (!allowCaptureAtLimit && remaining <= 0)) {
       return null;
     }
 
@@ -239,12 +250,13 @@ export const useVideoFrameCapture = ({ video, visible, imageCount }: Options) =>
     try {
       const captureTime = Math.max(0, currentTime);
       await waitForSeek(captureTime);
-      await new Promise<void>(resolve => setTimeout(resolve, 120));
+      const settleMs = /^https?:\/\//i.test(video.uri.trim()) ? 220 : 120;
+      await new Promise<void>(resolve => setTimeout(resolve, settleMs));
       return await captureVideoFrame(video, captureTime);
     } finally {
       setCapturing(false);
     }
-  }, [currentTime, remaining, video, waitForSeek]);
+  }, [allowCaptureAtLimit, currentTime, remaining, video, waitForSeek]);
 
   const onVideoError = useCallback(() => {
     setVideoError('Video playback failed. The file may be corrupted.');

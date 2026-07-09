@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -31,6 +31,16 @@ export const EditVideoFramePickerModal = memo<Props>(({ visible, video, onClose,
   const insets = useStableSafeAreaInsets();
   const { images, addImages, removeImage, replaceImage, subcategoryName } = useEditProductStore();
   const [sessionCaptures, setSessionCaptures] = useState<CapturedFrame[]>([]);
+  const replaceTargetRef = useRef<string | null>(null);
+  const isReplaceMode = Boolean(replaceImageId?.trim());
+
+  useEffect(() => {
+    if (visible && replaceImageId?.trim()) {
+      replaceTargetRef.current = replaceImageId.trim();
+    } else if (!visible) {
+      replaceTargetRef.current = null;
+    }
+  }, [replaceImageId, visible]);
 
   const {
     videoRef,
@@ -52,9 +62,9 @@ export const EditVideoFramePickerModal = memo<Props>(({ visible, video, onClose,
     video,
     visible,
     imageCount: images.length,
+    allowCaptureAtLimit: isReplaceMode,
   });
 
-  const isReplaceMode = Boolean(replaceImageId?.trim());
   const canCaptureFrame = scrubberReady && !capturing && (isReplaceMode || remaining > 0);
 
   useEffect(() => {
@@ -78,8 +88,20 @@ export const EditVideoFramePickerModal = memo<Props>(({ visible, video, onClose,
       return;
     }
 
-    if (isReplaceMode && replaceImageId) {
-      replaceImage(replaceImageId, { uri, fromVideo: true });
+    const replaceTargetId = replaceTargetRef.current ?? replaceImageId?.trim();
+    if (isReplaceMode && replaceTargetId) {
+      replaceImage(replaceTargetId, { uri, fromVideo: true });
+
+      const updatedImage = useEditProductStore
+        .getState()
+        .images.find(image => image.id === replaceTargetId);
+
+      if (!updatedImage || updatedImage.uri !== uri) {
+        Alert.alert('Replace failed', 'Could not update this photo slot. Please try again.');
+        return;
+      }
+
+      replaceTargetRef.current = null;
       onClose();
       return;
     }

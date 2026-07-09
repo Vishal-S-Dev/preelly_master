@@ -3,12 +3,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Alert } from 'react-native';
-import { UserApi, LocationDTO } from '../../../../../data/api/UserApi';
+import { UserApi } from '../../../../../data/api/UserApi';
 import { STORAGE_KEYS } from '../../../../../constants/appConstants';
 import {
   LocationPayload,
-  UserLocation,
   ProfileEditFormValues,
+  UserLocation,
 } from '../../../../../types/profileEdit.types';
 import { UserProfileDTO } from '../../../../../types/userProfile.types';
 import { storage } from '../../../../../utils/storage';
@@ -21,23 +21,10 @@ import {
 import { buildMergedProfilePayload } from '../profilePayloadBuilder';
 import { profileEditSchema } from '../validation/profileEditSchema';
 import { profileCompletionSchema } from '../validation/profileCompletionSchema';
+import { mapLocationDto } from '../utils/locationDtoUtils';
 
 const PROFILE_EDIT_KEY = ['profileEdit'];
 const LOCATIONS_KEY = ['profileLocations'];
-
-const mapLocationDto = (dto: LocationDTO, index: number): UserLocation => {
-  const id = dto._id ?? dto.id ?? `loc_${index}`;
-  const parts = [dto.building, dto.apartment, dto.city].filter(Boolean);
-  return {
-    id,
-    label: dto.label ?? 'Home',
-    city: dto.city,
-    building: dto.building,
-    apartment: dto.apartment,
-    fullAddress: parts.length ? parts.join(', ') : 'Address not set',
-    isDefault: Boolean(dto.isDefault),
-  };
-};
 
 export interface UseProfileEditOptions {
   requireCompletion?: boolean;
@@ -170,6 +157,11 @@ export const useProfileEdit = (options?: UseProfileEditOptions) => {
           city: target.city,
           building: target.building,
           apartment: target.apartment,
+          detailLocation: target.detailLocation,
+          coordinates:
+            target.latitude != null && target.longitude != null
+              ? [target.latitude, target.longitude]
+              : undefined,
           isDefault: true,
         });
       }
