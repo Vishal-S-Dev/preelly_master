@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -9,6 +9,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Product } from '../../domain/models/Product';
+import { shouldSkipProductView } from '../../services/productView.service';
+import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
+import { markProductViewed } from '../redux/slices/productSlice';
 import { ActionButtons } from './ActionButtons';
 import { GradientPriceBadge } from './common/GradientPriceBadge';
 import { VideoPlayer, VideoPlayerFullscreen } from './VideoPlayer';
@@ -26,6 +29,8 @@ interface Props {
   onOpenDetail: (product: Product) => void;
   onOpenProfile: (id: string) => void;
   onShare?: (product: Product) => void;
+  /** Called after a view is successfully recorded (for local feed state). */
+  onProductViewed?: (productId: string) => void;
   fullscreenVideo?: boolean;
   ownerMode?: boolean;
   onOwnerMenu?: (product: Product) => void;
@@ -39,11 +44,14 @@ const areReelCardPropsEqual = (prev: Props, next: Props): boolean =>
   prev.product.isPaused === next.product.isPaused &&
   prev.product.liked === next.product.liked &&
   prev.product.isSaved === next.product.isSaved &&
+  prev.product.isViewed === next.product.isViewed &&
+  prev.product.isSold === next.product.isSold &&
   prev.product.likesCount === next.product.likesCount &&
   prev.product.commentCount === next.product.commentCount &&
   prev.product.videoUrl === next.product.videoUrl &&
   prev.product.imageUrl === next.product.imageUrl &&
-  prev.fullscreenVideo === next.fullscreenVideo;
+  prev.fullscreenVideo === next.fullscreenVideo &&
+  prev.onProductViewed === next.onProductViewed;
 
 export const ReelCard: React.FC<Props> = React.memo(
   ({
@@ -58,12 +66,39 @@ export const ReelCard: React.FC<Props> = React.memo(
     onOpenDetail,
     onOpenProfile,
     onShare,
+    onProductViewed,
     fullscreenVideo = false,
     ownerMode = false,
     onOwnerMenu,
   }) => {
+    const dispatch = useAppDispatch();
+    const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
+    const isGuest = useAppSelector(state => state.auth.isGuest);
     const heartScale = useSharedValue(0);
     const heartOpacity = useSharedValue(0);
+
+    const hasVideo = product.videoUrl.trim().length > 0;
+    const isSold = Boolean(product.isSold);
+    const availabilityLabel = isSold ? 'Sold' : 'Available';
+    const watchTrackingEnabled =
+      hasVideo &&
+      isAuthenticated &&
+      !isGuest &&
+      !shouldSkipProductView(product.id, product.isViewed);
+
+    const handleWatchThresholdReached = useCallback(() => {
+      if (shouldSkipProductView(product.id, product.isViewed)) {
+        return;
+      }
+
+      void dispatch(
+        markProductViewed({ productId: product.id, isViewed: product.isViewed }),
+      ).then(result => {
+        if (markProductViewed.fulfilled.match(result) && result.payload.recorded) {
+          onProductViewed?.(product.id);
+        }
+      });
+    }, [dispatch, onProductViewed, product.id, product.isViewed]);
 
     const heartStyle = useAnimatedStyle(() => ({
       transform: [{ scale: heartScale.value }],
@@ -103,6 +138,10 @@ export const ReelCard: React.FC<Props> = React.memo(
             isActive={isActive}
             muted={muted}
             isPaused={product.isPaused}
+            watchTrackingEnabled={watchTrackingEnabled}
+            onWatchThresholdReached={
+              watchTrackingEnabled ? handleWatchThresholdReached : undefined
+            }
           />
 
           <View style={styles.topOverlay} />
@@ -161,10 +200,21 @@ export const ReelCard: React.FC<Props> = React.memo(
                 <Text style={styles.description}>76,500 km</Text>
                 <Text style={styles.dot}>•</Text>
                 <Text style={styles.description}>American Specs</Text>*/}
-                <Text style={styles.description}>{product.location}</Text>
+                <Text
+                  style={styles.description}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {product.location}
+                </Text>
               </View>
-              <View style={styles.locationBadge}>
-                <Text style={styles.locationText}>Available</Text>
+              <View
+                style={[
+                  styles.locationBadge,
+                  isSold ? styles.soldBadge : styles.availableBadge,
+                ]}
+              >
+                <Text style={styles.locationText}>{availabilityLabel}</Text>
               </View>
             </View>
           </View>
@@ -226,7 +276,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     marginRight: 10,
   },
-  description: { color: '#E2E8F0', marginTop: 6, fontSize: 14 },
+  description: { color: '#E2E8F0', marginTop: 6, fontSize: 14, flexShrink: 1 },
   badgeRow: {
     marginTop: 10,
     flexDirection: 'row',
@@ -241,11 +291,16 @@ const styles = StyleSheet.create({
   },
   priceText: { color: '#fff', fontWeight: '800', flexShrink: 0 },
   locationBadge: {
-    backgroundColor: '#1EB700',
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 12,
     alignSelf: 'center',
+  },
+  availableBadge: {
+    backgroundColor: '#1EB700',
+  },
+  soldBadge: {
+    backgroundColor: '#EF4444',
   },
   locationText: {
     color: '#fff',

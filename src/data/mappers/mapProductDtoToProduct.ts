@@ -20,7 +20,10 @@ export const mapProductDtoToProduct = (item: ProductDTO): Product => {
     images: images.length > 0 ? images : undefined,
     location: item.location ?? 'Unknown',
     likesCount: item.likes?.length ?? 0,
+    views: item.views ?? 0,
     isSaved: Boolean(item.saved),
+    isViewed: Boolean(item.isViewed ?? item.viewed),
+    isSold: Boolean(item.isSold),
     createdAt: item.createdAt ?? new Date().toISOString(),
     user: item.user?.name
       ? {

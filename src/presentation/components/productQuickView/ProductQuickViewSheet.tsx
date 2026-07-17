@@ -11,7 +11,8 @@ import {
 import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { Product } from '../../../domain/models/Product';
 import { mapProductToQuickView } from './mapProductToQuickView';
-import { ProductBottomActions } from './ProductBottomActions';
+// import { ProductBottomActions } from './ProductBottomActions';
+import { ChatWithSellerButton } from './ChatWithSellerButton';
 import { ProductImageCarousel } from './ProductImageCarousel';
 import { ProductMetaInfo } from './ProductMetaInfo';
 import { ProductSpecificationGrid } from './ProductSpecificationGrid';
@@ -29,10 +30,12 @@ interface Props {
   onLike: (productId: string) => void;
   onSave: (productId: string) => void;
   onOpenDetail?: (product: Product) => void;
+  onChat?: (product: Product) => void;
+  chatLoading?: boolean;
 }
 
 export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
-  ({ product, onDismiss, onLike, onSave, onOpenDetail }, ref) => {
+  ({ product, onDismiss, onLike, onSave, onOpenDetail, onChat, chatLoading }, ref) => {
     //const snapPoints = useMemo(() => ['70%', '94%'], []);
     const snapPoints = useMemo(() => ['70%'], []);
     const quickViewData = useMemo(
@@ -53,15 +56,39 @@ export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
       [],
     );
 
+    const handleChatPress = useCallback(() => {
+      if (!product || !onChat) {
+        return;
+      }
+      onChat(product);
+    }, [onChat, product]);
+
     const renderFooter = useCallback(
-      (props: BottomSheetFooterProps) => (
-        <BottomSheetFooter {...props}>
-          <View style={styles.footerContainer}>
-            <ProductBottomActions />
-          </View>
-        </BottomSheetFooter>
-      ),
-      [],
+      (props: BottomSheetFooterProps) => {
+        if (!onChat) {
+          return null;
+        }
+
+        return (
+          <BottomSheetFooter {...props}>
+            <View style={styles.footerContainer}>
+              {/* Previous multi-action footer kept for reference / easy rollback:
+              <ProductBottomActions
+                onCall={...}
+                onWhatsApp={...}
+                onChat={...}
+              />
+              */}
+              <ChatWithSellerButton
+                onPress={handleChatPress}
+                loading={chatLoading}
+                includeSafeArea={false}
+              />
+            </View>
+          </BottomSheetFooter>
+        );
+      },
+      [chatLoading, handleChatPress, onChat],
     );
 
     const handleSheetChange = useCallback(
@@ -171,9 +198,14 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     backgroundColor: QV_COLORS.sheetBg,
-    //borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingBottom: Platform.OS === 'ios' ? 20 : 16,
-    paddingTop: 12,
+    // Soft top edge so the CTA sits flush with sheet content
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 6,
   },
 });

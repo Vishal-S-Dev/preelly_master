@@ -3,6 +3,7 @@ import { STORAGE_KEYS } from '../../constants/appConstants';
 import { ENV } from '../../constants/env';
 import { storage } from '../../utils/storage';
 import { API_ENDPOINTS } from '../../constants/appConstants';
+import { redactCcavenueFields } from '../../constants/ccavenueEnv';
 import { RefreshTokenResponseDto } from '../dto/authDto';
 
 export const httpClient = axios.create({
@@ -50,7 +51,7 @@ httpClient.interceptors.request.use(
       `[HTTP:REQUEST] ${String(config.method).toUpperCase()} ${config.baseURL ?? ''}${config.url ?? ''}`,
       `\nheaders=${safeSerialize({ ...config.headers, Authorization: authHeader })}`,
       `\nparams=${safeSerialize(config.params)}`,
-      `\ndata=${safeSerialize(config.data)}`,
+      `\ndata=${safeSerialize(redactCcavenueFields(config.data))}`,
     );
     return config;
   },
@@ -90,7 +91,7 @@ httpClient.interceptors.response.use(
       `[HTTP:ERROR] ${status ?? 'NO_STATUS'} ${String(originalRequest?.method).toUpperCase()} ${originalRequest?.baseURL ?? ''}${originalRequest?.url ?? ''}`,
       `\nerror=${error.message}`,
       `\nresponse=${safeSerialize(error.response?.data)}`,
-      `\nrequest-data=${safeSerialize(originalRequest?.data)}`,
+      `\nrequest-data=${safeSerialize(redactCcavenueFields(originalRequest?.data))}`,
     );
 
     if (status === 401 && originalRequest && !originalRequest._retry && !isRefreshEndpoint) {

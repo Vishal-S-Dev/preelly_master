@@ -18,4 +18,9 @@ export interface CommentDTO {
   isPinned?: boolean;
   replies?: CommentDTO[];
   replyCount?: number;
+  /** Parent comment id for nested replies (flat list responses). */
+  parentID?: string | { _id?: string; id?: string } | null;
+  parentComment?: string | { _id?: string; id?: string } | null;
+  product?: string;
+  status?: string;
 }

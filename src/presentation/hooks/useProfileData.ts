@@ -8,6 +8,8 @@ import {
   ProfileUserView,
 } from '../../types/profile.types';
 import { getDisplayAvatarUri, resolveMediaUrl } from '../../utils/mediaUrl';
+import { resolveProfileStatsFromDto } from '../../utils/profileStatsUtils';
+import { isProfileIdentityVerified } from '../screens/profile/edit/utils/identityVerificationUtils';
 import { useAppSelector } from './useRedux';
 
 const PAGE_SIZE = 18;
@@ -37,17 +39,7 @@ const DEFAULT_BIO = [
   'Best Deals | Verified Cars ✓',
 ];
 
-const formatCount = (value: number): string => {
-  if (value >= 1_000_000) {
-    const m = value / 1_000_000;
-    return `${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`;
-  }
-  if (value >= 1000) {
-    const k = value / 1000;
-    return `${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)}k`;
-  }
-  return String(value);
-};
+const DEFAULT_STATS = { adsPosted: 0, followers: 0, following: 0 };
 
 const parseBioLines = (bio?: string): string[] => {
   if (!bio?.trim()) {
@@ -67,21 +59,15 @@ const resolveProfileAvatar = (
 
 const mapAuthToProfile = (
   authUser: User | null,
-  followers: number,
-  following: number,
-  adsPosted: number,
+  stats = DEFAULT_STATS,
 ): ProfileUserView => ({
   id: authUser?.id ?? 'local_user',
-  name: authUser?.name ?? 'Apsar Shaikh',
+  name: authUser?.name ?? 'User',
   avatar: resolveProfileAvatar(authUser?.avatar, authUser?.name),
   bioLines: DEFAULT_BIO,
-  isVerified: Boolean(authUser?.isVerified) ?? true,
-  rating: { value: 4.5, totalRatings: 7 },
-  stats: {
-    adsPosted: adsPosted || 45,
-    followers,
-    following,
-  },
+  isVerified: Boolean(authUser?.isVerified),
+  rating: { value: 0, totalRatings: 0 },
+  stats,
 });
 
 export const useProfileData = () => {
@@ -106,19 +92,34 @@ export const useProfileData = () => {
 
   const loadProfileMeta = useCallback(async () => {
     if (!userId) {
-      setProfile(mapAuthToProfile(authUser, 5500, 25, 45));
+      setProfile(mapAuthToProfile(authUser));
       return;
     }
 
     try {
-      const [profileDto, followers, following, listings] = await Promise.all([
-        profileService.getCurrentUserProfile(),
-        profileService.getFollowersCount(userId),
-        profileService.getFollowingCount(userId),
+      const profileDto = await profileService.getCurrentUserProfile();
+      const [listings, followersCount, followingCount] = await Promise.all([
         profileService.getUserListings(userId, 1, PAGE_SIZE),
+        Array.isArray(profileDto.followers)
+          ? Promise.resolve(profileDto.followers.length)
+          : profileService.getFollowersCount(userId),
+        Array.isArray(profileDto.following)
+          ? Promise.resolve(profileDto.following.length)
+          : profileService.getFollowingCount(userId),
       ]);
 
       const bio = profileDto.bio;
+      const identityVerificationStatus = profileDto.identityVerificationStatus ?? null;
+      const identityVerifiedAt = profileDto.identityVerifiedAt ?? null;
+      const legacyVerified = Boolean(
+        profileDto.isVerified ?? profileDto.verified ?? authUser?.isVerified,
+      );
+      const stats = resolveProfileStatsFromDto(profileDto, {
+        listingsCount: listings.items.length,
+        followersCount,
+        followingCount,
+      });
+
       setProfile({
         id: profileDto._id ?? profileDto.id ?? userId,
         name: profileDto.name ?? authUser?.name ?? 'User',
@@ -129,19 +130,21 @@ export const useProfileData = () => {
         ),
         bio,
         bioLines: parseBioLines(bio),
-        isVerified: Boolean(profileDto.isVerified ?? profileDto.verified ?? authUser?.isVerified),
+        identityVerificationStatus,
+        identityVerifiedAt,
+        isVerified: isProfileIdentityVerified({
+          identityVerificationStatus,
+          identityVerifiedAt,
+          isVerified: legacyVerified,
+        }),
         rating: {
-          value: profileDto.rating ?? 4.5,
-          totalRatings: profileDto.ratingsCount ?? profileDto.ratingCount ?? 7,
+          value: profileDto.rating ?? 0,
+          totalRatings: profileDto.ratingsCount ?? profileDto.ratingCount ?? 0,
         },
-        stats: {
-          adsPosted: listings.items.length || 45,
-          followers,
-          following,
-        },
+        stats,
       });
     } catch {
-      setProfile(mapAuthToProfile(authUser, 5500, 25, 45));
+      setProfile(mapAuthToProfile(authUser));
     }
   }, [authUser, userId]);
 
@@ -251,7 +254,7 @@ export const useProfileData = () => {
         ? resolveMediaUrl(avatar) || avatar
         : getDisplayAvatarUri(null, authUser?.name ?? profile?.name) ?? undefined;
       setProfile(prev => {
-        const base = prev ?? mapAuthToProfile(authUser, 5500, 25, 45);
+        const base = prev ?? mapAuthToProfile(authUser);
         return {
           ...base,
           avatar: resolved,
@@ -283,17 +286,8 @@ export const useProfileData = () => {
     [activeTab, applyTabCache],
   );
 
-  const statsFormatted = useMemo(
-    () => ({
-      adsPosted: formatCount(profile?.stats.adsPosted ?? 0),
-      followers: formatCount(profile?.stats.followers ?? 0),
-      following: formatCount(profile?.stats.following ?? 0),
-    }),
-    [profile?.stats],
-  );
-
   const displayProfile = useMemo<ProfileUserView>(() => {
-    const base = profile ?? mapAuthToProfile(authUser, 5500, 25, 45);
+    const base = profile ?? mapAuthToProfile(authUser);
     const freshestAvatar = authUser?.avatar ?? base.avatar;
     return {
       ...base,
@@ -311,7 +305,6 @@ export const useProfileData = () => {
     refreshing,
     loadingMore,
     hasMore,
-    statsFormatted,
     onTabChange,
     onRefresh,
     reloadProfileMeta: loadProfileMeta,

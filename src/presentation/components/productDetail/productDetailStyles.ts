@@ -257,15 +257,6 @@ export const pdStyles = StyleSheet.create({
     borderRadius: wp('6%'),
     backgroundColor: '#E5E7EB',
   },
-  similarCard: {
-    width: wp('58%'),
-    marginRight: wp('3%'),
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: PD_COLORS.divider,
-  },
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',

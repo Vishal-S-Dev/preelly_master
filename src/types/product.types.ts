@@ -45,6 +45,7 @@ export interface SimilarAdItem {
   imageUrl: string;
   location: string;
   postedAgo: string;
+  availability?: string;
 }
 
 export interface ProductCategoryItem {

@@ -1,9 +1,10 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { ProfileUserView } from '../../../types/profile.types';
 import { getDisplayAvatarUri } from '../../../utils/mediaUrl';
+import { isProfileIdentityVerified } from '../../screens/profile/edit/utils/identityVerificationUtils';
 import { useProfileStyles } from '../../hooks/useProfileStyles';
 import { ProfileRating } from './ProfileRating';
 
@@ -16,6 +17,15 @@ interface Props {
 export const ProfileHeader = memo<Props>(({ profile, onEditAvatar, uploadingAvatar = false }) => {
   const { styles, colors } = useProfileStyles();
   const avatarUri = getDisplayAvatarUri(profile.avatar, profile.name);
+  const showVerifiedBadge = useMemo(
+    () =>
+      isProfileIdentityVerified({
+        identityVerificationStatus: profile.identityVerificationStatus,
+        identityVerifiedAt: profile.identityVerifiedAt,
+        isVerified: profile.isVerified,
+      }),
+    [profile.identityVerificationStatus, profile.identityVerifiedAt, profile.isVerified],
+  );
 
   return (
     <Animated.View entering={FadeIn.duration(420)} style={styles.headerBlock}>
@@ -47,7 +57,7 @@ export const ProfileHeader = memo<Props>(({ profile, onEditAvatar, uploadingAvat
 
       <View style={styles.nameRow}>
         <Text style={styles.name}>{profile.name}</Text>
-        {profile.isVerified ? (
+        {showVerifiedBadge ? (
           <Icon name="check-decagram" size={20} color={colors.verified} />
         ) : null}
       </View>

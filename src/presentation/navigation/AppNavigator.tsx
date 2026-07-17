@@ -21,6 +21,7 @@ import { EditProductScreen } from '../screens/product/EditProductScreen';
 import { EditProductFlowScreen } from '../screens/product/edit/screens/EditProductFlowScreen';
 import { CreatePostNavigator } from './CreatePostNavigator';
 import { ProfileEditScreen } from '../screens/profile/edit/ProfileEditScreen';
+import { GetVerifiedScreen } from '../screens/profile/getVerified/GetVerifiedScreen';
 import { OnboardingScreen } from '../screens/onboarding/OnboardingScreen';
 import { RootStackParamList } from './types';
 import { useAppSelector } from '../hooks/useRedux';
@@ -36,6 +37,12 @@ import { CategoryFilterScreen } from '../screens/search/CategoryFilterScreen';
 import { NotificationsScreen } from '../screens/notifications/NotificationsScreen';
 import { FollowRequestsScreen } from '../screens/notifications/FollowRequestsScreen';
 import { MySettingsScreen } from '../screens/settings/MySettingsScreen';
+import { PaymentWebViewScreen } from '../screens/payment/PaymentWebViewScreen';
+import { PaymentSuccessScreen } from '../screens/payment/PaymentSuccessScreen';
+import { PaymentFailedScreen } from '../screens/payment/PaymentFailedScreen';
+import { PaymentPendingScreen } from '../screens/payment/PaymentPendingScreen';
+import { PaymentCancelledScreen } from '../screens/payment/PaymentCancelledScreen';
+import { PaymentHistoryScreen } from '../screens/payment/PaymentHistoryScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -213,6 +220,11 @@ export const AppNavigator: React.FC = () => {
               options={{ animation: 'slide_from_right' }}
             />
             <Stack.Screen
+              name="GetVerified"
+              component={GetVerifiedScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
               name="OtherProfile"
               component={UserProfileScreen}
               options={{ animation: 'slide_from_right' }}
@@ -259,6 +271,40 @@ export const AppNavigator: React.FC = () => {
             <Stack.Screen
               name="MySettings"
               component={MySettingsScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="PaymentWebView"
+              component={PaymentWebViewScreen}
+              options={{
+                animation: 'slide_from_bottom',
+                presentation: 'fullScreenModal',
+                gestureEnabled: false,
+              }}
+            />
+            <Stack.Screen
+              name="PaymentSuccess"
+              component={PaymentSuccessScreen}
+              options={{ animation: 'fade', gestureEnabled: false }}
+            />
+            <Stack.Screen
+              name="PaymentFailed"
+              component={PaymentFailedScreen}
+              options={{ animation: 'fade', gestureEnabled: false }}
+            />
+            <Stack.Screen
+              name="PaymentPending"
+              component={PaymentPendingScreen}
+              options={{ animation: 'fade', gestureEnabled: false }}
+            />
+            <Stack.Screen
+              name="PaymentCancelled"
+              component={PaymentCancelledScreen}
+              options={{ animation: 'fade', gestureEnabled: false }}
+            />
+            <Stack.Screen
+              name="PaymentHistory"
+              component={PaymentHistoryScreen}
               options={{ animation: 'slide_from_right' }}
             />
           </>

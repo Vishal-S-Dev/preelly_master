@@ -1,5 +1,9 @@
 import { Product } from '../../domain/models/Product';
 import { EditProductDetailSeed, EditProductStackParamList } from '../../types/editProduct.types';
+import {
+  PaymentInitiateResponse,
+  PaymentResultParams,
+} from '../../types/payment.types';
 
 export type UserFeedListingSource = 'posts' | 'saved' | 'liked';
 
@@ -69,6 +73,16 @@ export type RootStackParamList = {
   Notifications: undefined;
   FollowRequests: undefined;
   MySettings: undefined;
+  GetVerified: undefined;
+  PaymentWebView: {
+    session: PaymentInitiateResponse;
+    closeCreatePost?: boolean;
+  };
+  PaymentSuccess: PaymentResultParams;
+  PaymentFailed: PaymentResultParams;
+  PaymentPending: PaymentResultParams;
+  PaymentCancelled: PaymentResultParams;
+  PaymentHistory: undefined;
 };
 
 export type MainTabParamList = {

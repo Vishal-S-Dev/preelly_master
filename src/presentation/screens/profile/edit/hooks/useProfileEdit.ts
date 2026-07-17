@@ -22,6 +22,11 @@ import { buildMergedProfilePayload } from '../profilePayloadBuilder';
 import { profileEditSchema } from '../validation/profileEditSchema';
 import { profileCompletionSchema } from '../validation/profileCompletionSchema';
 import { mapLocationDto } from '../utils/locationDtoUtils';
+import {
+  isIdentityVerificationActionable,
+  resolveIdentityVerificationStatus,
+  shouldShowIdentityVerificationCard,
+} from '../utils/identityVerificationUtils';
 
 const PROFILE_EDIT_KEY = ['profileEdit'];
 const LOCATIONS_KEY = ['profileLocations'];
@@ -222,6 +227,22 @@ export const useProfileEdit = (options?: UseProfileEditOptions) => {
     [locationMutation],
   );
 
+  const identityVerification = useMemo(() => {
+    const profile = profileQuery.data;
+    const status = resolveIdentityVerificationStatus({
+      status: profile?.identityVerificationStatus,
+      identityVerifiedAt: profile?.identityVerifiedAt,
+    });
+
+    return {
+      status,
+      rejectionReason: profile?.identityVerificationRejectionReason ?? null,
+      submittedAt: profile?.identityVerificationSubmittedAt ?? null,
+      shouldShowCard: shouldShowIdentityVerificationCard(status),
+      isActionable: isIdentityVerificationActionable(status),
+    };
+  }, [profileQuery.data]);
+
   const isVerified = Boolean(
     profileQuery.data?.isVerified ?? profileQuery.data?.verified ?? authUser?.isVerified,
   );
@@ -231,6 +252,7 @@ export const useProfileEdit = (options?: UseProfileEditOptions) => {
     submit,
     locations,
     isVerified,
+    identityVerification,
     requireCompletion,
     loading: profileQuery.isLoading || locationsQuery.isLoading,
     saving: updateProfileMutation.isPending,

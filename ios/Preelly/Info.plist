@@ -27,20 +27,20 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSExceptionDomains</key>
-        <dict>
-            <key>117.254.196.100</key>
-            <dict>
-                <key>NSIncludesSubdomains</key>
-                <true/>
-                <key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
-                <true/>
-                <key>NSTemporaryExceptionMinimumTLSVersion</key>
-                <string>TLSv1.1</string>
-            </dict>
-        </dict>
-    </dict>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>117.254.196.100</key>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSTemporaryExceptionMinimumTLSVersion</key>
+				<string>TLSv1.1</string>
+			</dict>
+		</dict>
+	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Preelly needs camera access to capture listing videos and photos.</string>
 	<key>NSMicrophoneUsageDescription</key>
@@ -71,12 +71,21 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
 	<key>UIAppFonts</key>
-    <array>
-        <string>MaterialCommunityIcons.ttf</string>
-        <string>FontAwesome.ttf</string>
-        <string>Ionicons.ttf</string>
-        <string>Lucide.ttf</string>
-    </array>
+	<array>
+		<string>MaterialCommunityIcons.ttf</string>
+		<string>FontAwesome.ttf</string>
+		<string>Ionicons.ttf</string>
+		<string>Lucide.ttf</string>
+		<string>notosans_thin.ttf</string>
+		<string>notosans_extralight.ttf</string>
+		<string>notosans_light.ttf</string>
+		<string>notosans_regular.ttf</string>
+		<string>notosans_medium.ttf</string>
+		<string>notosans_semibold.ttf</string>
+		<string>notosans_bold.ttf</string>
+		<string>notosans_extrabold.ttf</string>
+		<string>notosans_black.ttf</string>
+	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
 </dict>

@@ -5,6 +5,10 @@ import { profileService } from '../../services/profile.service';
 import { SettingsDashboardCounts, SettingsProfileSummary } from '../../types/settings.types';
 import { getDisplayAvatarUri } from '../../utils/mediaUrl';
 import { storage } from '../../utils/storage';
+import {
+  isProfileIdentityVerified,
+  resolveIdentityVerificationStatus,
+} from '../screens/profile/edit/utils/identityVerificationUtils';
 import { useAppSelector } from './useRedux';
 
 const EMPTY_COUNTS: SettingsDashboardCounts = {
@@ -59,7 +63,8 @@ export const useMySettingsData = () => {
     id: userId ?? 'local_user',
     name: authUser?.name ?? 'User',
     avatar: getDisplayAvatarUri(authUser?.avatar, authUser?.name) ?? undefined,
-    isVerified: Boolean(authUser?.isVerified),
+    isVerified: false,
+    verificationStatus: 'none',
   });
   const [counts, setCounts] = useState<SettingsDashboardCounts>(EMPTY_COUNTS);
 
@@ -70,7 +75,8 @@ export const useMySettingsData = () => {
       id: userId ?? 'local_user',
       name: authUser?.name ?? 'User',
       avatar: getDisplayAvatarUri(authUser?.avatar, authUser?.name) ?? undefined,
-      isVerified: Boolean(authUser?.isVerified),
+      isVerified: false,
+      verificationStatus: 'none',
     };
 
     try {
@@ -82,15 +88,29 @@ export const useMySettingsData = () => {
         hasPersistedDraft(),
       ]);
 
+      const identityVerificationStatus = profileDto?.identityVerificationStatus ?? null;
+      const identityVerifiedAt = profileDto?.identityVerifiedAt ?? null;
+      const verificationStatus = resolveIdentityVerificationStatus({
+        status: identityVerificationStatus,
+        identityVerifiedAt,
+      });
+      const legacyVerified = Boolean(
+        profileDto?.isVerified ?? profileDto?.verified ?? authUser?.isVerified,
+      );
+
       setProfile({
         id: profileDto?._id ?? profileDto?.id ?? fallbackProfile.id,
         name: profileDto?.name ?? authUser?.name ?? fallbackProfile.name,
         avatar:
           getDisplayAvatarUri(profileDto?.avatar ?? authUser?.avatar, profileDto?.name ?? authUser?.name) ??
           undefined,
-        isVerified: Boolean(
-          profileDto?.isVerified ?? profileDto?.verified ?? authUser?.isVerified ?? fallbackProfile.isVerified,
-        ),
+        verificationStatus,
+        rejectionReason: profileDto?.identityVerificationRejectionReason ?? null,
+        isVerified: isProfileIdentityVerified({
+          identityVerificationStatus,
+          identityVerifiedAt,
+          isVerified: legacyVerified,
+        }),
       });
 
       setCounts({

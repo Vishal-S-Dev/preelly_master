@@ -7,6 +7,7 @@ import {
   UserFollowToggleResponseDTO,
   UserProfileDTO,
 } from '../../types/userProfile.types';
+import { API_ENDPOINTS } from '../../constants/appConstants';
 
 const API_BASE = ENV.API_BASE_URL;
 
@@ -29,6 +30,13 @@ interface UploadImageFile {
   uri: string;
   type: string;
   fileName: string;
+}
+
+export interface IdentityVerificationResponse {
+  message?: string;
+  isVerified?: boolean;
+  verified?: boolean;
+  status?: string;
 }
 
 const unwrap = <T>(data: T | { data: T }): T =>
@@ -130,6 +138,41 @@ export const UserApi = {
 
   async deleteLocation(locId: string): Promise<void> {
     await httpClient.delete(`/api/user/locations/${locId}`, { baseURL: API_BASE });
+  },
+
+  async submitIdentityVerification(
+    front: UploadImageFile,
+    back: UploadImageFile,
+    onUploadProgress?: (progress: number) => void,
+  ): Promise<IdentityVerificationResponse> {
+    const formData = new FormData();
+    formData.append('emiratesIdFront', {
+      uri: front.uri,
+      type: front.type,
+      name: front.fileName,
+    } as unknown as Blob);
+    formData.append('emiratesIdBack', {
+      uri: back.uri,
+      type: back.type,
+      name: back.fileName,
+    } as unknown as Blob);
+
+    const { data } = await httpClient.post<
+      IdentityVerificationResponse | { data: IdentityVerificationResponse }
+    >(API_ENDPOINTS.IDENTITY_VERIFICATION, formData, {
+      baseURL: ENV.API_BASE_URL,
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120_000,
+      onUploadProgress: event => {
+        if (!event.total || !onUploadProgress) {
+          return;
+        }
+        const progress = Math.round((event.loaded / event.total) * 100);
+        onUploadProgress(progress);
+      },
+    });
+
+    return unwrap(data);
   },
 
   async toggleFollow(userId: string): Promise<UserFollowToggleResponseDTO> {

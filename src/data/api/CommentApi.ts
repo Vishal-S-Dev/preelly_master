@@ -79,11 +79,20 @@ export const CommentApi = {
     }
   },
 
-  async addComment(productId: string, text: string): Promise<CommentDTO> {
+  async addComment(
+    productId: string,
+    text: string,
+    parentID?: string | null,
+  ): Promise<CommentDTO> {
+    const body: { text: string; parentID?: string } = { text };
+    if (parentID) {
+      body.parentID = parentID;
+    }
+
     try {
       const { data } = await httpClient.post<CommentDTO | { data: CommentDTO }>(
         `${API_ENDPOINTS.PRODUCT_COMMENTS}/${productId}/comments`,
-        { text },
+        body,
       );
       if (data && typeof data === 'object' && 'data' in data && data.data) {
         return data.data;
@@ -97,6 +106,8 @@ export const CommentApi = {
         createdAt: new Date().toISOString(),
         user: { _id: 'local_user', name: 'You', avatar: 'https://i.pravatar.cc/200?img=8' },
         likeCount: 0,
+        parentID: parentID ?? null,
+        parentComment: parentID ?? null,
       };
     }
   },

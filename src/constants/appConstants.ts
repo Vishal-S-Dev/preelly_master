@@ -34,6 +34,12 @@ export const API_ENDPOINTS = {
   EMIRATES: '/api/v1/web/emirates',
   WEB_FILTERS: '/api/v1/web/filters',
   NOTIFICATIONS: '/api/user/notifications',
+  IDENTITY_VERIFICATION: '/api/user/identity-verification',
+  PACKAGES: '/api/v1/web/packages',
+  STORAGE_FACILITIES: '/api/v1/web/storage-facilities',
+  PAYMENT_INITIATE: '/api/payment/initiate',
+  PAYMENT_CALLBACK: '/api/payment/ccavenue/callback',
+  PAYMENT_TRANSACTIONS: '/api/payment/transaction',
 } as const;
 
 export const PAGINATION = {

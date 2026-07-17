@@ -10,9 +10,16 @@ import {
 import { httpClient } from './httpClient';
 
 const sortCategories = (list: Category[]): Category[] =>
-  [...list].sort(
-    (a, b) => (a.sortOrder ?? a.order ?? 0) - (b.sortOrder ?? b.order ?? 0),
-  );
+  [...list]
+    .filter(item => item.isActive !== false && item.isDeleted !== true)
+    .sort((a, b) => {
+      const aOrder = a.xOrder ?? a.sortOrder ?? a.order ?? 999;
+      const bOrder = b.xOrder ?? b.sortOrder ?? b.order ?? 999;
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+      return a.name.localeCompare(b.name);
+    });
 
 const normalizeCategories = (payload: CategoriesListResponse | Category[]): Category[] => {
   if (Array.isArray(payload)) {

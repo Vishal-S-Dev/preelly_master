@@ -2,12 +2,13 @@ import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Product } from '../../domain/models/Product';
 import { ProductDetailView } from '../../types/product.types';
 import { RootStackParamList } from '../navigation/types';
 import { useAppDispatch } from './useRedux';
 import { createOrGetProductChat } from '../redux/slices/chatSlice';
 
-const resolveSellerId = (detail: ProductDetailView): string | null => {
+const resolveSellerIdFromDetail = (detail: ProductDetailView): string | null => {
   const fromSeller = detail.seller?.id?.trim();
   if (fromSeller && fromSeller !== 'seller_1') {
     return fromSeller;
@@ -19,19 +20,21 @@ const resolveSellerId = (detail: ProductDetailView): string | null => {
   return fromSeller || null;
 };
 
+const resolveSellerIdFromProduct = (product: Product): string | null => {
+  const sellerId = product.seller?.id?.trim();
+  return sellerId || null;
+};
+
 export const useProductChatInit = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [openingChat, setOpeningChat] = useState(false);
 
-  const openProductChat = useCallback(
-    async (detail: ProductDetailView) => {
+  const openChat = useCallback(
+    async (productId: string | undefined, sellerId: string | null) => {
       if (openingChat) {
         return;
       }
-
-      const productId = detail.product.id;
-      const sellerId = resolveSellerId(detail);
 
       if (!productId) {
         Alert.alert('Chat unavailable', 'Product information is missing for this listing.');
@@ -59,5 +62,19 @@ export const useProductChatInit = () => {
     [dispatch, navigation, openingChat],
   );
 
-  return { openProductChat, openingChat };
+  const openProductChat = useCallback(
+    async (detail: ProductDetailView) => {
+      await openChat(detail.product.id, resolveSellerIdFromDetail(detail));
+    },
+    [openChat],
+  );
+
+  const openProductChatFromListing = useCallback(
+    async (product: Product) => {
+      await openChat(product.id, resolveSellerIdFromProduct(product));
+    },
+    [openChat],
+  );
+
+  return { openProductChat, openProductChatFromListing, openingChat };
 };

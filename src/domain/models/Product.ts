@@ -29,6 +29,9 @@ export interface Product {
   views: number;
   commentCount?: number;
   isSaved: boolean;
+  /** True when the current user has already counted as a view (e.g. watched ≥70%). */
+  isViewed?: boolean;
+  isSold?: boolean;
   createdAt: string;
   user?: ProductUser;
   liked: boolean;

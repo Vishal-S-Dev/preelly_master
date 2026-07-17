@@ -20,8 +20,9 @@ export const DashboardCard = memo<Props>(({ icon, title, count, onPress }) => {
       style={styles.gridCard}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${title}, ${count} items`}>
-      <Icon name={icon} size={28} color={colors.text} />
+      accessibilityLabel={`${title}, ${count} items`}
+    >
+      <Icon name={icon} size={28} color={colors.settingIconColor} />
       <Text style={styles.gridTitle}>{title}</Text>
       <Text style={styles.gridCount}>{formatCount(count)}</Text>
     </Pressable>

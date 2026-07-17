@@ -15,7 +15,7 @@ export interface ShareRecipient {
   id: string;
   name: string;
   username: string;
-  avatarUrl: string;
+  avatarUrl?: string;
   isOnline?: boolean;
 }
 

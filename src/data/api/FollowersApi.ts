@@ -11,7 +11,7 @@ const mapFollower = (item: unknown, index: number): ShareRecipient | null => {
       id: item,
       name: 'User',
       username: item.slice(-6),
-      avatarUrl: `https://i.pravatar.cc/150?u=${item}`,
+      avatarUrl: undefined,
     };
   }
   if (!item || typeof item !== 'object') {
@@ -26,14 +26,14 @@ const mapFollower = (item: unknown, index: number): ShareRecipient | null => {
   const username = String(row.username ?? row.name ?? `user_${index}`);
   const avatarRaw = row.avatar ?? row.profileImage ?? row.image;
   const avatarUrl =
-    typeof avatarRaw === 'string' && avatarRaw
-      ? resolveMediaUrl(avatarRaw)
-      : `https://i.pravatar.cc/150?u=${id}`;
+    typeof avatarRaw === 'string' && avatarRaw.trim()
+      ? resolveMediaUrl(avatarRaw.trim())
+      : undefined;
   return {
     id,
     name,
     username: username.startsWith('@') ? username.slice(1) : username,
-    avatarUrl,
+    avatarUrl: avatarUrl || undefined,
     isOnline: Boolean(row.isOnline ?? row.online),
   };
 };

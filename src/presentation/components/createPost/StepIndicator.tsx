@@ -1,10 +1,9 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useCreatePostStyles } from '../../hooks/useCreatePostStyles';
 import { useStableSafeAreaInsets } from '../../hooks/useStableSafeAreaInsets';
-import { FormProgressBar } from '../../../presentation/components/forms/FormProgressBar.tsx';
 
 interface StepProps {
   step: number;
@@ -99,27 +98,54 @@ export const CreatePostFooter = memo<FooterProps>(
     const styles = useCreatePostStyles();
     const insets = useStableSafeAreaInsets();
     const bg = backgroundColor ?? theme.background;
+    const safeStep = Math.max(1, Math.min(step, total));
+
+    const segments = useMemo(
+      () => Array.from({ length: total }, (_, index) => index < safeStep),
+      [safeStep, total],
+    );
 
     return (
-      <View
-        style={{
-          backgroundColor: bg,
-          paddingBottom: Math.max(insets.bottom, 12),
-        }}
-      >
-        <FormProgressBar currentStep={step} totalSteps={5} />
-        <View style={styles.footer}>
-          <StepIndicator step={step} total={total} />
-          <Pressable
-            onPress={onNext}
-            disabled={disabled}
-            style={[styles.primaryBtn, disabled && styles.primaryBtnDisabled]}
-            accessibilityRole="button"
-            accessibilityLabel={nextLabel}
+      <View style={{ backgroundColor: bg }}>
+        <View
+          style={[
+            styles.footerSheet,
+            { paddingBottom: Math.max(insets.bottom, 14) },
+          ]}
+        >
+          <View
+            style={styles.footerSegments}
+            accessibilityRole="progressbar"
+            accessibilityValue={{
+              min: 1,
+              max: total,
+              now: safeStep,
+            }}
           >
-            <Text style={styles.primaryBtnText}>{nextLabel}</Text>
-            <Icon name="chevron-right" size={18} color="#fff" />
-          </Pressable>
+            {segments.map((active, index) => (
+              <View
+                key={`segment-${index}`}
+                style={[
+                  styles.footerSegment,
+                  active && styles.footerSegmentActive,
+                ]}
+              />
+            ))}
+          </View>
+
+          <View style={styles.footer}>
+            <StepIndicator step={safeStep} total={total} />
+            <Pressable
+              onPress={onNext}
+              disabled={disabled}
+              style={[styles.primaryBtn, disabled && styles.primaryBtnDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel={nextLabel}
+            >
+              <Text style={styles.primaryBtnText}>{nextLabel}</Text>
+              <Icon name="chevron-right" size={20} color="#FFFFFF" />
+            </Pressable>
+          </View>
         </View>
       </View>
     );

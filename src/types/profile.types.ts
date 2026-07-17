@@ -25,6 +25,8 @@ export interface ProfileUserView {
   bio?: string;
   bioLines: string[];
   isVerified: boolean;
+  identityVerificationStatus?: string | null;
+  identityVerifiedAt?: string | null;
   rating: ProfileRating;
   stats: ProfileStats;
   followState?: ProfileFollowState;

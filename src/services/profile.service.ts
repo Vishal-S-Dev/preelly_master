@@ -197,7 +197,7 @@ export const profileService = {
       }
       return Array.isArray(data.followers) ? data.followers.length : 0;
     } catch {
-      return 5500;
+      return 0;
     }
   },
 
@@ -212,7 +212,7 @@ export const profileService = {
       }
       return Array.isArray(data.following) ? data.following.length : 0;
     } catch {
-      return 25;
+      return 0;
     }
   },
 

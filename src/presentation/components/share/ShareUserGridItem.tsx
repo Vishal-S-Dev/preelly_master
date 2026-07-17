@@ -1,8 +1,10 @@
-import React, { memo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AvatarIcon from '../../../../assets/icons/user.svg';
 import { ShareRecipient } from '../../../types/share.types';
+import { resolveMediaUrl } from '../../../utils/mediaUrl';
 import { SHARE_UI } from './shareSheetStyles';
 
 interface Props {
@@ -11,7 +13,32 @@ interface Props {
   onToggle: (user: ShareRecipient) => void;
 }
 
+const AVATAR_SIZE = 72;
+
+const resolveShareAvatarUri = (avatarUrl?: string | null): string | undefined => {
+  const trimmed = avatarUrl?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  // Skip legacy placeholder hosts so we fall back to the local SVG.
+  if (trimmed.includes('i.pravatar.cc') || trimmed.includes('ui-avatars.com')) {
+    return undefined;
+  }
+  return resolveMediaUrl(trimmed) || undefined;
+};
+
 export const ShareUserGridItem = memo<Props>(({ user, selected, onToggle }) => {
+  const resolvedUri = useMemo(() => resolveShareAvatarUri(user.avatarUrl), [user.avatarUrl]);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [resolvedUri]);
+
+  const onError = useCallback(() => {
+    setFailed(true);
+  }, []);
+
   const badgeStyle = useAnimatedStyle(() => ({
     transform: [{ scale: withSpring(selected ? 1 : 0, { damping: 14 }) }],
     opacity: selected ? 1 : 0,
@@ -25,7 +52,21 @@ export const ShareUserGridItem = memo<Props>(({ user, selected, onToggle }) => {
       accessibilityState={{ selected }}
       accessibilityLabel={`${user.name}, ${selected ? 'selected' : 'not selected'}`}>
       <View style={styles.avatarWrap}>
-        <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+        {resolvedUri && !failed ? (
+          <Image
+            source={{ uri: resolvedUri }}
+            style={styles.avatar}
+            resizeMode="cover"
+            resizeMethod="resize"
+            fadeDuration={0}
+            onError={onError}
+            accessibilityIgnoresInvertColors
+          />
+        ) : (
+          <View style={[styles.avatar, styles.avatarFallback]}>
+            <AvatarIcon width={AVATAR_SIZE} height={AVATAR_SIZE} />
+          </View>
+        )}
         {user.isOnline ? <View style={styles.onlineDot} /> : null}
         <Animated.View style={[styles.checkBadge, badgeStyle]}>
           <Icon name="check" size={14} color="#fff" />
@@ -53,10 +94,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
     backgroundColor: SHARE_UI.chipBg,
+    borderWidth: 0.5,
+    borderColor: '#E5E7EB',
+  },
+  avatarFallback: {
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   onlineDot: {
     position: 'absolute',

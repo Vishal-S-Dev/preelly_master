@@ -1,3 +1,5 @@
+import type { IdentityVerificationCardStatus } from '../presentation/screens/profile/edit/utils/identityVerificationUtils';
+
 export interface SettingsDashboardCounts {
   ads: number;
   searches: number;
@@ -12,4 +14,6 @@ export interface SettingsProfileSummary {
   name: string;
   avatar?: string;
   isVerified: boolean;
+  verificationStatus: IdentityVerificationCardStatus;
+  rejectionReason?: string | null;
 }

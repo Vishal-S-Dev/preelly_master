@@ -54,7 +54,10 @@ export const ProcessingStepScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.screen}>
       <CreatePostHeader backgroundColor={styles.screen.backgroundColor} onBack={() => navigation.goBack()} />
       <View style={[styles.content, { flex: 1, justifyContent: 'center' }]}>
-        <UploadProgress uploadProgress={uploadProgress} transcriptionProgress={transcriptionProgress} extractionProgress={extractionProgress} />
+        <UploadProgress
+          uploadProgress={uploadProgress}
+          transcriptionProgress={transcriptionProgress}
+          extractionProgress={extractionProgress} />
       </View>
     </View>
   );

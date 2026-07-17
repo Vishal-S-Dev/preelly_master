@@ -1,0 +1,41 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/notosans_black.ttf",
+      "sha1": "cff09f171df2fc77cec75ca8beb505c38637be4e"
+    },
+    {
+      "path": "assets/fonts/notosans_bold.ttf",
+      "sha1": "bc7f5e39185c4912c013624fcf123fe213b14890"
+    },
+    {
+      "path": "assets/fonts/notosans_extrabold.ttf",
+      "sha1": "cac84afc4bfa87e439a325091d47a6184512d5f5"
+    },
+    {
+      "path": "assets/fonts/notosans_extralight.ttf",
+      "sha1": "6232e4bc80dffdb618a578e5a89a763c4b8a442d"
+    },
+    {
+      "path": "assets/fonts/notosans_light.ttf",
+      "sha1": "c4b48902c346932b6f8c592ac92fea1d01f0b23a"
+    },
+    {
+      "path": "assets/fonts/notosans_medium.ttf",
+      "sha1": "3d178662eb4bd87b4ad7bcea41e19771bc1685d7"
+    },
+    {
+      "path": "assets/fonts/notosans_regular.ttf",
+      "sha1": "f04a504e2078d6c01b3bf453c0d18c4f77c2133b"
+    },
+    {
+      "path": "assets/fonts/notosans_semibold.ttf",
+      "sha1": "ab4e235f3ca95a23a141d9da371142939ba3c848"
+    },
+    {
+      "path": "assets/fonts/notosans_thin.ttf",
+      "sha1": "ce3d640fa3969d374838791a596daacdf07f559b"
+    }
+  ]
+}

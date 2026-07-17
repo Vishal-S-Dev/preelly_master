@@ -1,3 +1,6 @@
+import { AdPackage } from './package.types';
+import { CheckoutListingSnapshot } from './checkout.types';
+
 export interface CreatePostCategory {
   id: string;
   name: string;
@@ -115,4 +118,13 @@ export type CreatePostStackParamList = {
   CreatePostAdvancedFormStep: undefined;
   CreatePostSummaryStep: undefined;
   CreatePostPreviewStep: undefined;
+  CreatePostPlaceAnAd: {
+    productId?: string;
+    listing?: CheckoutListingSnapshot;
+  };
+  CreatePostBuyPackage: {
+    productId?: string;
+    listing: CheckoutListingSnapshot;
+    adPackage: AdPackage;
+  };
 };

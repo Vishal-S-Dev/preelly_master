@@ -134,6 +134,8 @@ const mapDtoToProduct = (dto: ProductDTO): Product => {
     likesCount: dto.likes?.length ?? 0,
     views: dto.views ?? 0,
     isSaved: Boolean(dto.saved ?? dto.isSaved),
+    isViewed: Boolean(dto.isViewed ?? dto.viewed),
+    isSold: Boolean(dto.isSold),
     createdAt: dto.createdAt ?? new Date().toISOString(),
     user: seller?.name
       ? { name: seller.name, avatar: seller.avatar ? ProductApi.withBase(seller.avatar) : undefined }
@@ -435,6 +437,7 @@ const buildSimilar = async (productId: string): Promise<SimilarAdItem[]> => {
           imageUrl: image,
           location: item.location ?? item.city ?? 'UAE',
           postedAgo: formatPostedDate(item.createdAt),
+          availability: resolveAvailability(item),
         };
       });
   } catch {

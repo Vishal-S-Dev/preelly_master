@@ -66,7 +66,6 @@ export const UserProfileScreen: React.FC = () => {
     followStatusLoading,
     followState,
     error,
-    statsFormatted,
     onRefresh,
     onLoadMore,
     toggleFollow,
@@ -108,7 +107,7 @@ export const UserProfileScreen: React.FC = () => {
         {error ? <Text style={styles.visitorErrorText}>{error}</Text> : null}
         <ProfileHeader profile={profile} />
         <View style={{ paddingHorizontal: 20 }}>
-          <ProfileStats stats={profile.stats} formatted={statsFormatted} />
+          <ProfileStats stats={profile.stats} />
           {!isOwnProfile ? (
             <UserProfileActionButtons
               followState={followState}
@@ -137,7 +136,6 @@ export const UserProfileScreen: React.FC = () => {
       onShareProfile,
       openMoreMenu,
       profile,
-      statsFormatted,
       isOwnProfile,
       toggleFollow,
       styles,

@@ -17,7 +17,11 @@ import {
 } from '@gorhom/bottom-sheet';
 import { Product } from '../../../domain/models/Product';
 import { ProductComment } from '../../../domain/models/ProductComment';
-import { useProductComments } from '../../hooks/useProductComments';
+import { countCommentsInTree } from '../../../utils/commentTreeUtils';
+import {
+  CommentReplyTarget,
+  useProductComments,
+} from '../../hooks/useProductComments';
 import { CommentInputBar } from './CommentInputBar';
 import { CommentItem } from './CommentItem';
 import { CommentSkeletonList } from './CommentSkeletonList';
@@ -30,14 +34,11 @@ interface Props {
   onDismiss?: () => void;
 }
 
-const estimateCommentsCount = (productId: string): number =>
-  80 + (productId.charCodeAt(0) % 276);
-
 export const CommentsBottomSheet = forwardRef<BottomSheetModal, Props>(
   ({ product, onDismiss }, ref) => {
     const snapPoints = useMemo(() => ['58%', '94%'], []);
-    const listRef = useRef<BottomSheetFlatList<ProductComment>>(null);
-    const [replyToUsername, setReplyToUsername] = useState<string | null>(null);
+    const listRef = useRef<any>(null);
+    const [replyTo, setReplyTo] = useState<CommentReplyTarget>(null);
 
     const {
       comments,
@@ -53,13 +54,10 @@ export const CommentsBottomSheet = forwardRef<BottomSheetModal, Props>(
 
     const totalCount = useMemo(() => {
       if (comments.length > 0) {
-        return comments.reduce(
-          (sum, item) => sum + 1 + (item.replyCount || item.replies.length),
-          0,
-        );
+        return countCommentsInTree(comments);
       }
-      return product ? estimateCommentsCount(product.id) : 0;
-    }, [comments, product]);
+      return product?.commentCount ?? 0;
+    }, [comments, product?.commentCount]);
 
     useEffect(() => {
       if (comments.length > 0) {
@@ -83,7 +81,7 @@ export const CommentsBottomSheet = forwardRef<BottomSheetModal, Props>(
     );
 
     const handleDismiss = useCallback(() => {
-      setReplyToUsername(null);
+      setReplyTo(null);
       onDismiss?.();
     }, [onDismiss]);
 
@@ -96,8 +94,8 @@ export const CommentsBottomSheet = forwardRef<BottomSheetModal, Props>(
       [handleDismiss],
     );
 
-    const handleReply = useCallback((username: string) => {
-      setReplyToUsername(username);
+    const handleReply = useCallback((commentId: string, username: string) => {
+      setReplyTo({ id: commentId, username });
     }, []);
 
     const renderFooter = useCallback(
@@ -108,12 +106,12 @@ export const CommentsBottomSheet = forwardRef<BottomSheetModal, Props>(
             isAuthenticated={isAuthenticated}
             submitting={submitting}
             onSubmit={submitComment}
-            replyToUsername={replyToUsername}
-            onClearReply={() => setReplyToUsername(null)}
+            replyTo={replyTo}
+            onClearReply={() => setReplyTo(null)}
           />
         </BottomSheetFooter>
       ),
-      [authUser, isAuthenticated, replyToUsername, submitComment, submitting],
+      [authUser, isAuthenticated, replyTo, submitComment, submitting],
     );
 
     const handleClose = useCallback(() => {
@@ -172,7 +170,8 @@ export const CommentsBottomSheet = forwardRef<BottomSheetModal, Props>(
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
-        onChange={handleSheetChange}>
+        onChange={handleSheetChange}
+      >
         <BottomSheetFlatList
           ref={listRef}
           data={comments}

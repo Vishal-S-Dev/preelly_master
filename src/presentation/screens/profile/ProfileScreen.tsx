@@ -69,11 +69,6 @@ const GridSkeleton: React.FC = () => {
 
 type ProfileStaticHeaderProps = {
   profile: ProfileUserView;
-  statsFormatted: {
-    adsPosted: string;
-    followers: string;
-    following: string;
-  };
   uploadingAvatar: boolean;
   onEditAvatar: () => void;
   onEditProfile: () => void;
@@ -84,7 +79,6 @@ type ProfileStaticHeaderProps = {
 const ProfileStaticHeader = memo<ProfileStaticHeaderProps>(
   ({
     profile,
-    statsFormatted,
     uploadingAvatar,
     onEditAvatar,
     onEditProfile,
@@ -98,7 +92,7 @@ const ProfileStaticHeader = memo<ProfileStaticHeaderProps>(
         uploadingAvatar={uploadingAvatar}
       />
       <View style={{ paddingHorizontal: 20 }}>
-        <ProfileStats stats={profile.stats} formatted={statsFormatted} />
+        <ProfileStats stats={profile.stats} />
         <ProfileActionButtons
           onEditProfile={onEditProfile}
           onShareProfile={onShareProfile}
@@ -116,7 +110,6 @@ type ProfileListHeaderProps = {
   activeTab: ProfileTabKey;
   onTabChange: (tab: ProfileTabKey) => void;
   profile: ProfileUserView;
-  statsFormatted: ProfileStaticHeaderProps['statsFormatted'];
   uploadingAvatar: boolean;
   onEditAvatar: () => void;
   onEditProfile: () => void;
@@ -129,7 +122,6 @@ const ProfileListHeader = memo<ProfileListHeaderProps>(
     activeTab,
     onTabChange,
     profile,
-    statsFormatted,
     uploadingAvatar,
     onEditAvatar,
     onEditProfile,
@@ -139,7 +131,6 @@ const ProfileListHeader = memo<ProfileListHeaderProps>(
     <>
       <ProfileStaticHeader
         profile={profile}
-        statsFormatted={statsFormatted}
         uploadingAvatar={uploadingAvatar}
         onEditAvatar={onEditAvatar}
         onEditProfile={onEditProfile}
@@ -168,7 +159,6 @@ export const ProfileScreen: React.FC = () => {
     loading,
     refreshing,
     loadingMore,
-    statsFormatted,
     onTabChange,
     onRefresh,
     reloadProfileMeta,
@@ -356,7 +346,6 @@ export const ProfileScreen: React.FC = () => {
         activeTab={activeTab}
         onTabChange={onTabChange}
         profile={profile}
-        statsFormatted={statsFormatted}
         uploadingAvatar={uploadingAvatar}
         onEditAvatar={openAvatarSheet}
         onEditProfile={onEditProfile}
@@ -372,7 +361,6 @@ export const ProfileScreen: React.FC = () => {
       openMoreMenu,
       openAvatarSheet,
       profile,
-      statsFormatted,
       uploadingAvatar,
     ],
   );

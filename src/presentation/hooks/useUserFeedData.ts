@@ -130,6 +130,20 @@ export const useUserFeedData = ({
     );
   }, []);
 
+  const applyViewedResult = useCallback((productId: string) => {
+    setProducts(prev =>
+      prev.map(product =>
+        product.id === productId
+          ? {
+              ...product,
+              isViewed: true,
+              views: product.isViewed ? product.views : product.views + 1,
+            }
+          : product,
+      ),
+    );
+  }, []);
+
   const initialScrollIndex = useMemo(
     () => resolveInitialIndex(products, initialProductId, initialIndex),
     [initialIndex, initialProductId, products],
@@ -148,5 +162,6 @@ export const useUserFeedData = ({
     togglePause,
     applyLikeResult,
     applySaveResult,
+    applyViewedResult,
   };
 };

@@ -7,6 +7,9 @@ import { ProductRepositoryImpl } from '../../../data/repository/ProductRepositor
 import { Product } from '../../../domain/models/Product';
 import { GetProductsUseCase } from '../../../domain/usecases/GetProductsUseCase';
 import { LikeProductUseCase, SaveProductUseCase } from '../../../domain/usecases/productUseCases';
+import {
+  recordProductViewSilently,
+} from '../../../services/productView.service';
 
 const productRepo = new ProductRepositoryImpl();
 const getProductsUseCase = new GetProductsUseCase(productRepo);
@@ -64,6 +67,17 @@ const mapFeedReelToProduct = (item: FeedReelDto): Product => {
           isVerified: item.seller.isVerified,
         }
       : undefined,
+    contactOptions: item.contactOptions
+      ? {
+          inAppChat: Boolean(item.contactOptions.inAppChat),
+          call: Boolean(item.contactOptions.call),
+          whatsapp: Boolean(item.contactOptions.whatsapp),
+        }
+      : undefined,
+    contactName: item.contactName ?? item.seller?.name,
+    contactPhone: item.contactPhone,
+    isViewed: Boolean(item.isViewed ?? item.viewed),
+    isSold: Boolean(item.isSold),
     liked: Boolean(item.liked),
     saved: Boolean(item.saved),
     isPaused: false,
@@ -151,6 +165,26 @@ export const saveProduct = createAsyncThunk(
   },
 );
 
+/**
+ * Fire-and-forget product view after ≥70% watch. Never surfaces errors to UI.
+ */
+export const markProductViewed = createAsyncThunk(
+  'product/markProductViewed',
+  async (
+    { productId, isViewed }: { productId: string; isViewed?: boolean },
+    { getState },
+  ) => {
+    const auth = (getState() as { auth?: { isAuthenticated?: boolean; isGuest?: boolean } })
+      .auth;
+    if (!auth?.isAuthenticated || auth.isGuest) {
+      return { productId, recorded: false };
+    }
+
+    const recorded = await recordProductViewSilently(productId, { isViewed });
+    return { productId, recorded };
+  },
+);
+
 const applyOptimisticLikeToggle = (state: ProductState, productId: string) => {
   state.products = state.products.map(product =>
     product.id === productId
@@ -194,6 +228,17 @@ const productSlice = createSlice({
       state.products = state.products.map(product =>
         product.id === action.payload
           ? { ...product, isSaved: !product.isSaved }
+          : product,
+      );
+    },
+    markProductAsViewedLocal(state, action: PayloadAction<string>) {
+      state.products = state.products.map(product =>
+        product.id === action.payload
+          ? {
+              ...product,
+              isViewed: true,
+              views: product.isViewed ? product.views : product.views + 1,
+            }
           : product,
       );
     },
@@ -276,10 +321,29 @@ const productSlice = createSlice({
         if (productId) {
           applyOptimisticSaveToggle(state, productId);
         }
+      })
+      .addCase(markProductViewed.fulfilled, (state, action) => {
+        if (!action.payload.recorded) {
+          return;
+        }
+        state.products = state.products.map(product =>
+          product.id === action.payload.productId
+            ? {
+                ...product,
+                isViewed: true,
+                views: product.isViewed ? product.views : product.views + 1,
+              }
+            : product,
+        );
       });
   },
 });
 
-export const { setActiveIndex, togglePause, toggleLike, toggleSave } =
-  productSlice.actions;
+export const {
+  setActiveIndex,
+  togglePause,
+  toggleLike,
+  toggleSave,
+  markProductAsViewedLocal,
+} = productSlice.actions;
 export default productSlice.reducer;

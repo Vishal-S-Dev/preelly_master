@@ -67,7 +67,7 @@ export const useCreatePostTranscription = () => {
         );
       }
 
-      store.setImages(screenshots.slice(0, 6));
+      store.setImages(screenshots.slice(0, 1));
       store.applyExtractionToFields();
 
       if (transcriptResponse.extractedData?.title) {

@@ -12,11 +12,12 @@ import { useAppDispatch } from '../../hooks/useRedux';
 import { logoutUser } from '../../redux/slices/authSlice';
 import { RootStackParamList } from '../../navigation/types';
 import { getBuildVersionLabel } from '../../../utils/appVersion';
+import { isIdentityVerificationCardClickable } from '../profile/edit/utils/identityVerificationUtils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MySettings'>;
 
 const DASHBOARD_ITEMS = [
-  { key: 'ads', icon: 'file-document-plus-outline', title: 'My Ads' },
+  { key: 'ads', icon: 'text-box-plus-outline', title: 'My Ads' },
   { key: 'searches', icon: 'text-search', title: 'My Search' },
   { key: 'bookings', icon: 'calendar-check-outline', title: 'My Bookings' },
   { key: 'cart', icon: 'cart-arrow-down', title: 'My Cart' },
@@ -64,11 +65,11 @@ export const MySettingsScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const onGetVerified = useCallback(() => {
-    Alert.alert(
-      'Get Verified',
-      'Verification helps buyers trust your listings. This flow will be available in a future update.',
-    );
-  }, []);
+    if (!isIdentityVerificationCardClickable(profile.verificationStatus)) {
+      return;
+    }
+    navigation.navigate('GetVerified');
+  }, [navigation, profile.verificationStatus]);
 
   const onLogout = useCallback(() => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -147,6 +148,11 @@ export const MySettingsScreen: React.FC<Props> = ({ navigation }) => {
             icon="bank-outline"
             label="My Bank Details"
             onPress={() => showComingSoon('My Bank Details')}
+          />
+          <SettingsMenuItem
+            icon="receipt"
+            label="Transactions"
+            onPress={() => navigation.navigate('PaymentHistory')}
           />
           <SettingsMenuItem
             icon="cancel"

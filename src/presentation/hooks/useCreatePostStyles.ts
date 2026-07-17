@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { AppTheme } from '../theme/colors';
 import { useAppTheme } from './useAppTheme';
 
@@ -68,27 +68,67 @@ export const getCreatePostStyles = (theme: AppTheme) =>
     },
     content: { flexGrow: 1, paddingHorizontal: 16 },
     categoryScrollContent: { paddingTop: 8, paddingBottom: 24 },
+    footerSheet: {
+      backgroundColor: '#FFFFFF',
+      //borderTopLeftRadius: 24,
+      //borderTopRightRadius: 24,
+      //paddingHorizontal: 20,
+      paddingTop: 0,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#0B1B4D',
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -4 },
+        },
+        android: { elevation: 8 },
+      }),
+    },
+    footerSegments: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      marginBottom: 16,
+    },
+    footerSegment: {
+      flex: 1,
+      height: 6,
+      borderRadius: 0,
+      backgroundColor: '#E5E5E5',
+    },
+    footerSegmentActive: {
+      backgroundColor: '#001C71',
+    },
     footer: {
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.subText + '33',
-      paddingHorizontal: 16,
-      paddingTop: 12,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      paddingHorizontal: 16,
     },
-    progressText: { color: theme.subText, fontWeight: '600', fontSize: 14 },
+    progressText: {
+      color: '#001C71',
+      fontWeight: '600',
+      fontSize: 16,
+      letterSpacing: 0.2,
+    },
     primaryBtn: {
       backgroundColor: CREATE_POST_PRIMARY,
       borderRadius: 999,
-      paddingHorizontal: 24,
-      paddingVertical: 12,
+      paddingHorizontal: 40,
+      paddingVertical: 1,
+      minHeight: 40,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      justifyContent: 'center',
+      gap: 2,
     },
     primaryBtnDisabled: { opacity: 0.45 },
-    primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    primaryBtnText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+      fontSize: 16,
+      letterSpacing: 0.2,
+    },
     categoryGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',

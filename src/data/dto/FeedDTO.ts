@@ -37,6 +37,16 @@ export interface FeedReelDto {
   regionalSpecs?: string;
   quickViewData?: QuickViewFieldDto[];
   seller?: FeedReelSellerDto | null;
+  contactOptions?: {
+    inAppChat?: boolean;
+    call?: boolean;
+    whatsapp?: boolean;
+  };
+  contactPhone?: string;
+  contactName?: string;
+  /** Whether the authenticated user has already recorded a view for this reel. */
+  isViewed?: boolean;
+  viewed?: boolean;
 }
 
 export interface FeedDataMetaDto {

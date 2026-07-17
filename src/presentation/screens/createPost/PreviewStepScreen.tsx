@@ -11,6 +11,7 @@ import { getProductFormFields } from '../../../utils/buildProductFormData';
 import { validatePrice } from '../../../utils/formValidation';
 import { resolveListingPrice } from '../../../utils/resolveListingPrice';
 import { buildFieldReviewRows } from '../../../utils/reviewFormUtils';
+import { buildCheckoutListingSnapshot } from '../../../utils/buildCheckoutListingSnapshot';
 import { CreatePostHeader } from '../../components/createPost/StepIndicator';
 import { PhotoGrid } from '../../components/createPost/PhotoGrid';
 import { ReviewSection } from '../../components/createPost/ReviewSection';
@@ -53,11 +54,14 @@ export const PreviewStepScreen: React.FC<Props> = ({ navigation }) => {
 
     setPublishing(true);
     try {
-      await createPostService.publishListing(draft, { formFields });
+      const result = await createPostService.publishListing(draft, { formFields });
+      const priceNum = Number(String(listingPrice).replace(/[^\d.]/g, '')) || 0;
+      const listing = buildCheckoutListingSnapshot(draft, result?.id, priceNum);
       store.reset();
-      Alert.alert('Success', 'Your ad has been posted.', [
-        { text: 'OK', onPress: () => navigation.getParent()?.goBack() },
-      ]);
+      navigation.replace('CreatePostPlaceAnAd', {
+        productId: result?.id,
+        listing,
+      });
     } catch (e) {
       Alert.alert('Post failed', e instanceof Error ? e.message : 'Please try again.');
     } finally {

@@ -107,9 +107,9 @@ export const DynamicFormStepScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
         {!isLoading && !isError ? stepFields.map(renderField) : null}
       </ScrollView>
-      {!isLoading && data ? (
+      {/*{!isLoading && data ? (
         <FormProgressBar currentStep={3} totalSteps={5} />
-      ) : null}
+      ) : null}*/}
       <CreatePostFooter
         backgroundColor={styles.screen.backgroundColor}
         step={3}

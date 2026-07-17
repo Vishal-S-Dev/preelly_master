@@ -15,6 +15,7 @@ export const getSettingsTheme = (theme: AppTheme) => ({
   danger: theme.danger,
   skeleton: theme.card,
   dashed: '#93C5FD',
+  settingIconColor: '#919BBA',
 });
 
 export type SettingsTheme = ReturnType<typeof getSettingsTheme>;
@@ -39,16 +40,14 @@ export const getSettingsStyles = (theme: AppTheme) => {
       flex: 1,
       marginLeft: 8,
       fontSize: 20,
-      fontWeight: '800',
+      fontWeight: '500',
       color: c.text,
     },
     scrollContent: {
       paddingBottom: hp('4%'),
     },
     profileRow: {
-      flexDirection: 'row',
       alignItems: 'center',
-      gap: 14,
       paddingHorizontal: 20,
       paddingTop: 20,
       paddingBottom: 8,
@@ -76,14 +75,16 @@ export const getSettingsStyles = (theme: AppTheme) => {
       borderColor: c.bg,
     },
     profileMeta: {
-      flex: 1,
-      minWidth: 0,
+      alignItems: 'center',
+      marginTop: 12,
+      width: '100%',
     },
     profileName: {
       fontSize: 22,
       fontWeight: '800',
       color: c.text,
       letterSpacing: -0.3,
+      textAlign: 'center',
     },
     verifiedCard: {
       marginTop: 10,
@@ -97,12 +98,42 @@ export const getSettingsStyles = (theme: AppTheme) => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      alignSelf: 'flex-start',
+      alignSelf: 'center',
+      maxWidth: '100%',
+    },
+    verifiedCardPending: {
+      borderStyle: 'solid',
+      borderColor: '#FCD34D',
+      backgroundColor: '#FFFBEB',
+    },
+    verifiedCardRejected: {
+      borderStyle: 'solid',
+      borderColor: '#FCA5A5',
+      backgroundColor: '#FEF2F2',
+    },
+    verifiedCardApproved: {
+      borderStyle: 'solid',
+      borderColor: c.border,
+      backgroundColor: c.card,
     },
     verifiedText: {
       color: c.primary,
       fontWeight: '700',
       fontSize: 14,
+    },
+    verifiedTextPending: {
+      color: '#B45309',
+    },
+    verifiedTextRejected: {
+      color: c.danger,
+    },
+    verifiedSubtitle: {
+      marginTop: 6,
+      fontSize: 12,
+      lineHeight: 16,
+      color: c.muted,
+      textAlign: 'center',
+      paddingHorizontal: 12,
     },
     grid: {
       flexDirection: 'row',
@@ -200,6 +231,7 @@ export const getSettingsStyles = (theme: AppTheme) => {
       height: 22,
       borderRadius: 8,
       backgroundColor: c.skeleton,
+      alignSelf: 'center',
     },
     skeletonVerified: {
       marginTop: 10,
@@ -207,6 +239,7 @@ export const getSettingsStyles = (theme: AppTheme) => {
       height: 40,
       borderRadius: 12,
       backgroundColor: c.skeleton,
+      alignSelf: 'center',
     },
     skeletonGridCard: {
       width: '48%',

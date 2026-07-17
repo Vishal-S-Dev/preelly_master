@@ -57,7 +57,7 @@ export const ProfileEditScreen: React.FC = () => {
     form,
     submit,
     locations,
-    isVerified,
+    identityVerification,
     loading,
     saving,
     locationSaving,
@@ -116,11 +116,11 @@ export const ProfileEditScreen: React.FC = () => {
   }, [form]);
 
   const onGetVerified = useCallback(() => {
-    Alert.alert(
-      'Get Verified',
-      'Verification helps buyers trust your listings. This flow will be available in a future update.',
-    );
-  }, []);
+    if (identityVerification.status !== 'none') {
+      return;
+    }
+    navigation.navigate('GetVerified');
+  }, [identityVerification.status, navigation]);
 
   if (loading) {
     return (
@@ -171,7 +171,13 @@ export const ProfileEditScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <Animated.View entering={FadeInDown.duration(320)}>
-            <GetVerifiedCard onPress={onGetVerified} hidden={isVerified} />
+            {identityVerification.shouldShowCard ? (
+              <GetVerifiedCard
+                status={identityVerification.status}
+                rejectionReason={identityVerification.rejectionReason}
+                onPress={onGetVerified}
+              />
+            ) : null}
 
             <SectionHeader title="Profile Name" subtitle="This is displayed on your profile" />
             <Controller

@@ -16,4 +16,5 @@ export interface ProductComment {
   isLiked: boolean;
   replies: ProductComment[];
   replyCount: number;
+  parentId?: string | null;
 }

@@ -23,6 +23,7 @@ import { ReelPlaybackProvider } from '../../context/ReelPlaybackContext';
 import { useShareSheet } from '../../context/ShareSheetContext';
 import { productToSharePayload } from '../../../utils/shareLinks';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
+import { useProductChatInit } from '../../hooks/useProductChatInit';
 import { useReelPlaybackGate } from '../../hooks/useReelPlaybackGate';
 import {
   fetchProductsFromFeed,
@@ -43,6 +44,7 @@ export const FeedScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const dispatch = useAppDispatch();
   const { openShare } = useShareSheet();
+  const { openProductChatFromListing, openingChat } = useProductChatInit();
   const isPlaybackAllowed = useReelPlaybackGate();
   const flatListRef = useRef<FlatList<Product>>(null);
   const quickViewRef = useRef<BottomSheetModal>(null);
@@ -138,6 +140,13 @@ export const FeedScreen: React.FC = () => {
     [navigation],
   );
 
+  const handleQuickViewChat = useCallback(
+    (product: Product) => {
+      openProductChatFromListing(product);
+    },
+    [openProductChatFromListing],
+  );
+
   const handleShare = useCallback(
     (product: Product) => {
       openShare(productToSharePayload(product, 'reel'));
@@ -229,6 +238,8 @@ export const FeedScreen: React.FC = () => {
           onLike={id => dispatch(likeProduct(id))}
           onSave={id => dispatch(saveProduct(id))}
           onOpenDetail={handleOpenDetail}
+          onChat={handleQuickViewChat}
+          chatLoading={openingChat}
         />
 
         <CommentsBottomSheet

@@ -8,6 +8,8 @@ import {
   ProfileUserView,
 } from '../../types/profile.types';
 import { UserFollowStatus } from '../../types/userProfile.types';
+import { resolveProfileStatsFromDto } from '../../utils/profileStatsUtils';
+import { isProfileIdentityVerified } from '../screens/profile/edit/utils/identityVerificationUtils';
 import { useAppSelector } from './useRedux';
 
 const PAGE_SIZE = 18;
@@ -26,18 +28,6 @@ const mergeById = <T extends { id: string }>(
 };
 
 const DEFAULT_BIO = ['No bio yet.'];
-
-const formatCount = (value: number): string => {
-  if (value >= 1_000_000) {
-    const m = value / 1_000_000;
-    return `${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`;
-  }
-  if (value >= 1000) {
-    const k = value / 1000;
-    return `${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)}k`;
-  }
-  return String(value);
-};
 
 const parseBioLines = (bio?: string): string[] => {
   if (!bio?.trim()) {
@@ -153,7 +143,10 @@ export const useOtherUserProfileData = (userId: string) => {
     }
 
     try {
-      const profileDto = await profileService.getUserProfile(userId);
+      const [profileDto, listings] = await Promise.all([
+        profileService.getUserProfile(userId),
+        profileService.getUserListings(userId, 1, PAGE_SIZE),
+      ]);
       const followState = resolveInitialFollowState(profileDto, viewerUserId);
       const followerCount = Array.isArray(profileDto.followers)
         ? profileDto.followers.length
@@ -162,6 +155,9 @@ export const useOtherUserProfileData = (userId: string) => {
         ? profileDto.following.length
         : await profileService.getFollowingCount(userId);
 
+      const identityVerificationStatus = profileDto.identityVerificationStatus ?? null;
+      const identityVerifiedAt = profileDto.identityVerifiedAt ?? null;
+
       setProfile({
         id: profileDto._id ?? profileDto.id ?? userId,
         name: profileDto.name ?? profileDto.displayName ?? 'User',
@@ -169,16 +165,22 @@ export const useOtherUserProfileData = (userId: string) => {
         avatar: profileDto.avatar ?? undefined,
         bio: profileDto.bio,
         bioLines: parseBioLines(profileDto.bio),
-        isVerified: Boolean(profileDto.isVerified ?? profileDto.verified),
+        identityVerificationStatus,
+        identityVerifiedAt,
+        isVerified: isProfileIdentityVerified({
+          identityVerificationStatus,
+          identityVerifiedAt,
+          isVerified: Boolean(profileDto.isVerified ?? profileDto.verified),
+        }),
         rating: {
           value: profileDto.rating ?? 0,
           totalRatings: profileDto.ratingsCount ?? profileDto.ratingCount ?? 0,
         },
-        stats: {
-          adsPosted: profileDto.stats?.totalProducts ?? 0,
-          followers: followerCount,
-          following: followingCount,
-        },
+        stats: resolveProfileStatsFromDto(profileDto, {
+          listingsCount: listings.items.length,
+          followersCount: followerCount,
+          followingCount: followingCount,
+        }),
         followState,
       });
       setError(null);
@@ -328,15 +330,6 @@ export const useOtherUserProfileData = (userId: string) => {
     userId,
   ]);
 
-  const statsFormatted = useMemo(
-    () => ({
-      adsPosted: formatCount(profile?.stats.adsPosted ?? 0),
-      followers: formatCount(profile?.stats.followers ?? 0),
-      following: formatCount(profile?.stats.following ?? 0),
-    }),
-    [profile?.stats],
-  );
-
   const followState = profile?.followState ?? {
     following: false,
     pending: false,
@@ -354,7 +347,6 @@ export const useOtherUserProfileData = (userId: string) => {
     followStatusLoading,
     followState,
     error,
-    statsFormatted,
     onRefresh,
     onLoadMore,
     toggleFollow,

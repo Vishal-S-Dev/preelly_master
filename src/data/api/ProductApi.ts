@@ -129,6 +129,14 @@ export const ProductApi = {
     return data;
   },
 
+  async viewProduct(productId: string): Promise<void> {
+    await httpClient.post(
+      `${API_ENDPOINTS.PRODUCTS}/${productId}/view`,
+      undefined,
+      { baseURL: PRODUCTS_BASE_URL },
+    );
+  },
+
   async createProduct(formData: FormData): Promise<{ id?: string }> {
     const { data } = await httpClient.post<{ _id?: string; id?: string; data?: { _id?: string } }>(
       API_ENDPOINTS.PRODUCTS,

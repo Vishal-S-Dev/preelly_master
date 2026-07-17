@@ -103,6 +103,8 @@ export interface ProductDTO {
   user?: ProductUserDTO;
   seller?: ProductSellerDTO;
   views?: number;
+  isViewed?: boolean;
+  viewed?: boolean;
   year?: number | string;
   kilometers?: string | number;
   kilometersValue?: number | string;

@@ -2,10 +2,19 @@ export interface Category {
   _id: string;
   name: string;
   slug: string;
-  icon?: string;
+  icon?: string | null;
+  image?: string | null;
+  categoryImage?: string | null;
+  emoji?: string | null;
+  colorCode?: string | null;
+  xOrder?: number;
   order?: number;
   sortOrder?: number;
-  parentId?: string;
+  parentId?: string | null;
+  level?: number;
+  isActive?: boolean;
+  isDeleted?: boolean;
+  count?: number;
 }
 
 export interface CategoriesListResponse {

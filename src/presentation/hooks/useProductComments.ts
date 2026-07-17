@@ -1,44 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { CommentApi } from '../../data/api/CommentApi';
-import { CommentDTO } from '../../data/dto/CommentDTO';
-import { ProductComment, CommentAuthor } from '../../domain/models/ProductComment';
+import { ProductComment } from '../../domain/models/ProductComment';
+import {
+  buildCommentTree,
+  collectLikedCommentIds,
+  insertCommentInTree,
+  mapCommentDto,
+  updateCommentInTree,
+} from '../../utils/commentTreeUtils';
 import { useAppSelector } from './useRedux';
 
-const mapComment = (dto: CommentDTO, likedIds: Set<string>, ownerUserId?: string): ProductComment => {
-  const id = dto._id ?? dto.id ?? `comment_${Math.random()}`;
-  const userId = dto.user?._id ?? dto.user?.id ?? 'unknown';
-  const likeCount =
-    typeof dto.likeCount === 'number'
-      ? dto.likeCount
-      : Array.isArray(dto.likes)
-        ? dto.likes.length
-        : 0;
-
-  const author: CommentAuthor = {
-    id: userId,
-    name: dto.user?.name || dto.user?.username || 'User',
-    username: dto.user?.username,
-    avatar: dto.user?.avatar ?? undefined,
-    isOwner: Boolean(dto.isOwner) || (ownerUserId ? userId === ownerUserId : false),
-    isPinned: Boolean(dto.isPinned),
-  };
-
-  const replies = (dto.replies ?? []).map(reply =>
-    mapComment(reply, likedIds, ownerUserId),
-  );
-
-  return {
-    id,
-    text: dto.text,
-    createdAt: dto.createdAt,
-    user: author,
-    likeCount,
-    isLiked: likedIds.has(id),
-    replies,
-    replyCount: dto.replyCount ?? replies.length,
-  };
-};
+export type CommentReplyTarget = {
+  id: string;
+  username: string;
+} | null;
 
 const formatTimeAgo = (date: string): string => {
   const d = new Date(date);
@@ -78,23 +54,11 @@ export const useProductComments = (productId: string | null) => {
     setLoading(true);
     try {
       const response = await CommentApi.getComments(productId);
-      const liked = new Set<string>();
-      if (authUser?.id) {
-        response.forEach(comment => {
-          const id = comment._id ?? comment.id;
-          if (
-            id &&
-            Array.isArray(comment.likes) &&
-            comment.likes.some(likeId => String(likeId) === authUser.id)
-          ) {
-            liked.add(id);
-          }
-        });
-      }
+      const liked = authUser?.id
+        ? collectLikedCommentIds(response, authUser.id)
+        : new Set<string>();
       setLikedIds(liked);
-      setComments(
-        response.map(item => mapComment(item, liked, undefined)),
-      );
+      setComments(buildCommentTree(response, liked, undefined));
       listVersion.current += 1;
     } catch {
       Alert.alert('Comments', 'Failed to load comments');
@@ -112,7 +76,7 @@ export const useProductComments = (productId: string | null) => {
   }, [productId, refreshComments]);
 
   const submitComment = useCallback(
-    async (text: string) => {
+    async (text: string, parentID?: string | null) => {
       if (!productId) {
         return false;
       }
@@ -127,13 +91,22 @@ export const useProductComments = (productId: string | null) => {
 
       setSubmitting(true);
       try {
-        const created = await CommentApi.addComment(productId, trimmed);
-        const mapped = mapComment(created, likedIds);
-        setComments(prev => [mapped, ...prev]);
+        const created = await CommentApi.addComment(productId, trimmed, parentID);
+        const mapped = mapCommentDto(
+          {
+            ...created,
+            parentID: created.parentID ?? parentID ?? null,
+            parentComment: created.parentComment ?? parentID ?? null,
+          },
+          likedIds,
+        );
+        mapped.parentId = parentID ?? mapped.parentId ?? null;
+
+        setComments(prev => insertCommentInTree(prev, mapped, parentID ?? null));
         listVersion.current += 1;
         return true;
       } catch {
-        Alert.alert('Comments', 'Failed to add comment');
+        Alert.alert('Comments', parentID ? 'Failed to add reply' : 'Failed to add comment');
         return false;
       } finally {
         setSubmitting(false);
@@ -160,22 +133,16 @@ export const useProductComments = (productId: string | null) => {
           return next;
         });
         setComments(prev =>
-          prev.map(comment => {
-            const updateTree = (item: ProductComment): ProductComment => {
-              if (item.id === commentId) {
-                return {
-                  ...item,
-                  isLiked: result.liked,
-                  likeCount: result.likeCount || item.likeCount,
-                };
-              }
-              return {
-                ...item,
-                replies: item.replies.map(updateTree),
-              };
-            };
-            return updateTree(comment);
-          }),
+          updateCommentInTree(prev, commentId, item => ({
+            ...item,
+            isLiked: result.liked,
+            likeCount:
+              typeof result.likeCount === 'number' && result.likeCount > 0
+                ? result.likeCount
+                : result.liked
+                  ? item.likeCount + 1
+                  : Math.max(0, item.likeCount - 1),
+          })),
         );
       } catch {
         // silent – mirrors web behavior on like failures

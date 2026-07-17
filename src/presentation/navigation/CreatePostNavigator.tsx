@@ -12,6 +12,8 @@ import { AutoDetailsStepScreen } from '../screens/createPost/AutoDetailsStepScre
 import { AdvancedDetailsFormScreen } from '../screens/createPost/AdvancedDetailsFormScreen';
 import { DynamicFormStepScreen } from '../screens/createPost/DynamicFormStepScreen';
 import { PreviewStepScreen } from '../screens/createPost/PreviewStepScreen';
+import { PlaceAnAdScreen } from '../screens/createPost/PlaceAnAdScreen';
+import { BuyPackageScreen } from '../screens/createPost/BuyPackageScreen';
 
 const Stack = createNativeStackNavigator<CreatePostStackParamList>();
 
@@ -36,6 +38,8 @@ export const CreatePostNavigator: React.FC = () => {
         <Stack.Screen name="CreatePostFormStep" component={DynamicFormStepScreen} />
         <Stack.Screen name="CreatePostAdvancedFormStep" component={AdvancedDetailsFormScreen} />
         <Stack.Screen name="CreatePostPreviewStep" component={PreviewStepScreen} />
+        <Stack.Screen name="CreatePostPlaceAnAd" component={PlaceAnAdScreen} />
+        <Stack.Screen name="CreatePostBuyPackage" component={BuyPackageScreen} />
       </Stack.Navigator>
     </SafeAreaProvider>
   );

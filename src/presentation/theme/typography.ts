@@ -1,4 +1,8 @@
 import { Platform, TextStyle } from 'react-native';
+import { appFont, fontText, fonts, type AppFontWeight } from '../../utils/fonts';
+
+export type { AppFontWeight };
+export { appFont, fontText, fonts };
 
 /** Supported Helvetica Neue weights for cross-platform text styles. */
 export type TypographyWeight = '400' | '500' | '600' | '700' | '800';
@@ -25,7 +29,7 @@ const IOS_HELVETICA_NEUE: Record<TypographyWeight, string> = {
 
 /**
  * Returns Helvetica Neue font styles for the given weight.
- * iOS uses PostScript names; Android uses system sans-serif fallbacks until custom fonts are linked.
+ * Prefer `appFont` / `fontText` from `src/utils/fonts` for Noto Sans brand type.
  *
  * @example
  * StyleSheet.create({
@@ -53,7 +57,7 @@ export const helveticaNeue = (
     fontWeight: weight,
   };
 
-/** Reusable text presets — combine with layout/color styles as needed. */
+/** Reusable Helvetica presets — legacy; prefer `fontText` for new UI. */
 export const typography = {
   regular: helveticaNeue(FONT_WEIGHT.regular),
   medium: helveticaNeue(FONT_WEIGHT.medium),

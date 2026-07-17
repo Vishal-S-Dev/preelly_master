@@ -5,6 +5,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useIsReelPlaybackAllowed } from '../context/ReelPlaybackContext';
 import { REEL_IOS_VIDEO_AUDIO_PROPS } from '../utils/reelVideoAudioProps';
+import { PRODUCT_VIEW_WATCH_THRESHOLD } from '../../services/productView.service';
 
 interface Props {
   videoUrl: string;
@@ -13,6 +14,11 @@ interface Props {
   muted: boolean;
   isPaused: boolean;
   bottomInset?: number;
+  /** Fired once when watched progress reaches the threshold (default 70%). */
+  onWatchThresholdReached?: () => void;
+  /** Disable threshold callback (e.g. already viewed). */
+  watchTrackingEnabled?: boolean;
+  watchThreshold?: number;
 }
 
 const VideoPlayerComponent: React.FC<Props> = ({
@@ -22,10 +28,15 @@ const VideoPlayerComponent: React.FC<Props> = ({
   muted,
   isPaused,
   bottomInset = 0,
+  onWatchThresholdReached,
+  watchTrackingEnabled = false,
+  watchThreshold = PRODUCT_VIEW_WATCH_THRESHOLD,
 }) => {
   const isPlaybackAllowed = useIsReelPlaybackAllowed();
   const videoRef = useRef<VideoRef>(null);
   const currentTimeRef = useRef(0);
+  const durationRef = useRef(0);
+  const thresholdFiredRef = useRef(false);
   const resumeAfterExternalPauseRef = useRef(false);
   const prevActiveRef = useRef(isActive);
 
@@ -47,6 +58,18 @@ const VideoPlayerComponent: React.FC<Props> = ({
     width: screenWidth * progress.value,
   }));
 
+  useEffect(() => {
+    thresholdFiredRef.current = false;
+    durationRef.current = 0;
+    currentTimeRef.current = 0;
+  }, [videoUrl]);
+
+  useEffect(() => {
+    if (!watchTrackingEnabled) {
+      thresholdFiredRef.current = false;
+    }
+  }, [watchTrackingEnabled]);
+
   const handleBuffer = useCallback(
     ({ isBuffering }: { isBuffering: boolean }) => {
       if (isActive) {
@@ -59,6 +82,7 @@ const VideoPlayerComponent: React.FC<Props> = ({
   const handleLoad = useCallback(
     (event: { duration: number }) => {
       duration.value = event.duration;
+      durationRef.current = event.duration;
       progress.value = 0;
       setHasError(false);
       setBuffering(false);
@@ -73,13 +97,30 @@ const VideoPlayerComponent: React.FC<Props> = ({
   const handleProgress = useCallback(
     (event: { currentTime: number }) => {
       currentTimeRef.current = event.currentTime;
-      if (duration.value <= 0) {
+      const total = durationRef.current || duration.value;
+      if (total <= 0) {
         return;
       }
-      const nextProgress = event.currentTime / duration.value;
+      const nextProgress = event.currentTime / total;
       progress.value = Math.max(0, Math.min(1, nextProgress));
+
+      if (
+        watchTrackingEnabled &&
+        onWatchThresholdReached &&
+        !thresholdFiredRef.current &&
+        nextProgress >= watchThreshold
+      ) {
+        thresholdFiredRef.current = true;
+        onWatchThresholdReached();
+      }
     },
-    [duration, progress],
+    [
+      duration,
+      onWatchThresholdReached,
+      progress,
+      watchThreshold,
+      watchTrackingEnabled,
+    ],
   );
 
   const handleError = useCallback(() => {
@@ -172,7 +213,10 @@ const arePropsEqual = (prev: Props, next: Props): boolean =>
   prev.isActive === next.isActive &&
   prev.muted === next.muted &&
   prev.isPaused === next.isPaused &&
-  prev.bottomInset === next.bottomInset;
+  prev.bottomInset === next.bottomInset &&
+  prev.watchTrackingEnabled === next.watchTrackingEnabled &&
+  prev.watchThreshold === next.watchThreshold &&
+  prev.onWatchThresholdReached === next.onWatchThresholdReached;
 
 export const VideoPlayer = memo((props: Omit<Props, 'bottomInset'>) => {
   const tabBarHeight = useBottomTabBarHeight();

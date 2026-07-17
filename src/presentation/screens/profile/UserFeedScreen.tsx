@@ -29,6 +29,7 @@ import { ReelPlaybackProvider } from '../../context/ReelPlaybackContext';
 import { useShareSheet } from '../../context/ShareSheetContext';
 import { productToSharePayload } from '../../../utils/shareLinks';
 import { useAppDispatch } from '../../hooks/useRedux';
+import { useProductChatInit } from '../../hooks/useProductChatInit';
 import { useReelPlaybackGate } from '../../hooks/useReelPlaybackGate';
 import { useUserFeedData } from '../../hooks/useUserFeedData';
 import { RootStackParamList } from '../../navigation/types';
@@ -49,6 +50,7 @@ export const UserFeedScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const { openShare } = useShareSheet();
+  const { openProductChatFromListing, openingChat } = useProductChatInit();
   const isPlaybackAllowed = useReelPlaybackGate();
 
   const {
@@ -72,6 +74,7 @@ export const UserFeedScreen: React.FC = () => {
     togglePause,
     applyLikeResult,
     applySaveResult,
+    applyViewedResult,
   } = useUserFeedData({
     userId,
     initialProductId,
@@ -163,6 +166,13 @@ export const UserFeedScreen: React.FC = () => {
     [navigation, ownerMode],
   );
 
+  const handleQuickViewChat = useCallback(
+    (product: Product) => {
+      openProductChatFromListing(product);
+    },
+    [openProductChatFromListing],
+  );
+
   const handleShare = useCallback(
     (product: Product) => {
       openShare(productToSharePayload(product, 'reel'));
@@ -243,6 +253,7 @@ export const UserFeedScreen: React.FC = () => {
           onComment={handleComment}
           onOpenDetail={handleOpenDetail}
           onShare={handleShare}
+          onProductViewed={applyViewedResult}
           onOwnerMenu={ownerMode ? handleOwnerMenu : undefined}
           onOpenProfile={profileUserId => {
             if (profileUserId && profileUserId !== userId) {
@@ -261,6 +272,7 @@ export const UserFeedScreen: React.FC = () => {
       handleShare,
       handleQuickView,
       handleSave,
+      applyViewedResult,
       muted,
       navigation,
       ownerMode,
@@ -346,6 +358,8 @@ export const UserFeedScreen: React.FC = () => {
           onLike={handleLike}
           onSave={handleSave}
           onOpenDetail={handleOpenDetail}
+          onChat={ownerMode ? undefined : handleQuickViewChat}
+          chatLoading={openingChat}
         />
 
         <CommentsBottomSheet

@@ -3,6 +3,7 @@ import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
 } from 'react-native-responsive-screen';
+import { fontText } from '../../../utils/fonts';
 
 export const CM_COLORS = {
   sheetBg: '#FFFFFF',
@@ -72,16 +73,22 @@ export const cmStyles = StyleSheet.create({
   },
   commentRow: {
     flexDirection: 'row',
-    paddingVertical: hp('1.4%'),
+    paddingVertical: hp('0.6%'),
   },
   replyIndent: {
     marginLeft: wp('11%'),
+  },
+  nestedReplyIndent: {
+    marginLeft: wp('18%'),
   },
   avatar: {
     width: wp('9.5%'),
     height: wp('9.5%'),
     borderRadius: wp('4.75%'),
     backgroundColor: CM_COLORS.skeleton,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   commentBody: {
     flex: 1,
@@ -95,37 +102,31 @@ export const cmStyles = StyleSheet.create({
     gap: 6,
   },
   username: {
-    fontSize: wp('3.7%'),
-    fontWeight: '700',
     color: CM_COLORS.text,
+    maxWidth: '52%',
   },
   time: {
-    fontSize: wp('3.2%'),
+    ...fontText.regular12,
     color: CM_COLORS.meta,
-    fontWeight: '500',
   },
   ownerBadge: {
-    fontSize: wp('3%'),
+    ...fontText.medium12,
     color: CM_COLORS.owner,
-    fontWeight: '600',
   },
   commentText: {
     marginTop: hp('0.35%'),
-    fontSize: wp('3.8%'),
-    lineHeight: wp('5.4%'),
     color: CM_COLORS.text,
-    fontWeight: '400',
   },
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: hp('0.6%'),
+    marginTop: hp('0.55%'),
     gap: 14,
   },
   replyBtn: {
-    fontSize: wp('3.2%'),
+    ...fontText.semibold13,
+    fontSize: 12,
     color: CM_COLORS.reply,
-    fontWeight: '600',
   },
   viewRepliesBtn: {
     fontSize: wp('3.2%'),
@@ -140,10 +141,10 @@ export const cmStyles = StyleSheet.create({
     minWidth: wp('8%'),
   },
   likeCount: {
-    fontSize: wp('2.8%'),
+    ...fontText.regular12,
+    fontSize: 11,
     color: CM_COLORS.muted,
     marginTop: 4,
-    fontWeight: '600',
   },
   footerWrap: {
     backgroundColor: CM_COLORS.sheetBg,
@@ -161,17 +162,37 @@ export const cmStyles = StyleSheet.create({
       android: { elevation: 12 },
     }),
   },
+  replyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: hp('0.9%'),
+    paddingHorizontal: wp('1%'),
+  },
+  replyBannerText: {
+    flex: 1,
+    fontSize: wp('3.3%'),
+    color: CM_COLORS.muted,
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  replyBannerName: {
+    color: CM_COLORS.title,
+    fontWeight: '700',
+  },
   inputRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     gap: wp('2.5%'),
   },
   inputShell: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CM_COLORS.inputBg,
+    backgroundColor: '#FFFFFF',
     borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: '#E5E7EB',
     paddingHorizontal: wp('4%'),
     minHeight: hp('5.4%'),
     maxHeight: hp('14%'),
@@ -188,6 +209,12 @@ export const cmStyles = StyleSheet.create({
     height: wp('8.5%'),
     borderRadius: wp('4.25%'),
     backgroundColor: CM_COLORS.skeleton,
+  },
+  sendInlineBtn: {
+    paddingLeft: 8,
+    paddingVertical: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendBtn: {
     width: wp('9%'),
