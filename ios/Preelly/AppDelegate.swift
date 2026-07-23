@@ -2,6 +2,9 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+// NOTE: GoogleMaps is intentionally not imported/initialized here.
+// Your current iOS setup does not include the Google Maps iOS pods.
+// This keeps the app stable using the default map provider.
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {

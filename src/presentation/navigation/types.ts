@@ -2,6 +2,7 @@ import { Product } from '../../domain/models/Product';
 import { EditProductDetailSeed, EditProductStackParamList } from '../../types/editProduct.types';
 import {
   PaymentInitiateResponse,
+  PaymentFlowKind,
   PaymentResultParams,
 } from '../../types/payment.types';
 
@@ -73,10 +74,13 @@ export type RootStackParamList = {
   Notifications: undefined;
   FollowRequests: undefined;
   MySettings: undefined;
+  CartCheckout: { productId?: string } | undefined;
   GetVerified: undefined;
   PaymentWebView: {
     session: PaymentInitiateResponse;
     closeCreatePost?: boolean;
+    paymentFlow?: PaymentFlowKind;
+    productId?: string;
   };
   PaymentSuccess: PaymentResultParams;
   PaymentFailed: PaymentResultParams;

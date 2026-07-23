@@ -49,7 +49,7 @@ export const MySettingsScreen: React.FC<Props> = ({ navigation }) => {
           showComingSoon('My Bookings');
           break;
         case 'cart':
-          navigation.navigate('MainTabs');
+          navigation.navigate('CartCheckout');
           break;
         case 'drafts':
           navigation.navigate('CreatePost');

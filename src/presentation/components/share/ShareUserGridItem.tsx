@@ -11,6 +11,8 @@ interface Props {
   user: ShareRecipient;
   selected: boolean;
   onToggle: (user: ShareRecipient) => void;
+  avatarSize?: number;
+  horizontal?: boolean;
 }
 
 const AVATAR_SIZE = 72;
@@ -27,7 +29,7 @@ const resolveShareAvatarUri = (avatarUrl?: string | null): string | undefined =>
   return resolveMediaUrl(trimmed) || undefined;
 };
 
-export const ShareUserGridItem = memo<Props>(({ user, selected, onToggle }) => {
+export const ShareUserGridItem = memo<Props>(({ user, selected, onToggle, avatarSize = AVATAR_SIZE, horizontal = false }) => {
   const resolvedUri = useMemo(() => resolveShareAvatarUri(user.avatarUrl), [user.avatarUrl]);
   const [failed, setFailed] = useState(false);
 
@@ -46,7 +48,7 @@ export const ShareUserGridItem = memo<Props>(({ user, selected, onToggle }) => {
 
   return (
     <Pressable
-      style={styles.cell}
+      style={[styles.cell, horizontal && styles.cellHorizontal]}
       onPress={() => onToggle(user)}
       accessibilityRole="button"
       accessibilityState={{ selected }}
@@ -55,7 +57,7 @@ export const ShareUserGridItem = memo<Props>(({ user, selected, onToggle }) => {
         {resolvedUri && !failed ? (
           <Image
             source={{ uri: resolvedUri }}
-            style={styles.avatar}
+            style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
             resizeMode="cover"
             resizeMethod="resize"
             fadeDuration={0}
@@ -63,8 +65,8 @@ export const ShareUserGridItem = memo<Props>(({ user, selected, onToggle }) => {
             accessibilityIgnoresInvertColors
           />
         ) : (
-          <View style={[styles.avatar, styles.avatarFallback]}>
-            <AvatarIcon width={AVATAR_SIZE} height={AVATAR_SIZE} />
+          <View style={[styles.avatar, styles.avatarFallback, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
+            <AvatarIcon width={avatarSize} height={avatarSize} />
           </View>
         )}
         {user.isOnline ? <View style={styles.onlineDot} /> : null}
@@ -88,6 +90,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 4,
+  },
+  cellHorizontal: {
+    flex: 0,
+    maxWidth: undefined,
+    width: 88,
   },
   avatarWrap: {
     position: 'relative',

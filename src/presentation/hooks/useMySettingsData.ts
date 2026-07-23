@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { STORAGE_KEYS } from '../../constants/appConstants';
 import { CREATE_POST_DRAFT_KEY } from '../../constants/createPostConstants';
+import { CartApi } from '../../data/api/CartApi';
 import { profileService } from '../../services/profile.service';
 import { SettingsDashboardCounts, SettingsProfileSummary } from '../../types/settings.types';
 import { getDisplayAvatarUri } from '../../utils/mediaUrl';
@@ -80,12 +81,13 @@ export const useMySettingsData = () => {
     };
 
     try {
-      const [profileDto, listings, saved, recentRaw, draftExists] = await Promise.all([
+      const [profileDto, listings, saved, recentRaw, draftExists, cartItems] = await Promise.all([
         userId ? profileService.getCurrentUserProfile().catch(() => null) : Promise.resolve(null),
         userId ? profileService.getUserListings(userId, 1, 18).catch(() => null) : Promise.resolve(null),
         profileService.getSavedProducts(1, 18).catch(() => null),
         storage.getString(STORAGE_KEYS.RECENT_SEARCHES),
         hasPersistedDraft(),
+        CartApi.getCart().catch(() => []),
       ]);
 
       const identityVerificationStatus = profileDto?.identityVerificationStatus ?? null;
@@ -117,7 +119,7 @@ export const useMySettingsData = () => {
         ads: profileDto?.stats?.totalProducts ?? listings?.items.length ?? 0,
         searches: parseRecentSearchCount(recentRaw),
         bookings: 0,
-        cart: saved?.items.length ?? 0,
+        cart: Array.isArray(cartItems) ? cartItems.length : 0,
         drafts: draftExists ? 1 : 0,
         archives: 0,
       });

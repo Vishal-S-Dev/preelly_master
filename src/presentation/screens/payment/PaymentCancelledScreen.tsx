@@ -6,7 +6,7 @@ import { PaymentResultView } from './PaymentResultView';
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentCancelled'>;
 
 export const PaymentCancelledScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { orderId, amount, transactionId, message } = route.params;
+  const { orderId, amount, transactionId, message, paymentFlow, productId } = route.params;
 
   const goHome = useCallback(() => {
     navigation.popToTop();
@@ -18,8 +18,12 @@ export const PaymentCancelledScreen: React.FC<Props> = ({ navigation, route }) =
   }, [navigation]);
 
   const onRetry = useCallback(() => {
+    if (paymentFlow === 'cart' && productId) {
+      navigation.replace('CartCheckout', { productId });
+      return;
+    }
     navigation.goBack();
-  }, [navigation]);
+  }, [navigation, paymentFlow, productId]);
 
   return (
     <PaymentResultView

@@ -38,6 +38,9 @@ export const shareSheetStyles = StyleSheet.create({
   listContent: {
     paddingBottom: 16,
   },
+  listContentEmpty: {
+    flexGrow: 1,
+  },
   gridRow: {
     gap: 8,
     paddingHorizontal: 12,
@@ -59,6 +62,11 @@ export const shareSheetStyles = StyleSheet.create({
     color: SHARE_UI.textMuted,
     textAlign: 'center',
     marginTop: 6,
+  },
+  emptyLoadingText: {
+    fontSize: 14,
+    color: SHARE_UI.textMuted,
+    marginTop: 12,
   },
   retryBtn: {
     marginTop: 16,

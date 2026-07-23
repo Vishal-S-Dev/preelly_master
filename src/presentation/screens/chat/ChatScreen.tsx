@@ -14,11 +14,18 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { resolveMediaUrl } from '../../../utils/mediaUrl';
+import {
+  DirectChatAvatar,
+  GroupChatAvatar,
+  ProductChatAvatar,
+} from '../../components/chat/ChatListAvatars';
+import { ChatSearchToolbar } from '../../components/chat/ChatSearchToolbar';
 import { AppTheme } from '../../theme/colors';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { useChatPresence } from '../../hooks/useChatPresence';
+import { useContactPresence } from '../../hooks/useContactPresence';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { fetchChats } from '../../redux/slices/chatSlice';
-import { ChatSearchToolbar } from '../../components/chat/ChatSearchToolbar';
 import { getChatScreenStyles, ChatScreenStyles } from './chatScreenStyles';
 import { RootStackParamList } from '../../navigation/types';
 import {
@@ -40,26 +47,22 @@ const ProductChatRow: React.FC<{
   onPress: () => void;
   styles: ChatScreenStyles;
   theme: AppTheme;
-}> = ({ item, onPress, styles, theme }) => (
+}> = ({ item, onPress, styles, theme }) => {
+  const { dot } = useContactPresence(item.contactUserId, {
+    hasUnread: Boolean(item.unreadLabel),
+  });
+
+  return (
   <Pressable
     style={styles.row}
     android_ripple={{ color: theme.card }}
     onPress={onPress}
   >
-    <View style={styles.productVisual}>
-      <Image source={{ uri: item.productImageUri }} style={styles.productCircle} />
-      <View style={styles.overlapAvatarWrap}>
-        <Image source={{ uri: item.contactAvatarUri }} style={styles.overlapAvatar} />
-        {item.overlapDot !== 'none' ? (
-          <View
-            style={[
-              styles.overlapStatusDot,
-              item.overlapDot === 'red' ? styles.dotRed : styles.dotGreen,
-            ]}
-          />
-        ) : null}
-      </View>
-    </View>
+    <ProductChatAvatar
+      productImageUri={item.productImageUri}
+      contactAvatarUri={item.contactAvatarUri}
+      dot={dot}
+    />
     <View style={styles.rowText}>
       <Text style={styles.productTitle} numberOfLines={1}>
         {item.productTitle}
@@ -82,32 +85,103 @@ const ProductChatRow: React.FC<{
       )}
     </View>
   </Pressable>
-);
+  );
+};
 
 const DirectChatRow: React.FC<{
   item: Extract<ChatRow, { kind: 'direct' }>;
   onPress: () => void;
   styles: ChatScreenStyles;
   theme: AppTheme;
-}> = ({ item, onPress, styles, theme }) => (
+}> = ({ item, onPress, styles, theme }) => {
+  const { dot, statusText } = useContactPresence(item.contactUserId, {
+    alwaysOnline: item.alwaysOnline,
+    updatedAt: item.updatedAt,
+    hasUnread: Boolean(item.unreadLabel),
+  });
+  const activeStatus = statusText || item.activeStatus;
+
+  return (
   <Pressable
     style={styles.row}
     android_ripple={{ color: theme.card }}
     onPress={onPress}>
-    <View style={styles.directAvatarWrap}>
-      <Image source={{ uri: item.avatarUri }} style={styles.directAvatar} />
-      {item.showOnlineDot ? <View style={[styles.directOnlineDot, styles.dotGreen]} /> : null}
-    </View>
+    <DirectChatAvatar
+      avatarUri={item.avatarUri}
+      dot={dot}
+    />
     <View style={styles.rowText}>
-      <Text style={styles.directName} numberOfLines={1}>
-        {item.userName}
-      </Text>
-      <Text style={styles.activeStatus}>{item.activeStatus}</Text>
+      <View style={styles.nameRow}>
+        <Text style={styles.directName} numberOfLines={1}>
+          {item.userName}
+        </Text>
+        {item.contactVerified ? <VerifiedBadge /> : null}
+      </View>
+      {item.unreadLabel ? (
+        <Text style={styles.unreadLine} numberOfLines={1}>
+          <Text style={styles.unreadBold}>{item.unreadLabel}</Text>
+          {item.timeAgo ? ` • ${item.timeAgo}` : ''}
+        </Text>
+      ) : item.previewText?.includes(' · ') ? (
+        <Text style={styles.previewGrey} numberOfLines={1}>
+          {item.previewText}
+        </Text>
+      ) : (
+        <Text style={styles.activeStatus}>{activeStatus}</Text>
+      )}
+      {!item.unreadLabel && item.previewText && !item.previewText.includes(' · ') ? (
+        <Text style={styles.previewGrey} numberOfLines={1}>
+          {item.previewText}
+        </Text>
+      ) : null}
     </View>
   </Pressable>
-);
+  );
+};
+
+const GroupChatRow: React.FC<{
+  item: Extract<ChatRow, { kind: 'group' }>;
+  onPress: () => void;
+  styles: ChatScreenStyles;
+  theme: AppTheme;
+}> = ({ item, onPress, styles, theme }) => {
+  const { dot } = useContactPresence(item.contactUserId, {
+    hasUnread: Boolean(item.unreadLabel),
+  });
+
+  return (
+  <Pressable
+    style={styles.row}
+    android_ripple={{ color: theme.card }}
+    onPress={onPress}>
+    <GroupChatAvatar
+      backAvatarUri={item.backAvatarUri}
+      backName={item.backName}
+      frontAvatarUri={item.frontAvatarUri}
+      frontName={item.frontName}
+      dot={dot}
+    />
+    <View style={styles.rowText}>
+      <Text style={styles.directName} numberOfLines={1}>
+        {item.title}
+      </Text>
+      {item.unreadLabel ? (
+        <Text style={styles.unreadLine} numberOfLines={1}>
+          <Text style={styles.unreadBold}>{item.unreadLabel}</Text>
+          {item.timeAgo ? ` • ${item.timeAgo}` : ''}
+        </Text>
+      ) : (
+        <Text style={styles.previewGrey} numberOfLines={1}>
+          {item.previewText || 'Sent a message'}
+        </Text>
+      )}
+    </View>
+  </Pressable>
+  );
+};
 
 export const ChatScreen: React.FC = () => {
+  useChatPresence();
   const theme = useAppTheme();
   const styles = useMemo(() => getChatScreenStyles(theme), [theme]);
   const navigation = useNavigation<ChatNav>();
@@ -172,6 +246,16 @@ export const ChatScreen: React.FC = () => {
       if (item.kind === 'product') {
         return (
           <ProductChatRow
+            item={item}
+            styles={styles}
+            theme={theme}
+            onPress={() => openThread(item.id)}
+          />
+        );
+      }
+      if (item.kind === 'group') {
+        return (
+          <GroupChatRow
             item={item}
             styles={styles}
             theme={theme}

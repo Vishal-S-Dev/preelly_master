@@ -13,6 +13,8 @@ export interface ProductRefDTO {
   images?: string[];
   video?: string | null;
   image?: string;
+  seller?: string | { _id?: string; id?: string };
+  user?: string | { _id?: string; id?: string };
 }
 
 /** One chat document as returned by GET /api/chats (lean + populated). */

@@ -1,5 +1,5 @@
 import { AxiosRequestConfig } from 'axios';
-import { PaymentApi } from '../data/api/PaymentApi';
+import { PaymentApi, PaymentCheckoutInitiateRequest } from '../data/api/PaymentApi';
 import {
   PaymentHistoryPage,
   PaymentInitiateRequest,
@@ -19,6 +19,24 @@ export const paymentService = {
     }
     try {
       return await PaymentApi.initiatePayment(request, config);
+    } catch (error) {
+      throw new Error(getPaymentErrorMessage(error));
+    }
+  },
+
+  /**
+   * Buyer cart checkout — product price + add-on services via CCAvenue.
+   * Backend: POST /api/payment/checkout/initiate
+   */
+  async initiateCheckoutPayment(
+    request: PaymentCheckoutInitiateRequest,
+    config?: AxiosRequestConfig,
+  ): Promise<PaymentInitiateResponse> {
+    if (!request.productId?.trim()) {
+      throw new Error('Missing product for checkout.');
+    }
+    try {
+      return await PaymentApi.initiateCheckoutPayment(request, config);
     } catch (error) {
       throw new Error(getPaymentErrorMessage(error));
     }

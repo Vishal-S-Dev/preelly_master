@@ -28,15 +28,26 @@ const PLATFORMS: PlatformItem[] = [
 
 interface Props {
   onPlatformPress: (platform: SocialSharePlatform) => void;
+  compact?: boolean;
 }
 
-export const SocialShareFooter = memo<Props>(({ onPlatformPress }) => (
+const COMPACT_PLATFORMS: PlatformItem[] = [
+  { id: 'share', label: 'Share', icon: 'send-outline' },
+  { id: 'copy', label: 'Copy Link', icon: 'link-variant' },
+  { id: 'whatsapp', label: 'WhatsApp', icon: 'whatsapp', color: '#fff', bg: '#25D366' },
+  { id: 'instagram', label: 'Instagram', icon: 'instagram', color: '#fff', bg: '#E4405F' },
+  { id: 'facebook', label: 'Facebook', icon: 'facebook', color: '#fff', bg: '#1877F2' },
+];
+
+export const SocialShareFooter = memo<Props>(({ onPlatformPress, compact = false }) => {
+  const platforms = compact ? COMPACT_PLATFORMS : PLATFORMS;
+  return (
   <View style={styles.wrap}>
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.scroll}>
-      {PLATFORMS.map(item => (
+      {platforms.map(item => (
         <Pressable
           key={item.id}
           style={styles.item}
@@ -61,7 +72,8 @@ export const SocialShareFooter = memo<Props>(({ onPlatformPress }) => (
       ))}
     </ScrollView>
   </View>
-));
+  );
+});
 
 SocialShareFooter.displayName = 'SocialShareFooter';
 

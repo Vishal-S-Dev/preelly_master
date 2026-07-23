@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import appReducer from './slices/appSlice';
 import authReducer from './slices/authSlice';
 import chatReducer from './slices/chatSlice';
+import presenceReducer from './slices/presenceSlice';
 import feedReducer from './slices/feedSlice';
 import productReducer from './slices/productSlice';
 import themeReducer from './slices/themeSlice';
@@ -11,6 +12,7 @@ export const store = configureStore({
     app: appReducer,
     auth: authReducer,
     chat: chatReducer,
+    presence: presenceReducer,
     feed: feedReducer,
     product: productReducer,
     theme: themeReducer,

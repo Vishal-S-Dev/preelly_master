@@ -6,10 +6,10 @@ import { PaymentResultView } from './PaymentResultView';
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentSuccess'>;
 
 export const PaymentSuccessScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { orderId, amount, transactionId, closeCreatePost, message } = route.params;
+  const { orderId, amount, transactionId, closeCreatePost, message, paymentFlow } = route.params;
 
   const goHome = useCallback(() => {
-    if (route.params.closeCreatePost) {
+    if (closeCreatePost) {
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],
@@ -18,7 +18,7 @@ export const PaymentSuccessScreen: React.FC<Props> = ({ navigation, route }) => 
     }
     navigation.popToTop();
     navigation.navigate('MainTabs');
-  }, [navigation, route.params.closeCreatePost]);
+  }, [closeCreatePost, navigation]);
 
   const viewTx = useCallback(() => {
     navigation.replace('PaymentHistory');
@@ -30,7 +30,9 @@ export const PaymentSuccessScreen: React.FC<Props> = ({ navigation, route }) => 
       title="Payment Successful"
       subtitle={
         message ||
-        'Your payment was completed successfully. An invoice is available in Transactions.'
+        (paymentFlow === 'cart'
+          ? 'Your purchase was completed successfully. The seller will be notified.'
+          : 'Your payment was completed successfully. An invoice is available in Transactions.')
       }
       orderId={orderId}
       amount={amount}

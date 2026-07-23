@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FormField } from '../../../types/dynamicForm.types';
 import { CreatePostStackParamList } from '../../../types/createPost.types';
@@ -7,10 +7,10 @@ import { useCreatePostStore } from '../../../store/createPostStore';
 import { validatePrice, validateUaePhone, validateYear } from '../../../utils/formValidation';
 import { FormCheckboxGroup } from '../../components/forms/FormCheckboxGroup';
 import { FormDropdown } from '../../components/forms/FormDropdown';
-import { FormProgressBar } from '../../components/forms/FormProgressBar';
 import { FormRadioGroup } from '../../components/forms/FormRadioGroup';
 import { FormTextInput } from '../../components/forms/FormTextInput';
 import { formStyles } from '../../components/forms/formStyles';
+import { CreatePostStepShell } from '../../components/createPost/CreatePostStepShell';
 import { CreatePostFooter, CreatePostHeader } from '../../components/createPost/StepIndicator';
 import { useCreatePostStyles } from '../../hooks/useCreatePostStyles';
 import { useDynamicFormStep } from '../../hooks/useDynamicFormStep';
@@ -65,11 +65,32 @@ export const DynamicFormStepScreen: React.FC<Props> = ({ navigation }) => {
             />
           );
         case 'Text':
-          return <FormTextInput key={field.id} field={field} value={value} onChange={handleFieldChange} />;
+          return (
+            <FormTextInput
+              key={field.id}
+              field={field}
+              value={value}
+              onChange={handleFieldChange}
+            />
+          );
         case 'Radio':
-          return <FormRadioGroup key={field.id} field={field} value={value} onChange={handleFieldChange} />;
+          return (
+            <FormRadioGroup
+              key={field.id}
+              field={field}
+              value={value}
+              onChange={handleFieldChange}
+            />
+          );
         case 'Checkbox':
-          return <FormCheckboxGroup key={field.id} field={field} value={value} onChange={handleFieldChange} />;
+          return (
+            <FormCheckboxGroup
+              key={field.id}
+              field={field}
+              value={value}
+              onChange={handleFieldChange}
+            />
+          );
         default:
           return null;
       }
@@ -78,44 +99,44 @@ export const DynamicFormStepScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.screen}>
-      <CreatePostHeader
-        title={categoryName}
-        backgroundColor={styles.screen.backgroundColor}
-        onBack={() => navigation.goBack()}
-      />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
-       {/* <Text style={styles.title}>Basic vehicle information</Text>*/}
-        {/*<Text style={styles.subtitle}>Step 3 of 5</Text>*/}
-        {/*{!isLoading && data ? <FormProgressBar currentStep={3} totalSteps={5} /> : null}*/}
-        {isLoading || (isFetching && !data) ? (
-          <View>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <View key={i} style={formStyles.skeleton} />
-            ))}
-          </View>
-        ) : null}
-        {isError ? (
-          <View style={styles.centerState}>
-            <Text style={styles.stateText}>
-              {error instanceof Error ? error.message : 'Failed to load form'}
-            </Text>
-            <Pressable style={styles.retryButton} onPress={() => refetch()}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </Pressable>
-          </View>
-        ) : null}
-        {!isLoading && !isError ? stepFields.map(renderField) : null}
-      </ScrollView>
-      {/*{!isLoading && data ? (
-        <FormProgressBar currentStep={3} totalSteps={5} />
-      ) : null}*/}
-      <CreatePostFooter
-        backgroundColor={styles.screen.backgroundColor}
-        step={3}
-        onNext={onNext}
-        disabled={!requiredFilled || isLoading || isError}
-      />
-    </View>
+    <CreatePostStepShell
+      header={
+        <CreatePostHeader
+          title={categoryName}
+          backgroundColor={styles.screen.backgroundColor}
+          onBack={() => navigation.goBack()}
+        />
+      }
+      footer={
+        <CreatePostFooter
+          backgroundColor={styles.screen.backgroundColor}
+          step={3}
+          onNext={onNext}
+          disabled={!requiredFilled || isLoading || isError}
+        />
+      }
+    >
+      {/* <Text style={styles.title}>Basic vehicle information</Text> */}
+      {/* <Text style={styles.subtitle}>Step 3 of 5</Text> */}
+      {/* {!isLoading && data ? <FormProgressBar currentStep={3} totalSteps={5} /> : null} */}
+      {isLoading || (isFetching && !data) ? (
+        <View>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <View key={i} style={formStyles.skeleton} />
+          ))}
+        </View>
+      ) : null}
+      {isError ? (
+        <View style={styles.centerState}>
+          <Text style={styles.stateText}>
+            {error instanceof Error ? error.message : 'Failed to load form'}
+          </Text>
+          <Pressable style={styles.retryButton} onPress={() => refetch()}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {!isLoading && !isError ? stepFields.map(renderField) : null}
+    </CreatePostStepShell>
   );
 };

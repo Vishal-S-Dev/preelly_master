@@ -24,6 +24,7 @@ import {
   computeCheckoutTotals,
   formatAed,
 } from '../../../utils/checkoutTotals';
+import { openCcavenuePaymentWebView } from '../../../utils/openCcavenuePaymentWebView';
 import { CreatePostHeader } from '../../components/createPost/StepIndicator';
 import { usePayment } from '../../hooks/usePayment';
 import { useStableSafeAreaInsets } from '../../hooks/useStableSafeAreaInsets';
@@ -107,14 +108,10 @@ export const BuyPackageScreen: React.FC<Props> = ({ navigation, route }) => {
         couponCode: undefined,
       });
 
-      const parent = navigation.getParent();
-      if (!parent) {
-        throw new Error('Unable to open payment screen.');
-      }
-
-      parent.navigate('PaymentWebView', {
+      openCcavenuePaymentWebView(navigation, {
         session,
         closeCreatePost: true,
+        paymentFlow: 'post-ad',
       });
     } catch (error) {
       Alert.alert(

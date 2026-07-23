@@ -70,9 +70,19 @@ export const ChatApi = {
         fd.append('text', text);
       }
       fileList.forEach(f => {
-        fd.append('files', f);
+        fd.append(
+          'files',
+          {
+            uri: f.uri,
+            name: f.name,
+            type: f.type,
+          } as unknown as Blob,
+        );
       });
-      const { data } = await httpClient.post<ChatMessageDTO>(`${chatByIdPath(chatId)}/messages`, fd);
+      const { data } = await httpClient.post<ChatMessageDTO>(`${chatByIdPath(chatId)}/messages`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120_000,
+      });
       return data;
     }
     const { data } = await httpClient.post<ChatMessageDTO>(`${chatByIdPath(chatId)}/messages`, {

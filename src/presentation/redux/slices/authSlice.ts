@@ -6,7 +6,9 @@ import { LoginUseCase } from '../../../domain/usecases/LoginUseCase';
 import { SendOtpUseCase, VerifyOtpUseCase } from '../../../domain/usecases/authUseCases';
 import { storage } from '../../../utils/storage';
 import { clearChatState } from './chatSlice';
+import { resetPresenceState } from '../../../data/network/presenceSocket';
 import { ensureSocketReadyForUser } from '../../../data/network/chatSocket';
+import { attachPresenceListeners } from '../../../data/network/presenceSocket';
 import { SendOtpRequestDTO } from '../../../data/dto/authDto';
 
 const repo = new AuthRepositoryImpl();
@@ -40,11 +42,12 @@ const initialState: AuthState = {
 
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
-  async ({ email, password }: { email: string; password: string }) => {
+  async ({ email, password }: { email: string; password: string }, { dispatch }) => {
     const session = await loginUseCase.execute(email, password);
     await repo.storeSession(session);
     if (session.user?.id) {
       await ensureSocketReadyForUser(session.user.id);
+      attachPresenceListeners(dispatch).catch(() => undefined);
     }
     return session;
   },
@@ -68,16 +71,18 @@ export const sendOtp = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk('auth/logoutUser', async (_, { dispatch }) => {
   await repo.logout();
+  resetPresenceState(dispatch);
   dispatch(clearChatState());
 });
 
 export const verifyOtp = createAsyncThunk(
   'auth/verifyOtp',
-  async ({ email, otp }: { email: string; otp: string }) => {
+  async ({ email, otp }: { email: string; otp: string }, { dispatch }) => {
     const session = await verifyOtpUseCase.execute(email, otp);
     await repo.storeSession(session);
     if (session.user?.id) {
       await ensureSocketReadyForUser(session.user.id);
+      attachPresenceListeners(dispatch).catch(() => undefined);
     }
     return session;
   },

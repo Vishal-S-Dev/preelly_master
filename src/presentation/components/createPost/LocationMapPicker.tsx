@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { CreatePostStyles } from '../../hooks/useCreatePostStyles';
@@ -6,6 +6,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { useMapLocationPicker } from '../../hooks/useMapLocationPicker';
 import { getLocationMapPickerStyles } from './locationMapPickerStyles';
 import { LocationMapInteractivePanel } from './LocationMapInteractivePanel';
+import { LocationMapPickerModal } from './LocationMapPickerModal';
 
 interface Props {
   locateYourItem: string;
@@ -32,6 +33,7 @@ export const LocationMapPicker = memo<Props>(
     const theme = useAppTheme();
     const mapStyles = useMemo(() => getLocationMapPickerStyles(theme), [theme]);
 
+    const [pickerVisible, setPickerVisible] = useState(false);
     const {
       region,
       markerCoordinate,
@@ -97,6 +99,7 @@ export const LocationMapPicker = memo<Props>(
             onRegionChangeComplete={handleRegionChangeComplete}
             onMarkerDragEnd={handleMarkerDragEnd}
             onCurrentLocationPress={handleCurrentLocationPress}
+            onMapPress={() => setPickerVisible(true)}
           />
 
           {statusMessage ? <Text style={mapStyles.statusText}>{statusMessage}</Text> : null}
@@ -106,6 +109,20 @@ export const LocationMapPicker = memo<Props>(
             </Text>
           ) : null}
         </View>
+        <LocationMapPickerModal
+          visible={pickerVisible}
+          latitude={markerCoordinate.latitude}
+          longitude={markerCoordinate.longitude}
+          locateYourItem={locateYourItem}
+          address={address}
+          primaryColor={styles.primaryBtn.backgroundColor}
+          onClose={() => setPickerVisible(false)}
+          onConfirm={({ latitude: nextLat, longitude: nextLng, locateYourItem: nextLocate, address: nextAddress }) => {
+            onCoordinateChange(nextLat, nextLng);
+            onLocateYourItemChange(nextLocate);
+            onAddressChange(nextAddress);
+          }}
+        />
       </View>
     );
   },

@@ -37,6 +37,7 @@ import { CategoryFilterScreen } from '../screens/search/CategoryFilterScreen';
 import { NotificationsScreen } from '../screens/notifications/NotificationsScreen';
 import { FollowRequestsScreen } from '../screens/notifications/FollowRequestsScreen';
 import { MySettingsScreen } from '../screens/settings/MySettingsScreen';
+import { CartCheckoutScreen } from '../screens/cart/CartCheckoutScreen';
 import { PaymentWebViewScreen } from '../screens/payment/PaymentWebViewScreen';
 import { PaymentSuccessScreen } from '../screens/payment/PaymentSuccessScreen';
 import { PaymentFailedScreen } from '../screens/payment/PaymentFailedScreen';
@@ -274,12 +275,18 @@ export const AppNavigator: React.FC = () => {
               options={{ animation: 'slide_from_right' }}
             />
             <Stack.Screen
+              name="CartCheckout"
+              component={CartCheckoutScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
               name="PaymentWebView"
               component={PaymentWebViewScreen}
               options={{
                 animation: 'slide_from_bottom',
                 presentation: 'fullScreenModal',
                 gestureEnabled: false,
+                headerShown: false,
               }}
             />
             <Stack.Screen

@@ -4,6 +4,19 @@ import { ShareRecipient } from '../../types/share.types';
 
 const normalize = (value: string) => value.trim().toLowerCase();
 
+const mergeRecipients = (
+  followers: ShareRecipient[],
+  following: ShareRecipient[],
+): ShareRecipient[] => {
+  const map = new Map<string, ShareRecipient>();
+  followers.forEach(item => map.set(item.id, item));
+  following.forEach(item => {
+    const existing = map.get(item.id);
+    map.set(item.id, existing ? { ...existing, ...item } : item);
+  });
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+};
+
 export const useShareFollowers = (userId: string | null, enabled: boolean) => {
   const [followers, setFollowers] = useState<ShareRecipient[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,8 +37,11 @@ export const useShareFollowers = (userId: string | null, enabled: boolean) => {
     setLoading(true);
     setError(null);
     try {
-      const list = await FollowersApi.getFollowers(userId);
-      setFollowers(list);
+      const [followersList, followingList] = await Promise.all([
+        FollowersApi.getFollowers(userId),
+        FollowersApi.getFollowing(userId),
+      ]);
+      setFollowers(mergeRecipients(followersList, followingList));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load followers');
       setFollowers([]);
@@ -38,8 +54,17 @@ export const useShareFollowers = (userId: string | null, enabled: boolean) => {
     if (!enabled || !userId) {
       return;
     }
-    load();
+    void load();
   }, [enabled, userId, load]);
+
+  useEffect(() => {
+    if (!enabled) {
+      setFollowers([]);
+      setLoading(false);
+      setError(null);
+      setQuery('');
+    }
+  }, [enabled, setQuery]);
 
   const filteredFollowers = useMemo(() => {
     const q = normalize(debouncedQuery);

@@ -8,7 +8,8 @@ import { getPaymentErrorMessage } from '../../../utils/paymentUtils';
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentPending'>;
 
 export const PaymentPendingScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { orderId, amount, transactionId, message, closeCreatePost } = route.params;
+  const { orderId, amount, transactionId, message, closeCreatePost, paymentFlow, productId } =
+    route.params;
   const [checking, setChecking] = useState(false);
 
   const goHome = useCallback(() => {
@@ -38,6 +39,8 @@ export const PaymentPendingScreen: React.FC<Props> = ({ navigation, route }) => 
         status: tx.status,
         message: tx.failureReason,
         closeCreatePost,
+        paymentFlow,
+        productId,
       };
 
       if (tx.status === 'SUCCESS') {
@@ -54,7 +57,7 @@ export const PaymentPendingScreen: React.FC<Props> = ({ navigation, route }) => 
     } finally {
       setChecking(false);
     }
-  }, [amount, checking, closeCreatePost, navigation, orderId, transactionId]);
+  }, [amount, checking, closeCreatePost, navigation, orderId, paymentFlow, productId, transactionId]);
 
   return (
     <PaymentResultView

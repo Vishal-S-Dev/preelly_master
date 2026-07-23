@@ -42,6 +42,7 @@ export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
       () => (product ? mapProductToQuickView(product) : null),
       [product],
     );
+    const showChatButton = Boolean(product && !product.isSold && onChat);
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
@@ -65,7 +66,7 @@ export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
 
     const renderFooter = useCallback(
       (props: BottomSheetFooterProps) => {
-        if (!onChat) {
+        if (!showChatButton) {
           return null;
         }
 
@@ -88,7 +89,7 @@ export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
           </BottomSheetFooter>
         );
       },
-      [chatLoading, handleChatPress, onChat],
+      [chatLoading, handleChatPress, showChatButton],
     );
 
     const handleSheetChange = useCallback(
@@ -141,7 +142,7 @@ export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
         activeOffsetX={[-9999, 9999]}
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.sheetBackground}
-        footerComponent={renderFooter}
+        footerComponent={showChatButton ? renderFooter : undefined}
         handleComponent={null}
         onChange={handleSheetChange}
         android_keyboardInputMode="adjustResize"

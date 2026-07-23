@@ -49,4 +49,15 @@ export const FollowersApi = {
       .map((item, index) => mapFollower(item, index))
       .filter((item): item is ShareRecipient => item !== null);
   },
+
+  async getFollowing(userId: string): Promise<ShareRecipient[]> {
+    const { data } = await httpClient.get<{ following?: unknown[] }>(
+      `/api/user/${userId}/following`,
+      { baseURL: API_BASE },
+    );
+    const list = Array.isArray(data?.following) ? data.following : [];
+    return list
+      .map((item, index) => mapFollower(item, index))
+      .filter((item): item is ShareRecipient => item !== null);
+  },
 };

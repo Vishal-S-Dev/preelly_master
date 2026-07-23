@@ -13,6 +13,20 @@ import {
   mapPaymentTransaction,
 } from '../../utils/paymentUtils';
 import { httpClient } from './httpClient';
+import { getDevCcavenueInitiateOverrides } from '../../constants/ccavenueEnv';
+import { PAYMENT_TYPE, resolvePaymentFrom } from '../../utils/paymentPlatform';
+
+export interface PaymentCheckoutInitiateRequest {
+  productId: string;
+  services?: Array<{ checkoutServiceId: string; amount: number }>;
+  couponCode?: string | null;
+  pickDrop?: unknown;
+  preelly?: unknown;
+  /** Defaults to checkout (2) for cart / chat payments. */
+  paymentType?: number;
+  /** 1 Web, 2 Android, 3 iOS — auto-detected when omitted. */
+  paymentFrom?: number;
+}
 
 const withRetryGet = async <T>(
   request: () => Promise<T>,
@@ -39,6 +53,33 @@ export const PaymentApi = {
     const { data } = await httpClient.post(
       API_ENDPOINTS.PAYMENT_INITIATE,
       buildInitiateBody(body),
+      config,
+    );
+    return mapPaymentInitiateResponse(data);
+  },
+
+  /**
+   * Product checkout payment flow (buyer pays for product + add-ons).
+   * Backend: POST /api/payment/checkout/initiate
+   */
+  async initiateCheckoutPayment(
+    body: PaymentCheckoutInitiateRequest,
+    config?: AxiosRequestConfig,
+  ): Promise<PaymentInitiateResponse> {
+    const payload = {
+      ...getDevCcavenueInitiateOverrides(),
+      productId: body.productId,
+      paymentType: body.paymentType ?? PAYMENT_TYPE.CHECKOUT,
+      paymentFrom: body.paymentFrom ?? resolvePaymentFrom(),
+      ...(body.services ? { services: body.services } : {}),
+      couponCode: body.couponCode ?? null,
+      ...(body.pickDrop !== undefined ? { pickDrop: body.pickDrop } : {}),
+      ...(body.preelly !== undefined ? { preelly: body.preelly } : {}),
+    };
+
+    const { data } = await httpClient.post(
+      API_ENDPOINTS.PAYMENT_CHECKOUT_INITIATE,
+      payload,
       config,
     );
     return mapPaymentInitiateResponse(data);

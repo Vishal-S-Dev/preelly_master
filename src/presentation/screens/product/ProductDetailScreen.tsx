@@ -28,11 +28,10 @@ import { ProductFeaturesAccordion } from '../../components/productDetail/Product
 import { ProductLocationCard } from '../../components/productDetail/ProductLocationCard';
 import { SellerInfoCard } from '../../components/productDetail/SellerInfoCard';
 import { SimilarAdsCarousel } from '../../components/productDetail/SimilarAdsCarousel';
-import { ProductCategoriesAccordion } from '../../components/productDetail/ProductCategoriesAccordion';
-import { ProductBottomActions } from '../../components/productDetail/ProductBottomActions';
 import { PD_COLORS, pdStyles } from '../../components/productDetail/productDetailStyles';
 import { useShareSheet } from '../../context/ShareSheetContext';
 import { productToSharePayload } from '../../../utils/shareLinks';
+import { ChatWithSellerButton } from '../../components/productQuickView/ChatWithSellerButton.tsx';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -115,6 +114,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const showCall = contactOptions?.call !== false;
   const showWhatsApp = contactOptions?.whatsapp === true;
   const showChat = contactOptions?.inAppChat !== false;
+  const showChatButton = Boolean(detail && !detail.product.isSold && showChat);
 
   const overlayTop = useMemo(() => Math.max(insets.top, 12), [insets.top]);
 
@@ -298,21 +298,36 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>*/}
       </View>
 
-      <View style={styles.actions}>
-        <ProductBottomActions
+      {showChatButton ? (
+        <View style={styles.actions}>
+          {/*<ProductBottomActions
           showCall={showCall}
           showWhatsApp={showWhatsApp}
           showChat={showChat}
           onCall={showCall ? handleCall : undefined}
           onWhatsApp={showWhatsApp ? handleWhatsApp : undefined}
           onChat={showChat ? handleChat : undefined}
-        />
-        {openingChat ? (
-          <View style={styles.chatLoader}>
-            <ActivityIndicator size="small" color={PD_COLORS.primary} />
+        />*/}
+          <View
+            style={{
+              paddingBottom: 16,
+              backgroundColor: '#fff',
+            }}
+          >
+            <ChatWithSellerButton
+              onPress={handleChat}
+              loading={false}
+              includeSafeArea={false}
+            />
           </View>
-        ) : null}
-      </View>
+        </View>
+      ) : null}
+
+      {showChatButton && openingChat ? (
+        <View style={styles.chatLoader}>
+          <ActivityIndicator size="small" color={PD_COLORS.primary} />
+        </View>
+      ) : null}
     </View>
   );
 };

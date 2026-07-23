@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   BackHandler,
+  Platform,
   Pressable,
   Text,
   View,
@@ -12,7 +13,12 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { paymentService } from '../../../services/payment.service';
-import { buildCcavenueCheckoutHtml } from '../../../utils/paymentUtils';
+import {
+  buildCcavenueCheckoutHtml,
+  isCcavenueGatewayUrl,
+  isPaymentCompletionUrl,
+  resolveCcavenueHtmlBaseUrl,
+} from '../../../utils/paymentUtils';
 import { PaymentLoader } from '../../components/payment/PaymentLoader';
 import { useStableSafeAreaInsets } from '../../hooks/useStableSafeAreaInsets';
 import { PAYMENT_COLORS, paymentStyles } from './paymentStyles';
@@ -30,31 +36,37 @@ const urlMatches = (url: string, candidates: Array<string | undefined>) => {
   });
 };
 
-const isCompletionUrl = (url: string) => {
+const isIgnorableNavUrl = (url?: string | null) => {
+  if (!url) {
+    return true;
+  }
   const lower = url.toLowerCase();
   return (
-    lower.includes('/api/payment/ccavenue/callback') ||
-    lower.includes('/payment/ccavenue/callback') ||
-    lower.includes('encresp=') ||
-    lower.includes('enc_resp=') ||
-    lower.includes('payment/success') ||
-    lower.includes('payment/failure') ||
-    lower.includes('payment/failed') ||
-    lower.includes('payment/cancel')
+    lower.startsWith('about:') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('blob:') ||
+    lower === 'about:blank'
   );
 };
 
 export const PaymentWebViewScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useStableSafeAreaInsets();
-  const { session, closeCreatePost } = route.params;
+  const { session, closeCreatePost, paymentFlow, productId } = route.params;
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
   const [webError, setWebError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const handledRef = useRef(false);
+  const gatewayEnteredRef = useRef(false);
+  const fatalErrorRef = useRef(false);
   const webRef = useRef<WebView>(null);
 
   const html = useMemo(() => buildCcavenueCheckoutHtml(session), [session]);
+  const htmlBaseUrl = useMemo(
+    () => resolveCcavenueHtmlBaseUrl(session.paymentUrl),
+    [session.paymentUrl],
+  );
 
   const finishWithTransaction = useCallback(async () => {
     if (handledRef.current) {
@@ -72,6 +84,8 @@ export const PaymentWebViewScreen: React.FC<Props> = ({ navigation, route }) => 
         status: tx.status,
         message: tx.failureReason,
         closeCreatePost,
+        paymentFlow,
+        productId,
       };
 
       if (tx.status === 'SUCCESS') {
@@ -88,17 +102,29 @@ export const PaymentWebViewScreen: React.FC<Props> = ({ navigation, route }) => 
         orderId: session.orderId,
         amount: session.amount,
         closeCreatePost,
+        paymentFlow,
+        productId,
         message: 'We are confirming your payment. Please check again shortly.',
       });
     } finally {
       setVerifying(false);
     }
-  }, [closeCreatePost, navigation, session.amount, session.orderId]);
+  }, [closeCreatePost, navigation, paymentFlow, productId, session.amount, session.orderId]);
 
-  const onNavChange = useCallback(
-    (navState: WebViewNavigation) => {
-      const { url } = navState;
-      if (!url || handledRef.current) {
+  const handleNavigationUrl = useCallback(
+    (url?: string | null) => {
+      if (!url || handledRef.current || isIgnorableNavUrl(url)) {
+        return;
+      }
+
+      if (isCcavenueGatewayUrl(url)) {
+        gatewayEnteredRef.current = true;
+        fatalErrorRef.current = false;
+        setWebError(null);
+        return;
+      }
+
+      if (!gatewayEnteredRef.current) {
         return;
       }
 
@@ -108,11 +134,23 @@ export const PaymentWebViewScreen: React.FC<Props> = ({ navigation, route }) => 
         session.callbackUrl,
       ]);
 
-      if (matchedExplicit || isCompletionUrl(url)) {
-        finishWithTransaction();
+      if (matchedExplicit || isPaymentCompletionUrl(url)) {
+        void finishWithTransaction();
       }
     },
-    [finishWithTransaction, session.callbackUrl, session.cancelUrl, session.redirectUrl],
+    [
+      finishWithTransaction,
+      session.callbackUrl,
+      session.cancelUrl,
+      session.redirectUrl,
+    ],
+  );
+
+  const onNavChange = useCallback(
+    (navState: WebViewNavigation) => {
+      handleNavigationUrl(navState.url);
+    },
+    [handleNavigationUrl],
   );
 
   const onCancel = useCallback(() => {
@@ -133,13 +171,15 @@ export const PaymentWebViewScreen: React.FC<Props> = ({ navigation, route }) => 
               orderId: session.orderId,
               amount: session.amount,
               closeCreatePost,
+              paymentFlow,
+              productId,
               message: 'You cancelled the payment.',
             });
           },
         },
       ],
     );
-  }, [closeCreatePost, navigation, session.amount, session.orderId, verifying]);
+  }, [closeCreatePost, navigation, paymentFlow, productId, session.amount, session.orderId, verifying]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -148,6 +188,82 @@ export const PaymentWebViewScreen: React.FC<Props> = ({ navigation, route }) => 
     });
     return () => sub.remove();
   }, [onCancel]);
+
+  const retryPaymentPage = useCallback(() => {
+    fatalErrorRef.current = false;
+    handledRef.current = false;
+    gatewayEnteredRef.current = false;
+    setWebError(null);
+    setLoading(true);
+    setProgress(0);
+    setReloadKey(key => key + 1);
+  }, []);
+
+  /**
+   * Only treat hard network failures as fatal.
+   * CCAvenue / redirects often emit HTTP status noise that must not blank the WebView.
+   */
+  const onWebViewError = useCallback(
+    (event?: {
+      nativeEvent?: { description?: string; code?: number; domain?: string; url?: string };
+    }) => {
+      if (gatewayEnteredRef.current || handledRef.current) {
+        return;
+      }
+      if (fatalErrorRef.current) {
+        return;
+      }
+      fatalErrorRef.current = true;
+      const native = event?.nativeEvent;
+      const code = native?.code;
+      const description = native?.description;
+      const failedUrl = native?.url;
+      if (__DEV__) {
+        console.warn('[PaymentWebView] load error', {
+          code,
+          domain: native?.domain,
+          description,
+          url: failedUrl,
+          paymentUrl: session.paymentUrl,
+        });
+      }
+
+      // iOS NSURLErrorCannotConnectToHost (-1004): usually localhost callback or unreachable host.
+      const looksLocal =
+        typeof failedUrl === 'string' &&
+        (failedUrl.includes('localhost') || failedUrl.includes('127.0.0.1'));
+      if (code === -1004 || looksLocal) {
+        setWebError(
+          looksLocal
+            ? 'Payment callback points to localhost, which this phone cannot reach. Set API BASE_URL / BACKEND_URL to your public server IP (not localhost), restart the API, and try again.'
+            : 'Could not connect to the payment server. Check that the device can reach the internet and that the API callback URL is a public host (not localhost).',
+        );
+        return;
+      }
+
+      setWebError(
+        description
+          ? `Unable to open payment gateway. ${description}`
+          : 'Unable to load payment page. Check your connection.',
+      );
+    },
+    [session.paymentUrl],
+  );
+
+  const onHttpError = useCallback(
+    (event: { nativeEvent?: { statusCode?: number; url?: string } }) => {
+      const status = event.nativeEvent?.statusCode ?? 0;
+      const url = event.nativeEvent?.url ?? '';
+      // Gateway redirects / intermediate pages often surface as HTTP errors — ignore.
+      if (status < 500 || isCcavenueGatewayUrl(url) || gatewayEnteredRef.current) {
+        return;
+      }
+      if (__DEV__) {
+        console.warn('[PaymentWebView] http error', status, url);
+      }
+    },
+    [],
+  );
 
   if (verifying) {
     return (
@@ -170,7 +286,7 @@ export const PaymentWebViewScreen: React.FC<Props> = ({ navigation, route }) => 
         </Pressable>
         <Text style={paymentStyles.headerTitle}>Secure Payment</Text>
         <Pressable
-          onPress={() => webRef.current?.reload()}
+          onPress={retryPaymentPage}
           style={paymentStyles.headerBtn}
           accessibilityRole="button"
           accessibilityLabel="Reload"
@@ -191,13 +307,7 @@ export const PaymentWebViewScreen: React.FC<Props> = ({ navigation, route }) => 
       {webError ? (
         <View style={paymentStyles.center}>
           <Text style={paymentStyles.errorText}>{webError}</Text>
-          <Pressable
-            onPress={() => {
-              setWebError(null);
-              handledRef.current = false;
-              webRef.current?.reload();
-            }}
-          >
+          <Pressable onPress={retryPaymentPage}>
             <Text style={paymentStyles.linkBtnText}>Retry</Text>
           </Pressable>
         </View>
@@ -205,39 +315,40 @@ export const PaymentWebViewScreen: React.FC<Props> = ({ navigation, route }) => 
         <View style={{ flex: 1 }}>
           <WebView
             ref={webRef}
-            originWhitelist={['*']}
-            source={{ html, baseUrl: session.paymentUrl }}
+            key={`ccavenue-${reloadKey}`}
+            originWhitelist={['https://*', 'http://*', 'about:blank']}
+            source={{ html, baseUrl: htmlBaseUrl }}
             onLoadProgress={e => setProgress(e.nativeEvent.progress)}
             onLoadStart={() => setLoading(true)}
             onLoadEnd={() => setLoading(false)}
             onNavigationStateChange={onNavChange}
             onShouldStartLoadWithRequest={request => {
-              if (!handledRef.current && request.url) {
-                onNavChange({
-                  url: request.url,
-                  loading: false,
-                  title: '',
-                  canGoBack: false,
-                  canGoForward: false,
-                  lockIdentifier: 0,
-                });
+              // Allow the initial HTML document + all gateway / callback navigations.
+              if (isIgnorableNavUrl(request.url)) {
+                return true;
               }
-              // Always allow CCAvenue redirects — blocking here can prevent callback.
+              handleNavigationUrl(request.url);
               return true;
             }}
-            onError={() =>
-              setWebError('Unable to load payment page. Check your connection.')
-            }
-            onHttpError={() =>
-              setWebError('Payment page returned an error. Please retry.')
-            }
+            onError={onWebViewError}
+            onHttpError={onHttpError}
             startInLoadingState
             javaScriptEnabled
             domStorageEnabled
             thirdPartyCookiesEnabled
             sharedCookiesEnabled
             setSupportMultipleWindows={false}
-            style={{ flex: 1, opacity: loading ? 0.85 : 1 }}
+            mixedContentMode="always"
+            allowsInlineMediaPlayback
+            allowsBackForwardNavigationGestures={false}
+            cacheEnabled={false}
+            style={{ flex: 1, opacity: loading ? 0.9 : 1 }}
+            {...(Platform.OS === 'android'
+              ? {
+                  nestedScrollEnabled: true,
+                  overScrollMode: 'never' as const,
+                }
+              : {})}
           />
           {loading ? (
             <View

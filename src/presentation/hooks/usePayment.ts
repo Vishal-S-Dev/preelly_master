@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { PaymentCheckoutInitiateRequest } from '../../data/api/PaymentApi';
 import { paymentService } from '../../services/payment.service';
 import {
   PaymentInitiateRequest,
@@ -53,6 +54,32 @@ export const usePayment = () => {
     }
   }, []);
 
+  const initiateCheckout = useCallback(async (request: PaymentCheckoutInitiateRequest) => {
+    if (inFlightRef.current) {
+      throw new Error('Payment is already in progress.');
+    }
+    inFlightRef.current = true;
+    setLoading(true);
+    setError(null);
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
+    try {
+      const result = await paymentService.initiateCheckoutPayment(request, {
+        signal: abortRef.current.signal,
+      });
+      setSession(result);
+      return result;
+    } catch (err) {
+      const message = getPaymentErrorMessage(err);
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setLoading(false);
+      inFlightRef.current = false;
+    }
+  }, []);
+
   const verifyOrder = useCallback(async (orderId: string) => {
     setVerifying(true);
     setError(null);
@@ -93,6 +120,7 @@ export const usePayment = () => {
     session,
     transaction,
     initiate,
+    initiateCheckout,
     verifyOrder,
     refreshTransaction,
     reset,

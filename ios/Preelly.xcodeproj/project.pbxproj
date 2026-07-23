@@ -24,25 +24,25 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0FD920B4DC8E4C068C433BC8 /* notosans_black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_black.ttf; path = ../assets/fonts/notosans_black.ttf; sourceTree = "<group>"; };
+		0FD920B4DC8E4C068C433BC8 /* notosans_black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_black.ttf; path = ../assets/fonts/notosans_black.ttf; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* Preelly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Preelly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Preelly/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Preelly/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = Preelly/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		20E3B1BAE8EF47019D616BE6 /* notosans_extrabold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_extrabold.ttf; path = ../assets/fonts/notosans_extrabold.ttf; sourceTree = "<group>"; };
-		325CF5FF3B1F45A9A22D242D /* notosans_light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_light.ttf; path = ../assets/fonts/notosans_light.ttf; sourceTree = "<group>"; };
+		20E3B1BAE8EF47019D616BE6 /* notosans_extrabold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_extrabold.ttf; path = ../assets/fonts/notosans_extrabold.ttf; sourceTree = "<group>"; };
+		325CF5FF3B1F45A9A22D242D /* notosans_light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_light.ttf; path = ../assets/fonts/notosans_light.ttf; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-Preelly.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Preelly.debug.xcconfig"; path = "Target Support Files/Pods-Preelly/Pods-Preelly.debug.xcconfig"; sourceTree = "<group>"; };
-		42A772F4DD1D4659818597A3 /* notosans_bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_bold.ttf; path = ../assets/fonts/notosans_bold.ttf; sourceTree = "<group>"; };
+		42A772F4DD1D4659818597A3 /* notosans_bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_bold.ttf; path = ../assets/fonts/notosans_bold.ttf; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-Preelly.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Preelly.release.xcconfig"; path = "Target Support Files/Pods-Preelly/Pods-Preelly.release.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-Preelly.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Preelly.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Preelly/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Preelly/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		8512F3A81BD141BCB9DBBB0B /* notosans_regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_regular.ttf; path = ../assets/fonts/notosans_regular.ttf; sourceTree = "<group>"; };
-		BD28F314E52149DFB28E4058 /* notosans_thin.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_thin.ttf; path = ../assets/fonts/notosans_thin.ttf; sourceTree = "<group>"; };
-		BE6AB0360A76462896625BCF /* notosans_extralight.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_extralight.ttf; path = ../assets/fonts/notosans_extralight.ttf; sourceTree = "<group>"; };
-		D2A4868AF9EC455CBBA32DC3 /* notosans_medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_medium.ttf; path = ../assets/fonts/notosans_medium.ttf; sourceTree = "<group>"; };
+		8512F3A81BD141BCB9DBBB0B /* notosans_regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_regular.ttf; path = ../assets/fonts/notosans_regular.ttf; sourceTree = "<group>"; };
+		BD28F314E52149DFB28E4058 /* notosans_thin.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_thin.ttf; path = ../assets/fonts/notosans_thin.ttf; sourceTree = "<group>"; };
+		BE6AB0360A76462896625BCF /* notosans_extralight.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_extralight.ttf; path = ../assets/fonts/notosans_extralight.ttf; sourceTree = "<group>"; };
+		D2A4868AF9EC455CBBA32DC3 /* notosans_medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_medium.ttf; path = ../assets/fonts/notosans_medium.ttf; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		FAB91F54E1D54223A996A637 /* notosans_semibold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_semibold.ttf; path = ../assets/fonts/notosans_semibold.ttf; sourceTree = "<group>"; };
+		FAB91F54E1D54223A996A637 /* notosans_semibold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notosans_semibold.ttf; path = ../assets/fonts/notosans_semibold.ttf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -83,7 +83,6 @@
 				BD28F314E52149DFB28E4058 /* notosans_thin.ttf */,
 			);
 			name = Resources;
-			path = "";
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
@@ -236,9 +235,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Preelly/Pods-Preelly-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Preelly/Pods-Preelly-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -275,9 +278,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Preelly/Pods-Preelly-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Preelly/Pods-Preelly-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;

@@ -68,9 +68,10 @@ export const ProductImageCarousel: React.FC<Props> = ({ images }) => {
   }
 
   return (
-    <View style={qvStyles.carouselWrap} onLayout={onLayout}>
-      <NativeViewGestureHandler disallowInterruption>
-        <FlatList
+    <View style={qvStyles.carouselOuter}>
+      <View style={qvStyles.carouselWrap} onLayout={onLayout}>
+        <NativeViewGestureHandler disallowInterruption>
+          <FlatList
           ref={listRef}
           data={gallery}
           keyExtractor={(uri, index) => `${uri}-${index}`}
@@ -88,13 +89,14 @@ export const ProductImageCarousel: React.FC<Props> = ({ images }) => {
           getItemLayout={getItemLayout}
           overScrollMode="never"
           renderItem={renderItem}
-        />
-      </NativeViewGestureHandler>
-      <View style={qvStyles.imageBadge} pointerEvents="none">
-        <Icon name="image-outline" size={14} color="#FFFFFF" />
-        <Text style={qvStyles.imageBadgeText}>
-          {activeIndex + 1}/{gallery.length}
-        </Text>
+          />
+        </NativeViewGestureHandler>
+        <View style={qvStyles.imageBadge} pointerEvents="none">
+          <Icon name="image-outline" size={14} color="#FFFFFF" />
+          <Text style={qvStyles.imageBadgeText}>
+            {activeIndex + 1}/{gallery.length}
+          </Text>
+        </View>
       </View>
     </View>
   );

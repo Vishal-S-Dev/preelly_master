@@ -1,10 +1,9 @@
 import { ChatApi, ChatOutgoingFile } from '../api/ChatApi';
-import {
-  ChatDocumentDTO,
-  ChatMessageDTO,
-  ChatUserRefDTO,
-} from '../dto/ChatDTO';
+import { ChatDocumentDTO, ChatMessageDTO, ChatUserRefDTO } from '../dto/ChatDTO';
+import { ProductDTO } from '../dto/ProductDTO';
 import { ChatMessage, ChatParticipant, ChatThread, ChatThreadKind } from '../../domain/models/ChatThread';
+import { mapAttachmentsFromDto } from '../../utils/chatAttachmentUtils';
+import { resolveListingOwnerId } from '../../utils/reelShareUtils';
 import { User } from '../../domain/models/User';
 import { ChatRepository, ChatThreadWithMessages } from '../../domain/repository/ChatRepository';
 import { getDisplayAvatarUri, resolveMediaUrl } from '../../utils/mediaUrl';
@@ -59,6 +58,11 @@ const mapMessage = (message: ChatMessageDTO): ChatMessage => {
       ? message.sender
       : null;
   const callMeta = message.callMeta as ChatMessage['callMeta'];
+  const attachments = mapAttachmentsFromDto(message.attachments);
+  const attachmentRaw = message.attachment as Record<string, unknown> | null | undefined;
+  const attachment = attachmentRaw?.url
+    ? mapAttachmentsFromDto([attachmentRaw])[0] ?? null
+    : null;
   return {
     id: message._id,
     senderId,
@@ -69,6 +73,8 @@ const mapMessage = (message: ChatMessageDTO): ChatMessage => {
     read: Boolean(message.read),
     readAt: message.readAt ?? null,
     callMeta: callMeta ?? null,
+    attachments: attachments.length ? attachments : attachment ? [attachment] : [],
+    attachment,
   };
 };
 
@@ -109,6 +115,10 @@ const mapDocumentToThread = (chat: ChatDocumentDTO, viewerId: string): ChatThrea
   const productTitle =
     typeof chat.product === 'object' && chat.product?.title ? chat.product.title : '';
   const productImageUrl = productImageFromDto(chat.product);
+  const listingOwnerId =
+    typeof chat.product === 'object' && chat.product
+      ? resolveListingOwnerId(chat.product as ProductDTO)
+      : null;
 
   return {
     id,
@@ -117,6 +127,7 @@ const mapDocumentToThread = (chat: ChatDocumentDTO, viewerId: string): ChatThrea
     productId,
     productTitle,
     productImageUrl,
+    listingOwnerId,
     buyer,
     seller,
     supportCustomer: null,

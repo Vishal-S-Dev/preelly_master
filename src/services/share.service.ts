@@ -8,8 +8,8 @@ export interface ShareSendResult {
 }
 
 /**
- * Shares listing content in chat using existing createOrGetChat + sendMessage APIs.
- * Passes recipient as counterparty id (sellerId param) with share metadata in options.
+ * Share a reel/listing to followers via one-on-one chat threads.
+ * Backend: POST /api/chats { productId, sellerId: recipientId } — sellerId is the DM peer, not the listing owner.
  */
 export const shareService = {
   async sendToRecipients(
@@ -19,7 +19,6 @@ export const shareService = {
     mode: 'individual' | 'group' = 'individual',
   ): Promise<ShareSendResult> {
     const productId = payload.productId ?? payload.contentId;
-    const listingSellerId = payload.sellerId ?? productId;
     const text = buildShareMessage(payload, messageNote);
 
     const finalText =
@@ -33,7 +32,7 @@ export const shareService = {
     for (const recipient of recipients) {
       try {
         const { chat } = await ChatApi.createOrGetChat(productId, recipient.id, {
-          sellerId: listingSellerId,
+          shareMode: true,
           shareContentType: payload.contentType,
           shareDeepLink: payload.deepLink,
           shareThumbnail: payload.thumbnail,
@@ -41,16 +40,7 @@ export const shareService = {
         await ChatApi.sendMessage(chat._id, finalText);
         successCount += 1;
       } catch {
-        try {
-          const { chat } = await ChatApi.createOrGetChat(productId, listingSellerId, {
-            recipientId: recipient.id,
-            shareContentType: payload.contentType,
-          });
-          await ChatApi.sendMessage(chat._id, finalText);
-          successCount += 1;
-        } catch {
-          failedCount += 1;
-        }
+        failedCount += 1;
       }
     }
 

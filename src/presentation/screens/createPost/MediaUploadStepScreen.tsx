@@ -29,12 +29,10 @@ export const MediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
       );
       return;
     }
-    //navigation.navigate('CreatePostProcessing');
+    navigation.navigate('CreatePostProcessing');
     //navigation.navigate('CreatePostPlaceAnAd');
     //navigation.replace('CreatePostDetailsStep');
-    navigation.replace('CreatePostProcessing', {
 
-    });
   }, [navigation, video]);
 
   const onUploadCardLayout = useCallback((height: number) => {
@@ -101,7 +99,7 @@ export const MediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
       <CreatePostFooter
         backgroundColor={styles.screen.backgroundColor}
         step={1}
-        total={4}
+        total={5}
         onNext={onNext}
         disabled={!video}
       />

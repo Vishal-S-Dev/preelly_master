@@ -20,7 +20,7 @@ import { AppTheme } from '../../theme/colors';
 import { ChatFilter } from '../../screens/chat/chatTypes';
 import { ChatScreenStyles } from '../../screens/chat/chatScreenStyles';
 
-const FILTERS: ChatFilter[] = ['All', 'Buying', 'Selling', 'Unread', 'Following'];
+const FILTERS: ChatFilter[] = ['All', 'Buying', 'Selling', 'Unread', 'Groups', 'Following'];
 const SEARCH_BAR_HEIGHT = 46;
 const SEARCH_SLOT_GAP = 10;
 

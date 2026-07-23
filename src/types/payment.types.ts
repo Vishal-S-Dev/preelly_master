@@ -66,6 +66,8 @@ export interface PaymentHistoryPage {
 
 export type PaymentWebViewOutcome = 'success' | 'failure' | 'cancel' | 'unknown';
 
+export type PaymentFlowKind = 'cart' | 'post-ad';
+
 export interface PaymentResultParams {
   orderId: string;
   transactionId?: string;
@@ -75,4 +77,7 @@ export interface PaymentResultParams {
   message?: string;
   /** When true, close CreatePost modal after leaving result. */
   closeCreatePost?: boolean;
+  /** Cart checkout vs post-ad package payment — drives retry / home navigation. */
+  paymentFlow?: PaymentFlowKind;
+  productId?: string;
 }

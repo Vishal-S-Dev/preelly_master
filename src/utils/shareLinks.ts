@@ -1,13 +1,24 @@
 import { ShareContentType, SharePayload } from '../types/share.types';
 import { Product } from '../domain/models/Product';
+import {
+  buildReelShareText,
+  buildReelShareUrl,
+  extractReelIdFromMessage,
+  REEL_DEEP_LINK_RE,
+  REEL_URL_RE,
+} from './reelShareUtils';
 
 const WEB_BASE = 'https://preelly.app';
 
 export const buildDeepLink = (contentType: ShareContentType, contentId: string): string =>
   `app://${contentType}/${contentId}`;
 
-export const buildWebShareUrl = (contentType: ShareContentType, contentId: string): string =>
-  `${WEB_BASE}/${contentType}/${contentId}`;
+export const buildWebShareUrl = (contentType: ShareContentType, contentId: string): string => {
+  if (contentType === 'reel') {
+    return buildReelShareUrl(contentId, WEB_BASE);
+  }
+  return `${WEB_BASE}/${contentType}/${contentId}`;
+};
 
 export const productToSharePayload = (product: Product, contentType: ShareContentType = 'reel'): SharePayload => {
   const deepLink = buildDeepLink(contentType, product.id);
@@ -24,6 +35,18 @@ export const productToSharePayload = (product: Product, contentType: ShareConten
 };
 
 export const buildShareMessage = (payload: SharePayload, userMessage?: string): string => {
+  if (payload.contentType === 'reel') {
+    return buildReelShareText(
+      {
+        id: payload.contentId,
+        title: payload.title,
+        price: Number(String(payload.subtitle ?? '').replace(/[^\d.]/g, '')) || undefined,
+        currency: 'AED',
+      },
+      userMessage,
+    );
+  }
+
   const lines = [
     payload.title,
     payload.subtitle,
@@ -35,3 +58,5 @@ export const buildShareMessage = (payload: SharePayload, userMessage?: string): 
   }
   return lines.join('\n');
 };
+
+export { extractReelIdFromMessage, REEL_URL_RE, REEL_DEEP_LINK_RE };

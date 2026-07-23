@@ -308,23 +308,48 @@ export const buildInitiateBody = (
   return body;
 };
 
-/** Build auto-submit HTML form for CCAvenue (no secrets in RN). */
+const escapeHtmlAttr = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+/** Origin-only base URL for HTML WebView (query strings in baseUrl break iOS WKWebView). */
+export const resolveCcavenueHtmlBaseUrl = (paymentUrl: string): string => {
+  // Use about:blank so WKWebView does NOT attempt a network connection for the
+  // initial HTML document. Form action stays an absolute https://secure.ccavenue.ae URL.
+  // A remote baseUrl (e.g. https://secure.ccavenue.ae/) can surface NSURLErrorDomain -1004
+  // before the form even posts.
+  void paymentUrl;
+  return 'about:blank';
+};
+
+/**
+ * Auto-submit HTML form — same approach as web CartCheckoutPage.
+ * This is the production-safe path for React Native WebView (iOS does not
+ * reliably support source={{ method: 'POST', body }}).
+ */
 export const buildCcavenueCheckoutHtml = (
   session: PaymentInitiateResponse,
 ): string => {
-  const action = session.paymentUrl.replace(/"/g, '&quot;');
-  const enc = session.encRequest.replace(/"/g, '&quot;');
-  const access = session.accessCode.replace(/"/g, '&quot;');
+  const action = escapeHtmlAttr(session.paymentUrl);
+  const enc = escapeHtmlAttr(session.encRequest);
+  const access = escapeHtmlAttr(session.accessCode);
   return `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     <title>Secure Payment</title>
     <style>
-      body { font-family: -apple-system, Helvetica, Arial, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; background:#fff; color:#1B2B6B; }
-      .box { text-align:center; padding:24px; }
-      .spinner { width:36px; height:36px; border:3px solid #E5E7EB; border-top-color:#0000FF; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 16px; }
+      html, body { margin:0; padding:0; min-height:100%; background:#fff; color:#1B2B6B;
+        font-family: -apple-system, Helvetica, Arial, sans-serif; }
+      .box { display:flex; flex-direction:column; align-items:center; justify-content:center;
+        min-height:100vh; padding:24px; text-align:center; box-sizing:border-box; }
+      .spinner { width:36px; height:36px; border:3px solid #E5E7EB; border-top-color:#0000FF;
+        border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 16px; }
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
   </head>
@@ -334,12 +359,67 @@ export const buildCcavenueCheckoutHtml = (
       <p>Redirecting to secure payment…</p>
     </div>
     <form id="nonseamless" method="post" action="${action}">
-      <input type="hidden" id="encRequest" name="encRequest" value="${enc}" />
-      <input type="hidden" id="access_code" name="access_code" value="${access}" />
+      <input type="hidden" name="encRequest" id="encRequest" value="${enc}" />
+      <input type="hidden" name="access_code" id="access_code" value="${access}" />
     </form>
-    <script>document.getElementById('nonseamless').submit();</script>
+    <script>
+      (function () {
+        function submitForm() {
+          var form = document.getElementById('nonseamless');
+          if (form) { form.submit(); }
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', submitForm);
+        } else {
+          submitForm();
+        }
+        setTimeout(submitForm, 250);
+      })();
+    </script>
   </body>
 </html>`;
+};
+
+/** Native POST source — Android fallback only; iOS WKWebView often ignores body. */
+export const buildCcavenueWebViewSource = (session: PaymentInitiateResponse) => {
+  const body = [
+    `encRequest=${encodeURIComponent(session.encRequest)}`,
+    `access_code=${encodeURIComponent(session.accessCode)}`,
+  ].join('&');
+
+  return {
+    uri: session.paymentUrl,
+    method: 'POST' as const,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body,
+  };
+};
+
+const IGNORED_WEBVIEW_URL_PREFIXES = ['about:', 'data:', 'blob:'];
+
+export const isCcavenueGatewayUrl = (url: string): boolean => {
+  const lower = url.toLowerCase();
+  return lower.includes('ccavenue') || lower.includes('secure.ccavenue');
+};
+
+/** True only for post-payment callback / result URLs (not the gateway entry page). */
+export const isPaymentCompletionUrl = (url: string): boolean => {
+  const lower = url.toLowerCase();
+  if (IGNORED_WEBVIEW_URL_PREFIXES.some(prefix => lower.startsWith(prefix))) {
+    return false;
+  }
+  return (
+    lower.includes('/api/payment/ccavenue/callback') ||
+    lower.includes('/payment/ccavenue/callback') ||
+    lower.includes('/cart/payment/success') ||
+    lower.includes('/cart/payment/failure') ||
+    lower.includes('/post-ad/payment/success') ||
+    lower.includes('/post-ad/payment/failure') ||
+    lower.includes('encresp=') ||
+    lower.includes('enc_resp=')
+  );
 };
 
 export const getPaymentErrorMessage = (error: unknown): string => {

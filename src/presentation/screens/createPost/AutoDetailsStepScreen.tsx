@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { VIDEO_CONSTRAINTS } from '../../../constants/createPostConstants';
 import { useCreatePostStore } from '../../../store/createPostStore';
 import { CreatePostImageAsset, CreatePostStackParamList } from '../../../types/createPost.types';
 import { AppInput } from '../../components/createPost/AppInput';
+import { CreatePostStepShell } from '../../components/createPost/CreatePostStepShell';
 import { CreatePostFooter, CreatePostHeader } from '../../components/createPost/StepIndicator';
 import { PhotoGrid } from '../../components/createPost/PhotoGrid';
 import { VideoFramePickerModal } from '../../components/createPost/VideoFramePickerModal';
@@ -90,13 +91,24 @@ export const AutoDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
   }, [description, displayImages.length, navigation, title]);
 
   return (
-    <View style={styles.screen}>
-      <CreatePostHeader
-        title={subcategoryName}
-        backgroundColor={styles.screen.backgroundColor}
-        onBack={() => navigation.goBack()}
-      />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
+    <>
+      <CreatePostStepShell
+        header={
+          <CreatePostHeader
+            title={subcategoryName}
+            backgroundColor={styles.screen.backgroundColor}
+            onBack={() => navigation.goBack()}
+          />
+        }
+        footer={
+          <CreatePostFooter
+            backgroundColor={styles.screen.backgroundColor}
+            step={2}
+            onNext={onNext}
+            disabled={!title.trim() || !description.trim()}
+          />
+        }
+      >
         {!transcript ? (
           <View style={styles.helperBanner}>
             <Text style={styles.helperBannerText}>
@@ -120,7 +132,10 @@ export const AutoDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
           placeholder="Description"
         />
         <Text style={styles.sectionTitle}>
-          Photos <Text style={styles.photoLimitText}>(Max {VIDEO_CONSTRAINTS.maxImages} images)</Text>
+          Photos{' '}
+          <Text style={styles.photoLimitText}>
+            (Max {VIDEO_CONSTRAINTS.maxImages} images)
+          </Text>
         </Text>
 
         {displayImages.length > 0 ? (
@@ -162,19 +177,14 @@ export const AutoDetailsStepScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.secondaryBtnText}>Add Photos</Text>
           </Pressable>
         </View>
-      </ScrollView>
-      <CreatePostFooter
-        backgroundColor={styles.screen.backgroundColor}
-        step={2}
-        onNext={onNext}
-        disabled={!title.trim() || !description.trim()}
-      />
+      </CreatePostStepShell>
+
       <VideoFramePickerModal
         visible={framePickerVisible}
         video={video ?? null}
         replaceImageId={grabReplaceImageId}
         onClose={closeScreenGrab}
       />
-    </View>
+    </>
   );
 };

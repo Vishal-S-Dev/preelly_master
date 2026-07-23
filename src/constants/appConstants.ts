@@ -38,8 +38,13 @@ export const API_ENDPOINTS = {
   PACKAGES: '/api/v1/web/packages',
   STORAGE_FACILITIES: '/api/v1/web/storage-facilities',
   PAYMENT_INITIATE: '/api/payment/initiate',
+  PAYMENT_CHECKOUT_INITIATE: '/api/payment/checkout/initiate',
   PAYMENT_CALLBACK: '/api/payment/ccavenue/callback',
   PAYMENT_TRANSACTIONS: '/api/payment/transaction',
+  CART: '/api/cart',
+  CART_ADD_FROM_OFFER: '/api/cart/from-offer',
+  CHECKOUT_SERVICES: '/api/v1/web/checkout-services',
+  BUYER_COUPON_VALIDATE: '/api/buyer-coupon/validate',
 } as const;
 
 export const PAGINATION = {

@@ -77,9 +77,9 @@ export const getCreatePostStyles = (theme: AppTheme) =>
       ...Platform.select({
         ios: {
           shadowColor: '#0B1B4D',
-          shadowOpacity: 0.08,
+          shadowOpacity: 0.09,
           shadowRadius: 12,
-          shadowOffset: { width: 0, height: -4 },
+          shadowOffset: { width: 2, height: -4 },
         },
         android: { elevation: 8 },
       }),
@@ -154,11 +154,11 @@ export const getCreatePostStyles = (theme: AppTheme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingVertical: 16,
+      paddingVertical: 20,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.subText + '33',
     },
-    listItemText: { fontSize: 16, fontWeight: '600', color: theme.text },
+    listItemText: { fontSize: 17, fontWeight: '400', color: theme.text },
     orText: {
       textAlign: 'center',
       color: theme.subText,

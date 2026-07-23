@@ -7,8 +7,9 @@ export const CHAT_ACCENT = {
   notificationRed: '#EF4444',
 } as const;
 
-const PRODUCT_CIRCLE = 64;
-const OVERLAP_AVATAR = 36;
+const AVATAR_SIZE = 56;
+const PRODUCT_CIRCLE = AVATAR_SIZE;
+const OVERLAP_AVATAR = 32;
 
 export const getChatScreenStyles = (theme: AppTheme) => {
   const divider = theme.subText + '33';
@@ -217,11 +218,12 @@ export const getChatScreenStyles = (theme: AppTheme) => {
     },
     productVisual: {
       position: 'relative',
-      width: PRODUCT_CIRCLE + 10,
-      height: PRODUCT_CIRCLE + 10,
-      marginRight: 14,
+      width: PRODUCT_CIRCLE,
+      height: PRODUCT_CIRCLE,
+      marginRight: 12,
       justifyContent: 'center',
       alignItems: 'center',
+      overflow: 'visible',
     },
     productCircle: {
       width: PRODUCT_CIRCLE,
@@ -302,17 +304,17 @@ export const getChatScreenStyles = (theme: AppTheme) => {
       color: theme.text,
     },
     directAvatarWrap: {
-      width: PRODUCT_CIRCLE,
-      height: PRODUCT_CIRCLE,
+      width: AVATAR_SIZE,
+      height: AVATAR_SIZE,
       marginRight: 12,
       position: 'relative',
       justifyContent: 'center',
       alignItems: 'center',
     },
     directAvatar: {
-      width: PRODUCT_CIRCLE,
-      height: PRODUCT_CIRCLE,
-      borderRadius: PRODUCT_CIRCLE / 2,
+      width: AVATAR_SIZE,
+      height: AVATAR_SIZE,
+      borderRadius: AVATAR_SIZE / 2,
       backgroundColor: placeholder,
     },
     directOnlineDot: {

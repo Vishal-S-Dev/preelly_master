@@ -17,6 +17,7 @@ import { setThemeMode } from './presentation/redux/slices/themeSlice';
 import { CallProvider } from './presentation/call/CallContext';
 import { ShareSheetProvider } from './presentation/context/ShareSheetContext';
 import { ensureSocketReadyForUser } from './data/network/chatSocket';
+import { attachPresenceListeners } from './data/network/presenceSocket';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +41,7 @@ const Bootstrap: React.FC = () => {
       const { auth } = store.getState();
       if (auth.isAuthenticated && !auth.isGuest && auth.user?.id) {
         await ensureSocketReadyForUser(auth.user.id);
+        attachPresenceListeners(store.dispatch).catch(() => undefined);
       }
       setReady(true);
     };

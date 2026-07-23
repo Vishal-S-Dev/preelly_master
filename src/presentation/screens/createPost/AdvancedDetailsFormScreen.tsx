@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FormField } from '../../../types/dynamicForm.types';
 import { CreatePostStackParamList } from '../../../types/createPost.types';
@@ -10,6 +10,7 @@ import { FormRadioGroup } from '../../components/forms/FormRadioGroup';
 import { FormTextInput } from '../../components/forms/FormTextInput';
 import { formStyles } from '../../components/forms/formStyles';
 import { LocationMapPicker } from '../../components/createPost/LocationMapPicker';
+import { CreatePostStepShell } from '../../components/createPost/CreatePostStepShell';
 import { CreatePostFooter, CreatePostHeader } from '../../components/createPost/StepIndicator';
 import { useCreatePostStyles } from '../../hooks/useCreatePostStyles';
 import { useDynamicFormStep } from '../../hooks/useDynamicFormStep';
@@ -61,12 +62,32 @@ export const AdvancedDetailsFormScreen: React.FC<Props> = ({ navigation }) => {
             />
           );
         case 'Text':
-          return <FormTextInput key={field.id} field={field} value={value} onChange={handleFieldChange} />;
+          return (
+            <FormTextInput
+              key={field.id}
+              field={field}
+              value={value}
+              onChange={handleFieldChange}
+            />
+          );
         case 'Radio':
-          return <FormRadioGroup key={field.id} field={field} value={value} onChange={handleFieldChange} />;
+          return (
+            <FormRadioGroup
+              key={field.id}
+              field={field}
+              value={value}
+              onChange={handleFieldChange}
+            />
+          );
         case 'Checkbox':
           return (
-            <FormCheckboxGroup key={field.id} field={field} value={value} onChange={handleFieldChange} maxVisible={5} />
+            <FormCheckboxGroup
+              key={field.id}
+              field={field}
+              value={value}
+              onChange={handleFieldChange}
+              maxVisible={5}
+            />
           );
         default:
           return null;
@@ -76,55 +97,56 @@ export const AdvancedDetailsFormScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.screen}>
-      <CreatePostHeader
-        title={categoryName}
-        backgroundColor={styles.screen.backgroundColor}
-        onBack={() => navigation.goBack()}
-      />
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={[styles.content, { paddingBottom: 24 }]}
-      >
-        <Text style={styles.title}>You're almost done!</Text>
-        <Text style={styles.subtitle}>Add detailed information, upload clear photos, and
-          set a competitive price to attract more buyers.
-        </Text>
-        {isLoading || (isFetching && !data) ? (
-          <View>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <View key={i} style={formStyles.skeleton} />
-            ))}
-          </View>
-        ) : null}
-        {isError ? (
-          <View style={styles.centerState}>
-            <Text style={styles.stateText}>
-              {error instanceof Error ? error.message : 'Retry'}
-            </Text>
-            <Pressable style={styles.retryButton} onPress={() => refetch()}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </Pressable>
-          </View>
-        ) : null}
-        {!isLoading && !isError ? stepFields.map(renderField) : null}
-        <LocationMapPicker
-          locateYourItem={locateYourItem}
-          address={locationAddress}
-          latitude={locationLatitude}
-          longitude={locationLongitude}
-          onLocateYourItemChange={setLocateYourItem}
-          onAddressChange={setLocationAddress}
-          onCoordinateChange={setLocationCoordinates}
-          styles={styles}
+    <CreatePostStepShell
+      header={
+        <CreatePostHeader
+          title={categoryName}
+          backgroundColor={styles.screen.backgroundColor}
+          onBack={() => navigation.goBack()}
         />
-      </ScrollView>
-      <CreatePostFooter
-        backgroundColor={styles.screen.backgroundColor}
-        step={4}
-        onNext={onNext}
-        disabled={!requiredFilled || isLoading || isError}
+      }
+      footer={
+        <CreatePostFooter
+          backgroundColor={styles.screen.backgroundColor}
+          step={4}
+          onNext={onNext}
+          disabled={!requiredFilled || isLoading || isError}
+        />
+      }
+    >
+      <Text style={styles.title}>You're almost done!</Text>
+      <Text style={styles.subtitle}>
+        Add detailed information, upload clear photos, and set a competitive
+        price to attract more buyers.
+      </Text>
+      {isLoading || (isFetching && !data) ? (
+        <View>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <View key={i} style={formStyles.skeleton} />
+          ))}
+        </View>
+      ) : null}
+      {isError ? (
+        <View style={styles.centerState}>
+          <Text style={styles.stateText}>
+            {error instanceof Error ? error.message : 'Retry'}
+          </Text>
+          <Pressable style={styles.retryButton} onPress={() => refetch()}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {!isLoading && !isError ? stepFields.map(renderField) : null}
+      <LocationMapPicker
+        locateYourItem={locateYourItem}
+        address={locationAddress}
+        latitude={locationLatitude}
+        longitude={locationLongitude}
+        onLocateYourItemChange={setLocateYourItem}
+        onAddressChange={setLocationAddress}
+        onCoordinateChange={setLocationCoordinates}
+        styles={styles}
       />
-    </View>
+    </CreatePostStepShell>
   );
 };

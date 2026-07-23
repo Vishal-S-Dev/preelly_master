@@ -26,12 +26,22 @@ export interface ChatThread {
   unreadForViewer: number;
   /** Product chat: viewer is buyer or seller. Support: treated as `support` for clarity. */
   viewerRole: 'buyer' | 'seller' | 'support';
+  /** Listing owner id (resolved for inbox row classification). */
+  listingOwnerId?: string | null;
 }
 
 export interface ChatCallMeta {
   callType: 'video' | 'audio';
   status: 'completed' | 'missed' | 'rejected' | 'cancelled';
   duration?: number;
+}
+
+export interface ChatMessageAttachment {
+  url: string;
+  mimeType?: string;
+  name?: string;
+  size?: number;
+  local?: boolean;
 }
 
 export interface ChatMessage {
@@ -44,6 +54,8 @@ export interface ChatMessage {
   read: boolean;
   readAt: string | null;
   callMeta?: ChatCallMeta | null;
+  attachments?: ChatMessageAttachment[];
+  attachment?: ChatMessageAttachment | null;
 }
 export interface Product {
   id: string;

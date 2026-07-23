@@ -42,15 +42,20 @@ export const qvStyles = StyleSheet.create({
   scrollContent: {
     paddingBottom: hp('12%'),
   },
-  carouselWrap: {
-    width: '100%',
+  carouselOuter: {
+    paddingHorizontal: wp('4%'),
     marginBottom: hp('1.6%'),
   },
+  carouselWrap: {
+    width: '100%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
+  },
   carouselImage: {
-    width: wp('100%'),
     height: hp('24%'),
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   imageBadge: {
     position: 'absolute',

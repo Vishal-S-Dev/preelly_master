@@ -1,7 +1,9 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ProductApi } from '../../../data/api/ProductApi';
 import { ChatRepositoryImpl } from '../../../data/repository/ChatRepositoryImpl';
 import { ChatMessage, ChatThread } from '../../../domain/models/ChatThread';
 import { User } from '../../../domain/models/User';
+import { resolveListingOwnerId } from '../../../utils/reelShareUtils';
 import {
   CreateOrGetChatUseCase,
   GetChatByIdUseCase,
@@ -18,6 +20,42 @@ const markReadUseCase = new MarkChatReadUseCase(chatRepo);
 const getChatByIdUseCase = new GetChatByIdUseCase(chatRepo);
 const createOrGetChatUseCase = new CreateOrGetChatUseCase(chatRepo);
 const sendChatMessageUseCase = new SendChatMessageUseCase(chatRepo);
+
+async function enrichThreadsWithListingOwners(threads: ChatThread[]): Promise<ChatThread[]> {
+  const missingIds = [
+    ...new Set(
+      threads
+        .filter(t => t.kind === 'product' && t.productId && !t.listingOwnerId)
+        .map(t => t.productId as string),
+    ),
+  ];
+  if (!missingIds.length) {
+    return threads;
+  }
+
+  const ownerByProductId = new Map<string, string>();
+  await Promise.all(
+    missingIds.map(async productId => {
+      try {
+        const product = await ProductApi.getProductById(productId);
+        const ownerId = resolveListingOwnerId(product);
+        if (ownerId) {
+          ownerByProductId.set(productId, ownerId);
+        }
+      } catch {
+        // Keep inbox usable even if a product lookup fails.
+      }
+    }),
+  );
+
+  return threads.map(thread => {
+    if (thread.kind !== 'product' || !thread.productId || thread.listingOwnerId) {
+      return thread;
+    }
+    const listingOwnerId = ownerByProductId.get(thread.productId) ?? null;
+    return listingOwnerId ? { ...thread, listingOwnerId } : thread;
+  });
+}
 
 type AuthPick = {
   auth: {
@@ -61,7 +99,8 @@ export const fetchChats = createAsyncThunk(
       return { threads: [] as ChatThread[], totalUnread: 0, refresh };
     }
     try {
-      const threads = await loadChatsUseCase.execute(auth.user.id);
+      const loaded = await loadChatsUseCase.execute(auth.user.id);
+      const threads = await enrichThreadsWithListingOwners(loaded);
       let totalUnread = 0;
       try {
         totalUnread = await unreadUseCase.execute();
@@ -116,7 +155,15 @@ export const fetchChatThread = createAsyncThunk(
 export const sendChatMessage = createAsyncThunk(
   'chat/sendChatMessage',
   async (
-    { threadId, text }: { threadId: string; text: string },
+    {
+      threadId,
+      text,
+      files,
+    }: {
+      threadId: string;
+      text: string;
+      files?: { uri: string; name: string; type: string }[];
+    },
     { getState, rejectWithValue },
   ) => {
     const { auth, chat } = getState() as AuthPick & { chat: ChatState };
@@ -134,6 +181,7 @@ export const sendChatMessage = createAsyncThunk(
         text,
         auth.user,
         senderRole,
+        files?.length ? files : null,
       );
       return message;
     } catch (e) {

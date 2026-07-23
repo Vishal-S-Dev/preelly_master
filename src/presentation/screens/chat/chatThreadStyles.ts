@@ -24,4 +24,7 @@ export const QUICK_REPLIES = [
   'when can i call you?',
   'what is your location',
   'what is the final price?',
+  'Make an offer',
 ] as const;
+
+export const REEL_DM_QUICK_REPLIES = ['Hello', 'Thanks!', '🔥'] as const;

@@ -12,7 +12,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { MapController, MapCoordinate, MapRegion } from '../../../types/mapRegion.types';
 import { buildStaticMapPreviewUrl } from '../../../utils/staticMapUrl';
-import { getMapsNativeModule, isMapsNativeModuleAvailable } from '../../../utils/mapsNativeModule';
+import { getMapsNativeModule } from '../../../utils/mapsNativeModule';
 import { AppTheme } from '../../theme/colors';
 import { getLocationMapPickerStyles } from './locationMapPickerStyles';
 
@@ -24,6 +24,7 @@ interface Props {
   isBusy: boolean;
   mapsLinked: boolean;
   mapHeight?: number;
+  onMapPress?: () => void;
   onMapControllerReady: (controller: MapController | null) => void;
   onRegionChangeComplete: (region: MapRegion) => void;
   onMarkerDragEnd: (coordinate: MapCoordinate) => void;
@@ -41,15 +42,14 @@ export const LocationMapInteractivePanel = memo<Props>(
     isBusy,
     mapsLinked,
     mapHeight,
+    onMapPress,
     onMapControllerReady,
     onRegionChangeComplete,
     onMarkerDragEnd,
     onCurrentLocationPress,
   }) => {
     const mapStyles = useMemo(() => getLocationMapPickerStyles(theme), [theme]);
-    const nativeMapRef = useRef<{ animateToRegion: (next: MapRegion, duration?: number) => void } | null>(
-      null,
-    );
+    const nativeMapRef = useRef<any>(null);
     const mapsModule = mapsLinked ? getMapsNativeModule() : null;
 
     useEffect(() => {
@@ -103,6 +103,7 @@ export const LocationMapInteractivePanel = memo<Props>(
           style={mapStyles.map}
           initialRegion={region}
           onRegionChangeComplete={onRegionChangeComplete}
+          onPress={onMapPress}
           showsUserLocation={false}
           showsMyLocationButton={false}
           showsCompass={false}

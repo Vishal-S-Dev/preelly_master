@@ -119,7 +119,7 @@ export const ProductStatsRow: React.FC<Props> = ({
         }}
       >
         {isSaved ? (
-          <BookmarkFillIcon width={20} height={20} />
+          <BookmarkFillIcon width={40} height={40} />
         ) : (
           <BookmarkIcon width={20} height={20} />
         )}
