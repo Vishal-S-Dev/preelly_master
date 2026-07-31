@@ -23,6 +23,7 @@ import {
 } from '../../../constants/cartCheckoutConstants';
 import { PickDropInfo } from '../../../types/cartCheckout.types';
 import { formatCartDate } from '../../../utils/cartCheckoutUtils';
+import { resolveGoogleMapsProvider } from '../../../utils/mapProvider';
 import { getMapsNativeModule } from '../../../utils/mapsNativeModule';
 import { CART_COLORS } from '../../screens/cart/cartCheckoutStyles';
 
@@ -110,6 +111,7 @@ export const PickDropModal: React.FC<Props> = ({
 
   const MapViewComponent = mapsModule?.default;
   const MarkerComponent = mapsModule?.Marker;
+  const mapProvider = resolveGoogleMapsProvider();
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -183,6 +185,7 @@ export const PickDropModal: React.FC<Props> = ({
               {MapViewComponent && MarkerComponent ? (
                 <MapViewComponent
                   style={styles.map}
+                  provider={mapProvider}
                   initialRegion={{
                     latitude: marker.latitude,
                     longitude: marker.longitude,
@@ -190,6 +193,12 @@ export const PickDropModal: React.FC<Props> = ({
                     longitudeDelta: 0.02,
                   }}
                   onPress={event => setMarker(event.nativeEvent.coordinate)}
+                  showsUserLocation={false}
+                  showsMyLocationButton={false}
+                  showsCompass={false}
+                  toolbarEnabled={false}
+                  loadingEnabled
+                  moveOnMarkerPress={false}
                 >
                   <MarkerComponent
                     coordinate={marker}

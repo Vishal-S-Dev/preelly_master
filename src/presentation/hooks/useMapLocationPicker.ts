@@ -11,6 +11,7 @@ import {
   requestLocationPermission,
   showLocationPermissionAlert,
 } from '../../utils/locationPermissions';
+import { PlaceSelection } from '../../utils/placesSearch';
 import { reverseGeocode } from '../../utils/reverseGeocode';
 import { isMapsNativeModuleAvailable } from '../../utils/mapsNativeModule';
 
@@ -35,6 +36,7 @@ interface UseMapLocationPickerResult {
   handleMarkerDragEnd: (coordinate: MapCoordinate) => void;
   handleCurrentLocationPress: () => void;
   handleRegionChangeComplete: (nextRegion: MapRegion) => void;
+  selectPlace: (place: PlaceSelection) => void;
 }
 
 const GEOCODE_DEBOUNCE_MS = 450;
@@ -225,6 +227,32 @@ export const useMapLocationPicker = ({
     setRegion(nextRegion);
   }, []);
 
+  const selectPlace = useCallback(
+    (place: PlaceSelection) => {
+      if (geocodeTimeoutRef.current) {
+        clearTimeout(geocodeTimeoutRef.current);
+        geocodeTimeoutRef.current = null;
+      }
+
+      updateCoordinates(place.latitude, place.longitude, {
+        animate: true,
+        geocode: false,
+      });
+
+      onLocateYourItemChange(place.locateLabel);
+      onAddressChange(place.buildingStreet);
+      onDetailLocationChange?.(place.formattedAddress);
+      setIsGeocoding(false);
+      setStatusMessage(null);
+    },
+    [
+      onAddressChange,
+      onDetailLocationChange,
+      onLocateYourItemChange,
+      updateCoordinates,
+    ],
+  );
+
   return {
     region,
     markerCoordinate,
@@ -237,5 +265,6 @@ export const useMapLocationPicker = ({
     handleMarkerDragEnd,
     handleCurrentLocationPress,
     handleRegionChangeComplete,
+    selectPlace,
   };
 };

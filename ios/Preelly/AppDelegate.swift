@@ -2,9 +2,6 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
-// NOTE: GoogleMaps is intentionally not imported/initialized here.
-// Your current iOS setup does not include the Google Maps iOS pods.
-// This keeps the app stable using the default map provider.
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -17,9 +14,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    // Initialize Google Maps SDK before any MapView mounts (required for provider=google on iOS).
+    PreellyConfigureGoogleMaps()
+
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
-    delegate.dependencyProvider = RCTAppDependencyProvider()
+    // Registers RNMaps* Fabric components (autolinking disabled for Google subspec).
+    delegate.dependencyProvider = PreellyCreateDependencyProvider() as! any RCTDependencyProvider
 
     reactNativeDelegate = delegate
     reactNativeFactory = factory

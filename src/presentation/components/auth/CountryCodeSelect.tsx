@@ -24,10 +24,19 @@ interface Props {
   style?: StyleProp<ViewStyle>;
   flagStyle?: StyleProp<TextStyle>;
   codeStyle?: StyleProp<TextStyle>;
+  /** Flag-only trigger for compact login input (matches design). */
+  compact?: boolean;
 }
 
 export const CountryCodeSelect = memo<Props>(
-  ({ value = DEFAULT_COUNTRY_DIAL_CODE, onChange, style, flagStyle, codeStyle }) => {
+  ({
+    value = DEFAULT_COUNTRY_DIAL_CODE,
+    onChange,
+    style,
+    flagStyle,
+    codeStyle,
+    compact = false,
+  }) => {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
 
@@ -58,8 +67,17 @@ export const CountryCodeSelect = memo<Props>(
           accessibilityRole="button"
           accessibilityLabel={`Country code ${value.dialCode}`}>
           <Text style={flagStyle}>{value.flag}</Text>
-          <Text style={codeStyle}>{value.dialCode}</Text>
-          <Icon name="chevron-down" size={18} color={AUTH_COLORS.icon} style={{ marginLeft: 4 }} />
+          {!compact ? (
+            <>
+              <Text style={codeStyle}>{value.dialCode}</Text>
+              <Icon
+                name="chevron-down"
+                size={18}
+                color={AUTH_COLORS.icon}
+                style={{ marginLeft: 4 }}
+              />
+            </>
+          ) : null}
         </Pressable>
 
         <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>

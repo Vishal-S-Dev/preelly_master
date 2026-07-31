@@ -103,7 +103,7 @@ export const ChatSearchToolbar = memo<Props>(
         {searchActive ? (
           <Animated.View style={[styles.searchSlot, searchSlotStyle]} pointerEvents="auto">
             <View style={styles.searchBox}>
-              <Icon name="magnify" size={20} color={theme.subText} />
+              <Icon name="magnify" size={20} color="#9CA3AF" />
               <TextInput
                 ref={inputRef}
                 value={searchQuery}
@@ -158,7 +158,7 @@ export const ChatSearchToolbar = memo<Props>(
               onPress={openSearch}
               accessibilityRole="button"
               accessibilityLabel="Search messages">
-              <Icon name="magnify" size={22} color={theme.text} />
+              <Icon name="magnify" size={22} color="#9CA3AF" />
             </Pressable>
           </Animated.View>
         </View>

@@ -1,42 +1,30 @@
 import { STORAGE_KEYS } from '../../constants/appConstants';
 import { AuthSession, LoginSession, SendOtpResult } from '../../domain/models/AuthModel';
 import { AuthRepository } from '../../domain/repository/AuthRepository';
-import { LoginResponseDTO, SendOtpRequestDTO } from '../dto/authDto';
+import {
+  SendOtpRequestDTO,
+  VerifyOtpRequestDto,
+} from '../dto/authDto';
 import { storage } from '../../utils/storage';
 import { authApi } from '../api/authApi';
+import {
+  AuthVerifyOtpResult,
+  mapLoginResponseToSession,
+  normalizeLoginResponse,
+} from '../../utils/authResponseUtils';
 
 export class AuthRepositoryImpl implements AuthRepository {
-  private mapLoginResponseToSession(response: LoginResponseDTO): LoginSession {
-    return {
-      accessToken: response.token,
-      refreshToken: response.token,
-      isGuest: false,
-      user: {
-        id: response.user._id,
-        name: response.user.name,
-        email: response.user.email,
-        phone: response.user.phone ?? '',
-        avatar: response.user.avatar ?? undefined,
-        role: response.user.role,
-        isVerified: response.user.isVerified,
-        isProfileComplete: response.user.isProfileComplete,
-        bio: '',
-      },
-    };
-  }
-
   async login(email: string, password: string): Promise<LoginSession> {
-    const response = await authApi.login({ email, password });
-    return this.mapLoginResponseToSession(response);
+    const response = normalizeLoginResponse(await authApi.login({ email, password }));
+    return mapLoginResponseToSession(response);
   }
 
   async sendOtp(request: SendOtpRequestDTO): Promise<SendOtpResult> {
     return authApi.sendOtp(request);
   }
 
-  async verifyOtp(email: string, otp: string): Promise<LoginSession> {
-    const response = await authApi.verifyOtp({ email, otp });
-    return this.mapLoginResponseToSession(response);
+  async verifyOtp(request: VerifyOtpRequestDto): Promise<AuthVerifyOtpResult> {
+    return authApi.verifyOtp(request);
   }
 
   async refreshAccessToken(refreshToken: string): Promise<AuthSession> {

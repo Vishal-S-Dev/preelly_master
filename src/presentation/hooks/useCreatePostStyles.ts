@@ -145,8 +145,8 @@ export const getCreatePostStyles = (theme: AppTheme) =>
     },
     categoryCardSelected: { borderColor: CREATE_POST_PRIMARY },
     categoryTitle: {
-      fontSize: 15,
-      fontWeight: '600',
+      fontSize: 14,
+      fontWeight: '500',
       color: theme.text,
       marginTop: 12,
     },
@@ -159,6 +159,28 @@ export const getCreatePostStyles = (theme: AppTheme) =>
       borderBottomColor: theme.subText + '33',
     },
     listItemText: { fontSize: 17, fontWeight: '400', color: theme.text },
+    subcategoryListContent: {
+      paddingHorizontal: 20,
+      paddingTop: 4,
+      paddingBottom: 32,
+    },
+    subcategoryListContentEmpty: {
+      flexGrow: 1,
+    },
+    subcategoryRow: {
+      paddingVertical: 18,
+      justifyContent: 'center',
+    },
+    subcategoryRowText: {
+      fontSize: 17,
+      fontWeight: '400',
+      color: theme.text,
+      letterSpacing: -0.2,
+    },
+    subcategorySeparator: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: '#E5E7EB',
+    },
     orText: {
       textAlign: 'center',
       color: theme.subText,

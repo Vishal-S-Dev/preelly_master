@@ -110,7 +110,10 @@ export interface CreatePostDraft {
 
 export type CreatePostStackParamList = {
   CreatePostCategory: undefined;
-  CreatePostSubcategory: undefined;
+  CreatePostSubcategory: {
+    parentId: string;
+    title: string;
+  };
   CreatePostMediaStep: undefined;
   CreatePostProcessing: undefined;
   CreatePostDetailsStep: undefined;

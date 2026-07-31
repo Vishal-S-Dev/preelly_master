@@ -4,6 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { LoginScreen } from '../screens/auth/LoginScreen';
+import { AuthLinkEmailScreen } from '../screens/auth/AuthLinkEmailScreen';
+import { AuthLinkPhoneScreen } from '../screens/auth/AuthLinkPhoneScreen';
 import { LoginWithPasswordScreen } from '../screens/auth/LoginWithPasswordScreen';
 import { VerifyOtpScreen } from '../screens/auth/VerifyOtpScreen';
 import { HomeScreen } from '../screens/main/HomeScreen';
@@ -23,12 +25,12 @@ import { CreatePostNavigator } from './CreatePostNavigator';
 import { ProfileEditScreen } from '../screens/profile/edit/ProfileEditScreen';
 import { GetVerifiedScreen } from '../screens/profile/getVerified/GetVerifiedScreen';
 import { OnboardingScreen } from '../screens/onboarding/OnboardingScreen';
+import { navigationRef } from './navigationRef';
 import { RootStackParamList } from './types';
 import { useAppSelector } from '../hooks/useRedux';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { Image, Platform } from 'react-native';
 import { getDisplayAvatarUri } from '../../utils/mediaUrl';
-import { SignInScreen } from '../screens/auth/SignInScreen.tsx';
 import { UserProfileScreen } from '../screens/profile/UserProfileScreen.tsx';
 import { UserFeedScreen } from '../screens/profile/UserFeedScreen';
 import { SearchScreen } from '../screens/search/SearchScreen';
@@ -127,22 +129,26 @@ const MainTabs: React.FC = () => {
 };
 
 export const AppNavigator: React.FC = () => {
-  const { isAuthenticated, user, isGuest } = useAppSelector(state => state.auth);
+  const { isAuthenticated, user, isGuest, authJourney } = useAppSelector(state => state.auth);
   const { hasCompletedOnboarding } = useAppSelector(state => state.app);
   const theme = useAppTheme();
   const requiresProfileCompletion =
     isAuthenticated && !isGuest && user?.isProfileComplete === false;
 
-  const stackInitialRoute = !hasCompletedOnboarding
-    ? 'Onboarding'
-    : isAuthenticated
-      ? requiresProfileCompletion
-        ? 'ProfileEdit'
-        : 'MainTabs'
-      : 'Login';
+  /** Stay on auth stack until OTP journey completes (link email/phone). */
+  const showAuthStack = !isAuthenticated || authJourney !== null;
+
+  const stackInitialRoute = showAuthStack
+    ? 'Login'
+    : requiresProfileCompletion
+      ? 'ProfileEdit'
+      : 'MainTabs';
+
+  const navigatorKey = showAuthStack ? 'auth-flow' : 'main-app';
 
   return (
     <NavigationContainer
+      ref={navigationRef}
       theme={{
         dark: false,
         colors: {
@@ -162,12 +168,24 @@ export const AppNavigator: React.FC = () => {
       }}
     >
       <Stack.Navigator
-        key={stackInitialRoute}
+        key={navigatorKey}
         initialRouteName={stackInitialRoute}
         screenOptions={{ headerShown: false }}
       >
-        {!hasCompletedOnboarding ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        {showAuthStack ? (
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
+            <Stack.Screen name="AuthLinkEmail" component={AuthLinkEmailScreen} />
+            <Stack.Screen name="AuthLinkPhone" component={AuthLinkPhoneScreen} />
+            <Stack.Screen
+              name="LoginWithPassword"
+              component={LoginWithPasswordScreen}
+            />
+            {!hasCompletedOnboarding ? (
+              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            ) : null}
+          </>
         ) : isAuthenticated ? (
           <>
             <Stack.Screen name="MainTabs" component={MainTabs} />
@@ -315,17 +333,7 @@ export const AppNavigator: React.FC = () => {
               options={{ animation: 'slide_from_right' }}
             />
           </>
-        ) : (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="SignIn" component={SignInScreen} />
-            <Stack.Screen
-              name="LoginWithPassword"
-              component={LoginWithPasswordScreen}
-            />
-            <Stack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
-          </>
-        )}
+        ) : null}
       </Stack.Navigator>
     </NavigationContainer>
   );

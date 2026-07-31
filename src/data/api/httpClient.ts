@@ -35,12 +35,32 @@ const maskAuth = (value: unknown) => {
   return `${value.slice(0, 10)}...${value.slice(-6)}`;
 };
 
+const AUTH_PUBLIC_PATHS = [
+  API_ENDPOINTS.SEND_OTP,
+  API_ENDPOINTS.VERIFY_OTP,
+  API_ENDPOINTS.LOGIN,
+] as const;
+
+function isPublicAuthRequest(url?: string): boolean {
+  if (!url) {
+    return false;
+  }
+  return AUTH_PUBLIC_PATHS.some(path => url.includes(path));
+}
+
 httpClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const accessToken = await storage.getString(STORAGE_KEYS.ACCESS_TOKEN);
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-      config.headers.Cookie = `token=${accessToken}`;
+    const isAuthRequest = isPublicAuthRequest(config.url);
+
+    if (!isAuthRequest) {
+      const accessToken = await storage.getString(STORAGE_KEYS.ACCESS_TOKEN);
+      if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+        config.headers.Cookie = `token=${accessToken}`;
+      }
+    } else {
+      delete config.headers.Authorization;
+      delete config.headers.Cookie;
     }
     // TEMP DEBUG LOGS: remove once API debugging is done.
     const authHeader =
@@ -85,6 +105,7 @@ httpClient.interceptors.response.use(
     const originalRequest = error.config as RetriableConfig | undefined;
     const status = error.response?.status;
     const isRefreshEndpoint = originalRequest?.url?.includes(API_ENDPOINTS.REFRESH_TOKEN);
+    const isAuthRoute = isPublicAuthRequest(originalRequest?.url);
 
     // TEMP DEBUG LOGS: remove once API debugging is done.
     console.log(
@@ -94,7 +115,13 @@ httpClient.interceptors.response.use(
       `\nrequest-data=${safeSerialize(redactCcavenueFields(originalRequest?.data))}`,
     );
 
-    if (status === 401 && originalRequest && !originalRequest._retry && !isRefreshEndpoint) {
+    if (
+      status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isRefreshEndpoint &&
+      !isAuthRoute
+    ) {
       originalRequest._retry = true;
       try {
         if (!refreshPromise) {

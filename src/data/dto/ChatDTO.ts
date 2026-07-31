@@ -20,7 +20,7 @@ export interface ProductRefDTO {
 /** One chat document as returned by GET /api/chats (lean + populated). */
 export interface ChatDocumentDTO {
   _id: string;
-  type?: 'product' | 'support';
+  type?: 'product' | 'support' | 'group';
   product?: ProductRefDTO | string | null;
   buyer?: ChatUserRefDTO | string | null;
   seller?: ChatUserRefDTO | string | null;
@@ -32,6 +32,10 @@ export interface ChatDocumentDTO {
   unreadForSeller?: number;
   unreadForUser?: number;
   unreadForAdmin?: number;
+  /** Present on GET /chats/:id for the current viewer. */
+  muted?: boolean;
+  /** Users who muted this chat (may be present on list responses). */
+  mutedBy?: Array<string | { _id?: string; toString(): string }>;
 }
 
 export interface ChatMessageDTO {

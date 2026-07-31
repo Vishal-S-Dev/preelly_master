@@ -33,7 +33,6 @@ import {
   resolveAttachmentUrl,
   resolveMessageAttachments,
 } from '../../../utils/chatAttachmentUtils';
-import { useCall } from '../../call/CallContext';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import {
   addOptimisticMessage,
@@ -46,7 +45,7 @@ import {
   getChatSocket,
   joinChatRoom,
   leaveChatRoom,
-  normalizeSocketUserId,
+  socketChatIdMatches,
 } from '../../../data/network/chatSocket';
 import { ChatMessageDTO } from '../../../data/dto/ChatDTO';
 import { RootStackParamList } from '../../navigation/types';
@@ -60,9 +59,36 @@ import {
 import { ProductApi } from '../../../data/api/ProductApi';
 import { ProductDTO } from '../../../data/dto/ProductDTO';
 import { CartApi } from '../../../data/api/CartApi';
-import { MakeOfferSheet, OfferResponseSheet, ProductOfferPreview } from '../../components/chat/OfferBottomSheet';
-import { formatPostedDate } from '../../../utils/cartCheckoutUtils';
+import { CheckoutServiceApi } from '../../../data/api/CheckoutServiceApi';
+import { MakeOfferSheet, ProductOfferPreview } from '../../components/chat/OfferBottomSheet';
+import {
+  IncomingOfferBubble,
+  OfferAcceptedBubble,
+  OfferRejectedBubble,
+  PreellyRequestBubble,
+  PreellyResponseBubble,
+  YouOfferedBubble,
+} from '../../components/chat/ChatOfferBubbles';
+import { PreellyPayModal } from '../../components/cart/PreellyPayModal';
+import { formatPostedDate, kindOfCheckoutService } from '../../../utils/cartCheckoutUtils';
 import { isReelShareThread, messageUsesReelLink, resolveListingOwnerId } from '../../../utils/reelShareUtils';
+import {
+  buildOfferAcceptedMessage,
+  buildOfferMessage,
+  buildPreellyRequestText,
+  computeLockedOfferIds,
+  computePreellyStatusById,
+  isPreellyApprove,
+  isPreellyRequest,
+  isPreellyResponse,
+  isRejectMessage,
+  parseOfferAccepted,
+  parseOfferAmount,
+  parsePreellyRequest,
+  PREELLY_APPROVE_MSG,
+  PREELLY_REJECT_MSG,
+} from '../../../utils/chatOfferUtils';
+import { PREELLY_PAY_CHARGE } from '../../../constants/cartCheckoutConstants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChatThread'>;
 
@@ -174,89 +200,10 @@ const MessageBubble: React.FC<{
   );
 };
 
-const OFFER_RE = /^💰\s*Offer:\s*AED\s*([\d,.]+)\b/i;
-const OFFER_ACCEPTED_RE = /^✅\s*Offer accepted(?:\s+for\s+AED\s*([\d,.]+))?/i;
-
-function parseOfferAccepted(text?: string | null): { amount: number | null } | null {
-  const trimmed = String(text ?? '').trim();
-  if (!OFFER_ACCEPTED_RE.test(trimmed)) {
-    return null;
-  }
-  const match = /AED\s*([\d,.]+)/i.exec(trimmed);
-  if (!match) {
-    return { amount: null };
-  }
-  const value = Number(String(match[1]).replace(/,/g, ''));
-  return { amount: Number.isFinite(value) && value > 0 ? value : null };
-}
-
-function parseOfferAmount(text?: string | null): { raw: string; value: number } | null {
-  const match = OFFER_RE.exec(String(text ?? '').trim());
-  if (!match) {
-    return null;
-  }
-  const raw = match[1];
-  const value = Number(String(raw).replace(/,/g, ''));
-  if (!Number.isFinite(value) || value <= 0) {
-    return null;
-  }
-  return { raw, value };
-}
-
-const OfferMessageBubble: React.FC<{
-  offerAmount: number;
-  isSelf: boolean;
-  otherAvatar: string;
-  selfAvatar: string;
-  onRespond?: () => void;
-}> = ({ offerAmount, isSelf, otherAvatar, selfAvatar, onRespond }) => {
-  const amountLabel = offerAmount.toLocaleString('en-US');
-
-  if (isSelf) {
-    return (
-      <View style={[styles.msgRow, styles.msgRowSelf]}>
-        <View style={[styles.bubble, styles.bubbleOutgoing]}>
-          <Text style={styles.finalOfferText}>Final Offer {amountLabel}</Text>
-        </View>
-        <Image source={{ uri: selfAvatar }} style={styles.msgAvatar} />
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.msgRow, styles.msgRowOther]}>
-      <Image source={{ uri: otherAvatar }} style={styles.msgAvatar} />
-      <Pressable onPress={onRespond} style={{ flex: 1 }}>
-        <View style={[styles.offerCard, styles.offerCardIncoming]}>
-          <Text style={styles.offerTitle}>Offer for your ad</Text>
-          <Text style={styles.offerAmount}>AED {amountLabel}</Text>
-          <Text style={styles.offerHint}>Tap to respond</Text>
-        </View>
-      </Pressable>
-    </View>
-  );
-};
-
-const DealAcceptedBubble: React.FC<{
-  isSelf: boolean;
-  otherAvatar: string;
-  selfAvatar: string;
-}> = ({ isSelf, otherAvatar, selfAvatar }) => (
-  <View style={[styles.msgRow, isSelf ? styles.msgRowSelf : styles.msgRowOther]}>
-    {!isSelf ? <Image source={{ uri: otherAvatar }} style={styles.msgAvatar} /> : null}
-    <View style={styles.dealAcceptedBubble}>
-      <Feather name="thumb-up" size={16} color="#FFF" />
-      <Text style={styles.dealAcceptedText}>Deal Accepted</Text>
-    </View>
-    {isSelf ? <Image source={{ uri: selfAvatar }} style={styles.msgAvatar} /> : null}
-  </View>
-);
-
 export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
   const { threadId } = route.params;
   const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
-  const { startCall } = useCall();
   const user = useAppSelector(s => s.auth.user);
   const thread = useAppSelector(s => s.chat.activeThread);
   const messages = useAppSelector(s => s.chat.activeMessages);
@@ -270,7 +217,6 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
   const mediaSheetRef = useRef<BottomSheetModal>(null);
   const { pickFromCamera, pickFromGallery } = useChatImagePicker();
 
-  const openedOfferMessageIdsRef = useRef<Set<string>>(new Set());
   const openedAcceptedOfferMessageIdsRef = useRef<Set<string>>(new Set());
 
   // Buyer cart badge (used on chat thread header).
@@ -279,31 +225,51 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
 
   // Offer sheets
   const [makeOfferOpen, setMakeOfferOpen] = useState(false);
-  const [offerResponseOpen, setOfferResponseOpen] = useState(false);
-  const [activeOfferAmount, setActiveOfferAmount] = useState<number>(0);
+  const [offerActionBusy, setOfferActionBusy] = useState(false);
 
   // Max offer validation (derived from the listing price).
   const [maxOfferAmount, setMaxOfferAmount] = useState<number | null>(null);
   const [, setMaxOfferLoading] = useState(false);
   const [listingProduct, setListingProduct] = useState<ProductDTO | null>(null);
 
-  useEffect(() => {
-    dispatch(fetchChatThread(threadId));
-    joinChatRoom(threadId);
+  // Preelly Pay handshake (buyer gates Proceed to cart — matches web).
+  const [preellyModalOpen, setPreellyModalOpen] = useState(false);
+  const [preellyCharge, setPreellyCharge] = useState(PREELLY_PAY_CHARGE);
 
+  useEffect(() => {
+    let cancelled = false;
     let unsub: (() => void) | undefined;
-    getChatSocket().then(socket => {
-      const onNewMessage = (data: { chatId?: string; message?: ChatMessageDTO }) => {
-        if (data.chatId !== threadId || !data.message) {
+
+    dispatch(fetchChatThread(threadId));
+
+    // Join chat room + user room after socket is connected (matches web realtime).
+    void (async () => {
+      try {
+        await joinChatRoom(threadId);
+        if (cancelled) {
           return;
         }
-        dispatch(fetchChatThread(threadId));
-      };
-      socket.on('new-message', onNewMessage);
-      unsub = () => socket.off('new-message', onNewMessage);
-    });
+        const socket = await getChatSocket();
+        if (cancelled) {
+          return;
+        }
+        const onNewMessage = (data: { chatId?: string; message?: ChatMessageDTO }) => {
+          if (!data?.message || !socketChatIdMatches(data.chatId, threadId)) {
+            return;
+          }
+          dispatch(fetchChatThread(threadId));
+        };
+        socket.on('new-message', onNewMessage);
+        unsub = () => socket.off('new-message', onNewMessage);
+      } catch (error) {
+        if (__DEV__) {
+          console.warn('[ChatThread] socket setup failed', error);
+        }
+      }
+    })();
 
     return () => {
+      cancelled = true;
       unsub?.();
       leaveChatRoom(threadId);
       dispatch(clearActiveThread());
@@ -381,8 +347,38 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
       Alert.alert('Cart is empty', 'Accept an offer to add this listing to your cart.');
       return;
     }
-    navigation.navigate('CartCheckout', { productId: thread.productId });
-  }, [navigation, thread?.productId]);
+    if (cartCount <= 0) {
+      Alert.alert('Cart is empty', 'Accept an offer to add this listing to your cart.');
+      return;
+    }
+    // Match web: gate Proceed to cart behind Preelly Pay popup.
+    setPreellyModalOpen(true);
+  }, [cartCount, thread?.productId]);
+
+  const goToCart = useCallback(
+    (opts?: {
+      preellyApproved?: boolean;
+      preellyDeclined?: boolean;
+      conditions?: string[];
+      comment?: string;
+    }) => {
+      if (!thread?.productId) {
+        return;
+      }
+      navigation.navigate('CartCheckout', {
+        productId: thread.productId,
+        ...(opts?.preellyApproved
+          ? {
+              preellyApproved: true,
+              preellyConditions: opts.conditions ?? [],
+              preellyComment: opts.comment ?? '',
+            }
+          : {}),
+        ...(opts?.preellyDeclined ? { preellyDeclined: true } : {}),
+      });
+    },
+    [navigation, thread?.productId],
+  );
 
   const resolveMaxOffer = useCallback(async (): Promise<number | null> => {
     if (!thread?.productId) {
@@ -476,10 +472,6 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
       originalPrice: originalPrice ?? null,
     };
   }, [listingProduct, maxOfferAmount, thread?.productImageUrl, thread?.productTitle]);
-
-  useEffect(() => {
-    openedOfferMessageIdsRef.current = new Set();
-  }, [threadId]);
 
   useEffect(() => {
     openedAcceptedOfferMessageIdsRef.current = new Set();
@@ -615,27 +607,31 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const sendOfferMessage = useCallback(
     async (amount: number) => {
-      const label = amount.toLocaleString('en-US');
-      await sendMessageOrThrow(`💰 Offer: AED ${label}`);
+      await sendMessageOrThrow(buildOfferMessage(amount));
     },
     [sendMessageOrThrow],
   );
 
   const acceptOffer = useCallback(
     async (amount: number) => {
-      const productId = thread?.productId;
-      if (!productId) {
+      if (!thread?.productId) {
         throw new Error('Missing product for checkout');
       }
 
-      const label = amount.toLocaleString('en-US');
-      await sendMessageOrThrow(`✅ Offer accepted for AED ${label}`);
-      await CartApi.addFromOffer(threadId, amount);
-      if (isBuyer) {
-        await refreshCartCount();
+      setOfferActionBusy(true);
+      try {
+        await sendMessageOrThrow(buildOfferAcceptedMessage(amount));
+        try {
+          await CartApi.addFromOffer(threadId, amount);
+          await refreshCartCount();
+        } catch {
+          Alert.alert('Cart', 'Could not add product to cart. Please try again.');
+        }
+      } finally {
+        setOfferActionBusy(false);
       }
     },
-    [isBuyer, refreshCartCount, sendMessageOrThrow, thread?.productId, threadId],
+    [refreshCartCount, sendMessageOrThrow, thread?.productId, threadId],
   );
 
   const rejectOffer = useCallback(async () => {
@@ -654,18 +650,6 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
     setMakeOfferOpen(true);
   }, [resolveMaxOffer]);
 
-  const openOfferResponseSheet = useCallback(
-    async (offerAmountValue: number, offerMessageId?: string) => {
-      if (offerMessageId) {
-        openedOfferMessageIdsRef.current.add(offerMessageId);
-      }
-      setActiveOfferAmount(offerAmountValue);
-      await resolveMaxOffer();
-      setOfferResponseOpen(true);
-    },
-    [resolveMaxOffer],
-  );
-
   const handleQuickReplyPress = useCallback(
     (qr: string) => {
       if (qr === 'Make an offer') {
@@ -677,34 +661,14 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
     [handleSend, openMakeOfferSheet],
   );
 
-  // Auto-open the offer response sheet when a new offer is received by the viewer.
-  useEffect(() => {
-    if (!thread || offerResponseOpen || !user?.id || isReelShareDm) return;
+  const lockedOfferIds = useMemo(() => computeLockedOfferIds(messages), [messages]);
+  const preellyStatusById = useMemo(() => computePreellyStatusById(messages), [messages]);
 
-    const offerMessages = messages
-      .map(m => ({ m, offer: parseOfferAmount(m.text) }))
-      .filter(x => Boolean(x.offer) && x.m.type !== 'call');
-
-    if (!offerMessages.length) return;
-
-    const newest = offerMessages[offerMessages.length - 1];
-    if (!newest.offer) return;
-
-    // Ignore offers you sent yourself.
-    if (newest.m.senderId === user.id) return;
-
-    if (openedOfferMessageIdsRef.current.has(newest.m.id)) return;
-    openedOfferMessageIdsRef.current.add(newest.m.id);
-
-    void openOfferResponseSheet(newest.offer.value, newest.m.id);
-  }, [isReelShareDm, messages, offerResponseOpen, openOfferResponseSheet, thread, user?.id]);
-
-  // When the seller accepts an offer, the backend adds the listing to the BUYER's
-  // cart. The buyer sees an "Offer accepted" message — refresh their cart badge.
+  // When the seller accepts an offer, refresh the buyer's cart badge.
   useEffect(() => {
     if (!isBuyer) return;
 
-    const acceptedMessages = messages.filter(m => OFFER_ACCEPTED_RE.test(m.text));
+    const acceptedMessages = messages.filter(m => parseOfferAccepted(m.text));
     if (!acceptedMessages.length) return;
 
     const newest = acceptedMessages[acceptedMessages.length - 1];
@@ -713,6 +677,67 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
 
     void refreshCartCount();
   }, [isBuyer, messages, refreshCartCount]);
+
+  // Load Preelly Pay charge for the popup (conditions are user-typed only).
+  useEffect(() => {
+    const pid = thread?.productId;
+    if (!isBuyer || !pid || isReelShareDm) {
+      setPreellyCharge(PREELLY_PAY_CHARGE);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const services = await CheckoutServiceApi.listActiveCheckoutServices().catch(() => []);
+        if (cancelled) return;
+        const svc = services.find(s => kindOfCheckoutService(s) === 'preelly');
+        setPreellyCharge(Number(svc?.price ?? PREELLY_PAY_CHARGE));
+      } catch {
+        if (!cancelled) {
+          setPreellyCharge(PREELLY_PAY_CHARGE);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isBuyer, isReelShareDm, thread?.productId]);
+
+  const handleConfirmPreellyChat = useCallback(
+    (selected: string[], comment: string) => {
+      if (!selected.length) {
+        Alert.alert('Preelly Pay', 'Select at least one condition');
+        return;
+      }
+      setPreellyModalOpen(false);
+      void sendMessageOrThrow(buildPreellyRequestText(selected, comment)).catch(e => {
+        Alert.alert('Failed', e instanceof Error ? e.message : 'Could not send conditions');
+      });
+    },
+    [sendMessageOrThrow],
+  );
+
+  const handleNotInterestedPreelly = useCallback(async () => {
+    setPreellyModalOpen(false);
+    try {
+      await CartApi.setPreellyNotInterested(threadId);
+    } catch {
+      /* non-fatal — still take the buyer to cart */
+    }
+    goToCart({ preellyDeclined: true });
+  }, [goToCart, threadId]);
+
+  const handleApprovePreelly = useCallback(
+    async (conditions: string[], comment: string) => {
+      await sendMessageOrThrow(PREELLY_APPROVE_MSG);
+      try {
+        await CartApi.savePreellyConditions(threadId, conditions, comment);
+      } catch {
+        /* non-fatal: approval message is already in the thread */
+      }
+    },
+    [sendMessageOrThrow, threadId],
+  );
 
   const listHeader = useMemo(() => {
     if (isReelShareDm || !thread?.productImageUrl || thread.kind !== 'product') {
@@ -749,37 +774,120 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
           const isSelf = m.senderId === user?.id;
           const offer = parseOfferAmount(m.text);
           const accepted = parseOfferAccepted(m.text);
+
+          if (offer && m.type !== 'call') {
+            if (isSelf) {
+              return (
+                <View key={m.id} style={styles.msgBlock}>
+                  <YouOfferedBubble
+                    amountLabel={offer.value.toLocaleString('en-US')}
+                    selfAvatar={selfAvatar}
+                  />
+                  <Text style={styles.msgTime}>{formatMessageTime(m.createdAt)}</Text>
+                </View>
+              );
+            }
+            return (
+              <View key={m.id} style={styles.msgBlock}>
+                <IncomingOfferBubble
+                  amountLabel={offer.value.toLocaleString('en-US')}
+                  otherAvatar={otherAvatar}
+                  senderName={other?.name ?? 'Buyer'}
+                  locked={lockedOfferIds.has(m.id)}
+                  busy={offerActionBusy}
+                  onAccept={() => acceptOffer(offer.value)}
+                  onReject={() => rejectOffer()}
+                  onCounter={amt => counterOffer(amt)}
+                />
+                <Text style={styles.msgTime}>{formatMessageTime(m.createdAt)}</Text>
+              </View>
+            );
+          }
+
+          if (accepted && m.type !== 'call') {
+            return (
+              <View key={m.id} style={styles.msgBlock}>
+                <OfferAcceptedBubble
+                  text={m.text?.trim() || '✅ Offer accepted'}
+                  isSelf={isSelf}
+                  otherAvatar={otherAvatar}
+                  selfAvatar={selfAvatar}
+                  showProceed={isBuyer && cartCount > 0}
+                  onProceed={startCheckoutPayment}
+                />
+                <Text style={styles.msgTime}>{formatMessageTime(m.createdAt)}</Text>
+              </View>
+            );
+          }
+
+          if (isRejectMessage(m.text) && m.type !== 'call') {
+            return (
+              <View key={m.id} style={styles.msgBlock}>
+                <OfferRejectedBubble
+                  isSelf={isSelf}
+                  otherAvatar={otherAvatar}
+                  selfAvatar={selfAvatar}
+                />
+                <Text style={styles.msgTime}>{formatMessageTime(m.createdAt)}</Text>
+              </View>
+            );
+          }
+
+          if (isPreellyRequest(m.text) && m.type !== 'call') {
+            const { conditions, comment } = parsePreellyRequest(m.text);
+            const status = preellyStatusById.get(m.id) ?? null;
+            return (
+              <View key={m.id} style={styles.msgBlock}>
+                <PreellyRequestBubble
+                  conditions={conditions}
+                  comment={comment}
+                  isSelf={isSelf}
+                  otherAvatar={otherAvatar}
+                  selfAvatar={selfAvatar}
+                  status={status}
+                  onApprove={() => handleApprovePreelly(conditions, comment)}
+                  onReject={() => sendMessageOrThrow(PREELLY_REJECT_MSG)}
+                  onProceed={() =>
+                    goToCart({
+                      preellyApproved: true,
+                      conditions,
+                      comment,
+                    })
+                  }
+                  onNewCondition={() => setPreellyModalOpen(true)}
+                  onProceedPlain={() => goToCart()}
+                />
+                <Text style={styles.msgTime}>{formatMessageTime(m.createdAt)}</Text>
+              </View>
+            );
+          }
+
+          if (isPreellyResponse(m.text) && m.type !== 'call') {
+            return (
+              <View key={m.id} style={styles.msgBlock}>
+                <PreellyResponseBubble
+                  approved={isPreellyApprove(m.text)}
+                  text={m.text?.trim() || ''}
+                  isSelf={isSelf}
+                  otherAvatar={otherAvatar}
+                  selfAvatar={selfAvatar}
+                />
+                <Text style={styles.msgTime}>{formatMessageTime(m.createdAt)}</Text>
+              </View>
+            );
+          }
+
           return (
             <View key={m.id} style={styles.msgBlock}>
-              {offer && m.type !== 'call' ? (
-                <OfferMessageBubble
-                  offerAmount={offer.value}
-                  isSelf={isSelf}
-                  otherAvatar={otherAvatar}
-                  selfAvatar={selfAvatar}
-                  onRespond={
-                    isSelf
-                      ? undefined
-                      : () => void openOfferResponseSheet(offer.value, m.id)
-                  }
-                />
-              ) : accepted && m.type !== 'call' ? (
-                <DealAcceptedBubble
-                  isSelf={isSelf}
-                  otherAvatar={otherAvatar}
-                  selfAvatar={selfAvatar}
-                />
-              ) : OFFER_ACCEPTED_RE.test(m.text ?? '') ? null : (
-                <MessageBubble
-                  message={m}
-                  isSelf={isSelf}
-                  otherAvatar={otherAvatar}
-                  otherName={other?.name ?? 'User'}
-                  selfAvatar={selfAvatar}
-                  selfName={user?.name ?? 'You'}
-                  onPressAttachment={openAttachmentViewer}
-                />
-              )}
+              <MessageBubble
+                message={m}
+                isSelf={isSelf}
+                otherAvatar={otherAvatar}
+                otherName={other?.name ?? 'User'}
+                selfAvatar={selfAvatar}
+                selfName={user?.name ?? 'You'}
+                onPressAttachment={openAttachmentViewer}
+              />
               <Text style={styles.msgTime}>{formatMessageTime(m.createdAt)}</Text>
             </View>
           );
@@ -787,13 +895,24 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
       </View>
     ),
     [
-      user?.id,
-      otherAvatar,
-      selfAvatar,
-      other?.name,
-      user?.name,
-      openOfferResponseSheet,
+      acceptOffer,
+      cartCount,
+      counterOffer,
+      goToCart,
+      handleApprovePreelly,
+      isBuyer,
+      lockedOfferIds,
+      offerActionBusy,
       openAttachmentViewer,
+      other?.name,
+      otherAvatar,
+      preellyStatusById,
+      rejectOffer,
+      selfAvatar,
+      sendMessageOrThrow,
+      startCheckoutPayment,
+      user?.id,
+      user?.name,
     ],
   );
 
@@ -852,39 +971,30 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
           </Text>
         </View>
 
-        <Pressable
-          hitSlop={12}
-          style={styles.headerBtn}
-          onPress={() =>
-            other?.id &&
-            startCall(
-              { id: normalizeSocketUserId(other.id), name: other.name },
-              'audio',
-              threadId,
-            )
-          }
-        >
-          <Feather name="phone" size={22} color={THREAD_UI.primary} />
-        </Pressable>
-
-        {isBuyer && (
+        {isBuyer ? (
           <Pressable
-            hitSlop={12}
+            hitSlop={10}
             style={styles.cartBtn}
             onPress={startCheckoutPayment}
+            accessibilityRole="button"
+            accessibilityLabel={
+              cartCount > 0 ? `Cart, ${cartCount} items` : 'Cart'
+            }
           >
-            <Feather name="cart-outline" size={22} color={THREAD_UI.primary} />
+            <Feather name="cart-outline" size={24} color={THREAD_UI.primary} />
             {cartLoading ? (
-              <View style={styles.cartBadge}>
-                <ActivityIndicator size="small" color="#fff" />
+              <View style={styles.cartBadge} pointerEvents="none">
+                <ActivityIndicator size="small" color="#FFF" style={styles.cartBadgeSpinner} />
               </View>
             ) : cartCount > 0 ? (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartCount}</Text>
+              <View style={styles.cartBadge} pointerEvents="none">
+                <Text style={styles.cartBadgeText}>
+                  {cartCount > 99 ? '99+' : String(cartCount)}
+                </Text>
               </View>
             ) : null}
           </Pressable>
-        )}
+        ) : null}
       </View>
 
       <FlatList
@@ -901,12 +1011,6 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
           ) : null
         }
       />
-
-      {isBuyer && cartCount > 0 ? (
-        <Pressable style={styles.proceedCartBtn} onPress={startCheckoutPayment}>
-          <Text style={styles.proceedCartText}>Proceed to cart</Text>
-        </Pressable>
-      ) : null}
 
       {showMessageComposer ? (
         <>
@@ -948,15 +1052,14 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
                 multiline
                 maxLength={2000}
               />
-              <Pressable style={styles.inputIcon} hitSlop={8} onPress={openMediaSheet}>
+              <Pressable
+                style={styles.inputIcon}
+                hitSlop={8}
+                onPress={openMediaSheet}
+                accessibilityRole="button"
+                accessibilityLabel="Add photo"
+              >
                 <Feather name="image-outline" size={22} color={THREAD_UI.primary} />
-              </Pressable>
-              <Pressable style={styles.inputIcon} hitSlop={8}>
-                <Feather
-                  name="microphone-outline"
-                  size={22}
-                  color={THREAD_UI.primary}
-                />
               </Pressable>
             </View>
             {(text.trim().length > 0 || pendingAttachments.length > 0 || sending) && (
@@ -986,16 +1089,14 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
         }}
       />
 
-      <OfferResponseSheet
-        visible={offerResponseOpen}
-        onClose={() => setOfferResponseOpen(false)}
-        senderName={other?.name ?? 'User'}
-        senderAvatar={otherAvatar}
-        maxOfferAmount={maxOfferAmount}
-        offerAmount={activeOfferAmount}
-        onAcceptOffer={async amount => acceptOffer(amount)}
-        onRejectOffer={async () => rejectOffer()}
-        onSendCounterOffer={async amount => counterOffer(amount)}
+      <PreellyPayModal
+        visible={preellyModalOpen}
+        charge={preellyCharge}
+        onClose={() => setPreellyModalOpen(false)}
+        onConfirm={handleConfirmPreellyChat}
+        onNotInterested={() => {
+          void handleNotInterestedPreelly();
+        }}
       />
 
       <ChatMediaActionSheet
@@ -1033,6 +1134,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: THREAD_UI.headerBorder,
+    overflow: 'visible',
+    zIndex: 2,
+    backgroundColor: '#FFFFFF',
   },
   headerBtn: {
     width: 40,
@@ -1202,39 +1306,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
   },
-  finalOfferText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: THREAD_UI.outgoingText,
-  },
-  dealAcceptedBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#16A34A',
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  dealAcceptedText: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  proceedCartBtn: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 4,
-    backgroundColor: '#0000FF',
-    borderRadius: 999,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  proceedCartText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '800',
-  },
   quickRepliesScroll: {
     maxHeight: 68,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -1303,60 +1374,38 @@ const styles = StyleSheet.create({
   },
 
   cartBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    marginLeft: 4,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    overflow: 'visible',
   },
   cartBadge: {
     position: 'absolute',
-    top: -6,
-    right: -8,
-    minWidth: 16,
-    height: 16,
+    top: 2,
+    right: 2,
+    minWidth: 18,
+    height: 18,
     paddingHorizontal: 4,
-    borderRadius: 8,
+    borderRadius: 9,
     backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
+  },
+  cartBadgeSpinner: {
+    transform: [{ scale: 0.55 }],
   },
   cartBadgeText: {
-    color: '#fff',
-    fontSize: 11,
+    color: '#FFFFFF',
+    fontSize: 10,
     fontWeight: '800',
-  },
-
-  offerCard: {
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    width: '100%',
-  },
-  offerCardIncoming: {
-    backgroundColor: '#fff',
-    borderColor: '#D1D5DB',
-  },
-  offerCardOutgoing: {
-    backgroundColor: THREAD_UI.outgoingBubble,
-    borderColor: '#C7D2FE',
-  },
-  offerTitle: {
-    fontSize: 12,
-    color: THREAD_UI.textSecondary,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  offerAmount: {
-    fontSize: 16,
-    color: THREAD_UI.primary,
-    fontWeight: '900',
-  },
-  offerHint: {
-    marginTop: 6,
-    fontSize: 12,
-    color: THREAD_UI.textSecondary,
-    fontWeight: '600',
+    lineHeight: 12,
+    includeFontPadding: false,
+    textAlign: 'center',
   },
 });

@@ -124,6 +124,29 @@ export const cpStyles = StyleSheet.create({
     fontWeight: '600',
     color: CP_COLORS.text,
   },
+  /** Subcategory list matching create-post reference (simple rows + hairline dividers) */
+  subcategoryListContent: {
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('0.5%'),
+    paddingBottom: hp('4%'),
+  },
+  subcategoryListContentEmpty: {
+    flexGrow: 1,
+  },
+  subcategoryRow: {
+    paddingVertical: hp('2.1%'),
+    justifyContent: 'center',
+  },
+  subcategoryRowText: {
+    fontSize: 17,
+    fontWeight: '500',
+    color: CP_COLORS.text,
+    letterSpacing: -0.2,
+  },
+  subcategorySeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: CP_COLORS.border,
+  },
   mediaCard: {
     borderWidth: 1.5,
     borderColor: CP_COLORS.primary,

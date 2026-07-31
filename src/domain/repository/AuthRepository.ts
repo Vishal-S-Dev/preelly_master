@@ -1,10 +1,14 @@
 import { AuthSession, LoginSession, SendOtpResult } from '../models/AuthModel';
-import { SendOtpRequestDTO } from '@/data/dto/authDto.ts';
+import {
+  SendOtpRequestDTO,
+  VerifyOtpRequestDto,
+} from '../../data/dto/authDto';
+import { AuthVerifyOtpResult } from '../../utils/authResponseUtils';
 
 export interface AuthRepository {
   login(email: string, password: string): Promise<LoginSession>;
   sendOtp(request: SendOtpRequestDTO): Promise<SendOtpResult>;
-  verifyOtp(email: SendOtpRequestDTO): Promise<LoginSession>;
+  verifyOtp(request: VerifyOtpRequestDto): Promise<AuthVerifyOtpResult>;
   refreshAccessToken(refreshToken: string): Promise<AuthSession>;
   getStoredAccessToken(): Promise<string | null>;
   getStoredRefreshToken(): Promise<string | null>;

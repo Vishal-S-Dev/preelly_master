@@ -1,9 +1,14 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FormField } from '../../../../../types/dynamicForm.types';
 import { EditProductStackParamList } from '../../../../../types/editProduct.types';
 import { useEditProductStore } from '../../../../../store/editProductStore';
+import {
+  findBuildingStreetField,
+  findLocateYourItemField,
+  getLocationMapInsertIndex,
+} from '../../../../../utils/locationFormFields';
 import { FormCheckboxGroup } from '../../../../components/forms/FormCheckboxGroup';
 import { FormDropdown } from '../../../../components/forms/FormDropdown';
 import { FormRadioGroup } from '../../../../components/forms/FormRadioGroup';
@@ -42,9 +47,48 @@ export const EditAdvancedDetailsFormScreen: React.FC<Props> = ({ navigation }) =
     requiredFilled,
   } = useEditDynamicFormStep('4');
 
+  const locateField = useMemo(() => findLocateYourItemField(stepFields), [stepFields]);
+  const buildingField = useMemo(() => findBuildingStreetField(stepFields), [stepFields]);
+  const mapInsertIndex = useMemo(() => getLocationMapInsertIndex(stepFields), [stepFields]);
+  const hasLocationFormFields = Boolean(locateField || buildingField);
+
   const onNext = useCallback(() => {
     navigation.navigate('EditProductPreviewStep');
   }, [navigation]);
+
+  const syncLocateYourItem = useCallback(
+    (value: string) => {
+      setLocateYourItem(value);
+      if (locateField) {
+        handleFieldChange(locateField.fieldName, value);
+      }
+    },
+    [handleFieldChange, locateField, setLocateYourItem],
+  );
+
+  const syncBuildingStreet = useCallback(
+    (value: string) => {
+      setLocationAddress(value);
+      if (buildingField) {
+        handleFieldChange(buildingField.fieldName, value);
+      }
+    },
+    [buildingField, handleFieldChange, setLocationAddress],
+  );
+
+  const onFormFieldChange = useCallback(
+    (fieldName: string, value: string) => {
+      handleFieldChange(fieldName, value);
+
+      if (locateField && fieldName === locateField.fieldName) {
+        setLocateYourItem(value);
+      }
+      if (buildingField && fieldName === buildingField.fieldName) {
+        setLocationAddress(value);
+      }
+    },
+    [buildingField, handleFieldChange, locateField, setLocateYourItem, setLocationAddress],
+  );
 
   const renderField = useCallback(
     (field: FormField) => {
@@ -56,25 +100,94 @@ export const EditAdvancedDetailsFormScreen: React.FC<Props> = ({ navigation }) =
               key={field.id}
               field={field}
               value={value}
-              onChange={handleFieldChange}
+              onChange={onFormFieldChange}
               stepFields={stepFields}
               formValues={dynamicFields}
             />
           );
         case 'Text':
-          return <FormTextInput key={field.id} field={field} value={value} onChange={handleFieldChange} />;
+          return (
+            <FormTextInput key={field.id} field={field} value={value} onChange={onFormFieldChange} />
+          );
         case 'Radio':
-          return <FormRadioGroup key={field.id} field={field} value={value} onChange={handleFieldChange} />;
+          return (
+            <FormRadioGroup
+              key={field.id}
+              field={field}
+              value={value}
+              onChange={onFormFieldChange}
+            />
+          );
         case 'Checkbox':
           return (
-            <FormCheckboxGroup key={field.id} field={field} value={value} onChange={handleFieldChange} maxVisible={5} />
+            <FormCheckboxGroup
+              key={field.id}
+              field={field}
+              value={value}
+              onChange={onFormFieldChange}
+              maxVisible={5}
+            />
           );
         default:
           return null;
       }
     },
-    [dynamicFields, getFieldValue, handleFieldChange, stepFields],
+    [dynamicFields, getFieldValue, onFormFieldChange, stepFields],
   );
+
+  const renderLocationMap = useCallback(
+    () => (
+      <LocationMapPicker
+        locateYourItem={locateYourItem}
+        address={locationAddress}
+        latitude={locationLatitude}
+        longitude={locationLongitude}
+        onLocateYourItemChange={syncLocateYourItem}
+        onAddressChange={syncBuildingStreet}
+        onCoordinateChange={setLocationCoordinates}
+        styles={styles}
+        showAddressFields={!hasLocationFormFields}
+        showTip={!hasLocationFormFields}
+      />
+    ),
+    [
+      hasLocationFormFields,
+      locateYourItem,
+      locationAddress,
+      locationLatitude,
+      locationLongitude,
+      setLocationCoordinates,
+      styles,
+      syncBuildingStreet,
+      syncLocateYourItem,
+    ],
+  );
+
+  const renderStepContent = () => {
+    if (isLoading || isError) {
+      return null;
+    }
+
+    if (!hasLocationFormFields || mapInsertIndex < 0) {
+      return (
+        <>
+          {stepFields.map(renderField)}
+          {renderLocationMap()}
+        </>
+      );
+    }
+
+    return (
+      <>
+        {stepFields.map((field, index) => (
+          <React.Fragment key={field.id}>
+            {index === mapInsertIndex ? renderLocationMap() : null}
+            {renderField(field)}
+          </React.Fragment>
+        ))}
+      </>
+    );
+  };
 
   return (
     <View style={styles.screen}>
@@ -105,17 +218,7 @@ export const EditAdvancedDetailsFormScreen: React.FC<Props> = ({ navigation }) =
             </Pressable>
           </View>
         ) : null}
-        {!isLoading && !isError ? stepFields.map(renderField) : null}
-        <LocationMapPicker
-          locateYourItem={locateYourItem}
-          address={locationAddress}
-          latitude={locationLatitude}
-          longitude={locationLongitude}
-          onLocateYourItemChange={setLocateYourItem}
-          onAddressChange={setLocationAddress}
-          onCoordinateChange={setLocationCoordinates}
-          styles={styles}
-        />
+        {renderStepContent()}
       </ScrollView>
       <CreatePostFooter
         backgroundColor={styles.screen.backgroundColor}

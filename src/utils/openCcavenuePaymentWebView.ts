@@ -1,4 +1,5 @@
 import { NavigationProp, ParamListBase } from '@react-navigation/native';
+import { navigateRoot } from '../presentation/navigation/navigationRef';
 import { RootStackParamList } from '../presentation/navigation/types';
 import { PaymentInitiateResponse } from '../types/payment.types';
 
@@ -10,8 +11,11 @@ type NavLike = {
 };
 
 /**
- * Opens the shared CCAvenue WebView screen the same way Create Post does:
- * prefer parent (root) navigator when nested, otherwise navigate on current stack.
+ * Opens the shared CCAvenue WebView (same POST form flow as web CartCheckoutPage).
+ *
+ * Prefer the root NavigationContainer ref so this works from:
+ * - CartCheckout (root stack) — avoids getParent() no-op
+ * - CreatePostBuyPackage (nested stack) — reaches root PaymentWebView
  */
 export function openCcavenuePaymentWebView(
   navigation: NavLike | NavigationProp<ParamListBase>,
@@ -22,21 +26,40 @@ export function openCcavenuePaymentWebView(
     productId?: string;
   },
 ): void {
-  const nav = navigation as NavLike;
-  const target = nav.getParent?.() ?? nav;
-
-  if (!target?.navigate) {
-    throw new Error('Unable to open payment screen.');
+  if (!params.session?.paymentUrl || !params.session?.encRequest) {
+    throw new Error('Invalid payment session from server. Please try again.');
   }
-
-  if (!params.session?.paymentUrl || !params.session?.encRequest || !params.session?.accessCode) {
+  if (!params.session.accessCode) {
     throw new Error('Invalid payment session from server. Please try again.');
   }
 
-  target.navigate('PaymentWebView', {
+  const screenParams: PaymentWebViewParams = {
     session: params.session,
     closeCreatePost: params.closeCreatePost ?? false,
     ...(params.paymentFlow ? { paymentFlow: params.paymentFlow } : {}),
     ...(params.productId ? { productId: params.productId } : {}),
-  });
+  };
+
+  if (navigateRoot('PaymentWebView', screenParams)) {
+    return;
+  }
+
+  const nav = navigation as NavLike;
+  // Fallback when the container ref is not ready yet (rare race on cold start).
+  let cursor: NavLike | undefined = nav;
+  const seen = new Set<NavLike>();
+  while (cursor && !seen.has(cursor)) {
+    seen.add(cursor);
+    if (typeof cursor.navigate === 'function') {
+      try {
+        cursor.navigate('PaymentWebView', screenParams);
+        return;
+      } catch {
+        /* try parent */
+      }
+    }
+    cursor = cursor.getParent?.();
+  }
+
+  throw new Error('Unable to open payment screen.');
 }

@@ -21,7 +21,10 @@ export interface PaymentCheckoutInitiateRequest {
   services?: Array<{ checkoutServiceId: string; amount: number }>;
   couponCode?: string | null;
   pickDrop?: unknown;
-  preelly?: unknown;
+  preelly?: {
+    conditions: string[];
+    comment: string;
+  } | null;
   /** Defaults to checkout (2) for cart / chat payments. */
   paymentType?: number;
   /** 1 Web, 2 Android, 3 iOS — auto-detected when omitted. */

@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BuyerCouponApi } from '../../../data/api/BuyerCouponApi';
 import { CartApi } from '../../../data/api/CartApi';
 import { CheckoutServiceApi } from '../../../data/api/CheckoutServiceApi';
+import { ProductApi } from '../../../data/api/ProductApi';
 import {
   PAY_PREELLY_FEATURES,
   PAY_VIA_PREELLY_FEE,
@@ -25,6 +26,7 @@ import {
 import {
   BuyerCouponValidation,
   CartItem,
+  CartPopulatedProduct,
   CheckoutService,
   PickDropInfo,
   PreellyPayInfo,
@@ -33,7 +35,6 @@ import { formatAed } from '../../../utils/checkoutTotals';
 import {
   buildSelectedServiceRows,
   computeCartCheckoutTotals,
-  flattenProductConditions,
   formatCartDate,
   kindOfCheckoutService,
   resolveCartProduct,
@@ -52,6 +53,62 @@ import { cartCheckoutStyles as styles } from './cartCheckoutStyles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CartCheckout'>;
 
+const toCartProduct = (raw: unknown): CartPopulatedProduct | null => {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const p = raw as Record<string, unknown>;
+  const id = String(p._id ?? p.id ?? '');
+  if (!id) {
+    return null;
+  }
+  return {
+    _id: id,
+    id,
+    title: typeof p.title === 'string' ? p.title : undefined,
+    images: Array.isArray(p.images) ? (p.images as string[]) : undefined,
+    video: typeof p.video === 'string' ? p.video : undefined,
+    productPrice:
+      typeof p.productPrice === 'number'
+        ? p.productPrice
+        : typeof p.productPriceValue === 'number'
+          ? p.productPriceValue
+          : typeof p.price === 'number'
+            ? p.price
+            : undefined,
+    price: typeof p.price === 'number' ? p.price : undefined,
+    year: (p.year as string | number | undefined) ?? undefined,
+    kilometers: (p.kilometers as string | number | undefined) ?? undefined,
+    mileage: (p.mileage as string | number | undefined) ?? undefined,
+    condition: typeof p.condition === 'string' ? p.condition : undefined,
+    category: p.category as CartPopulatedProduct['category'],
+    subcategory: p.subcategory as CartPopulatedProduct['subcategory'],
+    features: p.features as CartPopulatedProduct['features'],
+    productMultiAttributes:
+      p.productMultiAttributes as CartPopulatedProduct['productMultiAttributes'],
+  };
+};
+
+const hydrateCartItemProduct = async (cartItem: CartItem): Promise<CartItem> => {
+  if (cartItem.productId && typeof cartItem.productId === 'object') {
+    return cartItem;
+  }
+  const productId = resolveCartProductId(cartItem);
+  if (!productId) {
+    return cartItem;
+  }
+  try {
+    const product = await ProductApi.getProductById(productId);
+    const mapped = toCartProduct(product);
+    if (!mapped) {
+      return cartItem;
+    }
+    return { ...cartItem, productId: mapped };
+  } catch {
+    return cartItem;
+  }
+};
+
 const priceLabel = (svc: CheckoutService): string => {
   if (svc.priceType === 'FREE') {
     return 'Free';
@@ -69,6 +126,10 @@ const priceLabel = (svc: CheckoutService): string => {
 export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const productIdParam = route.params?.productId;
+  const preellyApprovedParam = Boolean(route.params?.preellyApproved);
+  const preellyDeclinedParam = Boolean(route.params?.preellyDeclined);
+  const preellyConditionsParam = route.params?.preellyConditions ?? [];
+  const preellyCommentParam = route.params?.preellyComment ?? '';
   const payingLock = useRef(false);
   const { loading: paying, initiateCheckout, setError } = usePayment();
 
@@ -76,10 +137,13 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
   const [item, setItem] = useState<CartItem | null>(null);
   const [services, setServices] = useState<CheckoutService[]>([]);
 
-  const [payPreelly, setPayPreelly] = useState(false);
+  const [payPreelly, setPayPreelly] = useState(preellyApprovedParam && !preellyDeclinedParam);
   const [pickDrop, setPickDrop] = useState(false);
   const [simpleSelected, setSimpleSelected] = useState<Set<string>>(new Set());
-  const [preellyInfo, setPreellyInfo] = useState<PreellyPayInfo>({ conditions: [], comment: '' });
+  const [preellyInfo, setPreellyInfo] = useState<PreellyPayInfo>({
+    conditions: preellyDeclinedParam ? [] : preellyConditionsParam,
+    comment: preellyDeclinedParam ? '' : preellyCommentParam,
+  });
   const [pickDropInfo, setPickDropInfo] = useState<PickDropInfo | null>(null);
 
   const [preellyModalOpen, setPreellyModalOpen] = useState(false);
@@ -90,6 +154,18 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
   const [appliedCoupon, setAppliedCoupon] = useState<BuyerCouponValidation | null>(null);
   const [couponError, setCouponError] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
+
+  // When chat sends approved conditions, persist them into checkout state.
+  useEffect(() => {
+    if (preellyDeclinedParam || !preellyApprovedParam) {
+      return;
+    }
+    setPayPreelly(true);
+    setPreellyInfo({
+      conditions: Array.isArray(preellyConditionsParam) ? preellyConditionsParam : [],
+      comment: typeof preellyCommentParam === 'string' ? preellyCommentParam : '',
+    });
+  }, [preellyApprovedParam, preellyCommentParam, preellyConditionsParam, preellyDeclinedParam]);
 
   const loadCart = useCallback(async () => {
     setLoading(true);
@@ -102,7 +178,8 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
       const picked = targetId
         ? cartItems.find(cartItem => resolveCartProductId(cartItem) === targetId)
         : cartItems[0];
-      setItem(picked ?? null);
+      const hydrated = picked ? await hydrateCartItemProduct(picked) : null;
+      setItem(hydrated);
       setServices(checkoutServices);
     } catch (error) {
       Alert.alert(
@@ -119,13 +196,37 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
     void loadCart();
   }, [loadCart]);
 
+  // If backend already stored approved inspection conditions, mirror them in checkout.
+  // Skip when buyer explicitly declined Preelly Pay from chat ("Not Interested").
+  useEffect(() => {
+    if (preellyDeclinedParam) {
+      setPayPreelly(false);
+      setPreellyInfo({ conditions: [], comment: '' });
+      return;
+    }
+    const inspection = item?.preellyInspection;
+    if (!inspection?.approved) {
+      return;
+    }
+    const approvedConditions = Array.isArray(inspection.conditions)
+      ? inspection.conditions.filter(Boolean)
+      : [];
+    if (!approvedConditions.length) {
+      return;
+    }
+    setPayPreelly(true);
+    setPreellyInfo({
+      conditions: approvedConditions,
+      comment: inspection.comment ?? '',
+    });
+  }, [item?.preellyInspection, preellyDeclinedParam]);
+
   const product = useMemo(() => resolveCartProduct(item?.productId ?? null), [item?.productId]);
   const listingPrice = useMemo(
     () => resolveListingPrice(item, product),
     [item, product],
   );
   const categoryLabel = useMemo(() => resolveCategoryLabel(product), [product]);
-  const productConditions = useMemo(() => flattenProductConditions(product), [product]);
 
   const preellyService = useMemo(
     () => services.find(svc => kindOfCheckoutService(svc) === 'preelly') ?? null,
@@ -241,15 +342,19 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [discountCode, selectedServiceRows]);
 
   const handleCheckout = useCallback(async () => {
+    // Match web: block re-entry while initiate is in flight.
     if (payingLock.current || paying) {
+      Alert.alert('Payment', 'Payment is already in progress. Please wait.');
       return;
     }
+
     const checkoutProductId = resolveCartProductId(item);
     if (!checkoutProductId) {
       Alert.alert('Checkout', 'Missing product for checkout');
       return;
     }
-    if (listingPrice <= 0) {
+    // Web only checks totals.total; keep price/total guards for clearer mobile errors.
+    if (listingPrice <= 0 && totals.total <= 0) {
       Alert.alert('Checkout', 'This listing does not have a valid price.');
       return;
     }
@@ -268,10 +373,10 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
 
-    // Same pattern as Create Post BuyPackageScreen → CCAvenue WebView.
     payingLock.current = true;
     setError(null);
     try {
+      // Same payload shape as web CartCheckoutPage → paymentService.initiateCheckout
       const session = await initiateCheckout({
         productId: checkoutProductId,
         services: selectedServiceRows.map(row => ({
@@ -279,12 +384,17 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
           amount: row.fee,
         })),
         couponCode: appliedCoupon?.couponCode ?? null,
-        pickDrop: pickDropInfo,
+        pickDrop: pickDropInfo || null,
         preelly: payPreelly
           ? { conditions: preellyInfo.conditions, comment: preellyInfo.comment }
           : null,
       });
 
+      if (!session?.paymentUrl || !session?.encRequest || !session?.accessCode) {
+        throw new Error('Invalid payment session');
+      }
+
+      // RN equivalent of web redirectToGateway (hidden form POST → CCAvenue).
       openCcavenuePaymentWebView(navigation, {
         session,
         closeCreatePost: false,
@@ -294,7 +404,7 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
     } catch (error) {
       Alert.alert(
         'Payment',
-        error instanceof Error ? error.message : 'Unable to start payment.',
+        error instanceof Error ? error.message : 'Could not start payment',
       );
     } finally {
       payingLock.current = false;
@@ -607,7 +717,6 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <PreellyPayModal
         visible={preellyModalOpen}
-        conditions={productConditions}
         charge={payPreellyFee}
         initialSelected={preellyInfo.conditions}
         initialComment={preellyInfo.comment}
@@ -616,6 +725,11 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
           setPreellyInfo({ conditions, comment });
           setPayPreelly(true);
           setPreellyModalOpen(false);
+        }}
+        onNotInterested={() => {
+          setPreellyModalOpen(false);
+          setPayPreelly(false);
+          setPreellyInfo({ conditions: [], comment: '' });
         }}
       />
 

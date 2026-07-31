@@ -17,7 +17,7 @@ import { LocationPayload, UserLocation } from '../../../../../types/profileEdit.
 import { resolveLocationCoordinates } from '../../../../../utils/resolveLocationCoordinates';
 import { AddressFieldInput } from './AddressFieldInput';
 import { AddressLabelChips } from './AddressLabelChips';
-import { AddressMapPickerModal } from './AddressMapPickerModal';
+import { AddressMapPickerScreen } from './AddressMapPickerModal';
 import { AddressMapPreview } from './AddressMapPreview';
 import { DEFAULT_ADDRESS_COORDINATES } from '../utils/locationDtoUtils';
 import { PE_COLORS, peStyles } from '../profileEditStyles';
@@ -40,7 +40,10 @@ const buildDetailLocation = (options: {
     return options.detailLocation.trim();
   }
 
-  return [options.city, options.building, options.apartment].map(part => part.trim()).filter(Boolean).join(', ');
+  return [options.city, options.building, options.apartment]
+    .map(part => part.trim())
+    .filter(Boolean)
+    .join(', ');
 };
 
 export const AddressFormModal = memo<Props>(({ visible, initial, saving, onClose, onSave }) => {
@@ -64,7 +67,9 @@ export const AddressFormModal = memo<Props>(({ visible, initial, saving, onClose
     const resolved = resolveLocationCoordinates({
       latitude: initial?.latitude,
       longitude: initial?.longitude,
-      locationHint: [initial?.city, initial?.building, initial?.detailLocation].filter(Boolean).join(', '),
+      locationHint: [initial?.city, initial?.building, initial?.detailLocation]
+        .filter(Boolean)
+        .join(', '),
     });
 
     const nextLabel = initial?.label ?? 'Home';
@@ -95,6 +100,22 @@ export const AddressFormModal = memo<Props>(({ visible, initial, saving, onClose
     setLatitude(nextLatitude);
     setLongitude(nextLongitude);
   }, []);
+
+  const openMapPicker = useCallback(() => {
+    setMapPickerVisible(true);
+  }, []);
+
+  const closeMapPicker = useCallback(() => {
+    setMapPickerVisible(false);
+  }, []);
+
+  const handleFormRequestClose = useCallback(() => {
+    if (mapPickerVisible) {
+      setMapPickerVisible(false);
+      return;
+    }
+    onClose();
+  }, [mapPickerVisible, onClose]);
 
   const canSubmit = useMemo(
     () => Boolean(label.trim() && city.trim() && building.trim()),
@@ -144,104 +165,113 @@ export const AddressFormModal = memo<Props>(({ visible, initial, saving, onClose
   };
 
   return (
-    <>
-      <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
-          <View style={peStyles.header}>
-            <Pressable onPress={onClose} style={peStyles.headerBtn} accessibilityLabel="Go back">
-              <Icon name="arrow-left" size={24} color={PE_COLORS.text} />
-            </Pressable>
-            <Text style={peStyles.headerTitle}>Location Details</Text>
-            <View style={peStyles.headerBtn} />
-          </View>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle={Platform.OS === 'ios' ? 'fullScreen' : 'pageSheet'}
+      onRequestClose={handleFormRequestClose}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
+        {mapPickerVisible ? (
+          <AddressMapPickerScreen
+            latitude={latitude}
+            longitude={longitude}
+            onClose={closeMapPicker}
+            onCoordinateChange={handleCoordinateChange}
+            onCityChange={setCity}
+            onBuildingChange={setBuilding}
+            onDetailLocationChange={setDetailLocation}
+          />
+        ) : (
+          <>
+            <View style={peStyles.header}>
+              <Pressable onPress={onClose} style={peStyles.headerBtn} accessibilityLabel="Go back">
+                <Icon name="arrow-left" size={24} color={PE_COLORS.text} />
+              </Pressable>
+              <Text style={peStyles.headerTitle}>Location Details</Text>
+              <View style={peStyles.headerBtn} />
+            </View>
 
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
-            <ScrollView
-              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}>
-              <AddressMapPreview
-                latitude={latitude}
-                longitude={longitude}
-                onShowMap={() => setMapPickerVisible(true)}
-              />
-
-              <AddressFieldInput
-                value={city}
-                onChangeText={setCity}
-                placeholder="City or area (e.g. Business Bay, Dubai)"
-                error={fieldErrors.city}
-              />
-              <AddressFieldInput
-                value={building}
-                onChangeText={setBuilding}
-                placeholder="Building or street name"
-                error={fieldErrors.building}
-              />
-              <AddressFieldInput
-                value={apartment}
-                onChangeText={setApartment}
-                placeholder="Enter Apartment or Villa Number"
-              />
-
-              <AddressLabelChips
-                value={label}
-                onChange={setLabel}
-                customLabel={customLabel}
-                onCustomLabelChange={setCustomLabel}
-                showCustomInput={showCustomLabelInput}
-                onShowCustomInput={() => setShowCustomLabelInput(true)}
-              />
-
-              <View style={peStyles.defaultToggleRow}>
-                <Switch
-                  value={isDefault}
-                  onValueChange={setIsDefault}
-                  trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                  thumbColor={isDefault ? PE_COLORS.primary : '#F9FAFB'}
-                  accessibilityLabel="Set as default location"
+            <KeyboardAvoidingView
+              style={{ flex: 1 }}
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+            >
+              <ScrollView
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <AddressMapPreview
+                  latitude={latitude}
+                  longitude={longitude}
+                  onShowMap={openMapPicker}
                 />
-                <Text style={peStyles.radioLabel}>Set as default</Text>
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
 
-          <View style={[peStyles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-            <Pressable
-              style={[
-                peStyles.submitBtn,
-                saving || !canSubmit ? peStyles.submitBtnDisabled : null,
-              ]}
-              onPress={submit}
-              disabled={saving || !canSubmit}
-              accessibilityRole="button"
-              accessibilityLabel={isEditing ? 'Update location' : 'Save location'}>
-              {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={peStyles.submitText}>
-                  {isEditing ? 'Update Location' : 'Save Location'}
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        </SafeAreaView>
-      </Modal>
+                <AddressFieldInput
+                  value={city}
+                  onChangeText={setCity}
+                  placeholder="City or area (e.g. Business Bay, Dubai)"
+                  error={fieldErrors.city}
+                />
+                <AddressFieldInput
+                  value={building}
+                  onChangeText={setBuilding}
+                  placeholder="Building or street name"
+                  error={fieldErrors.building}
+                />
+                <AddressFieldInput
+                  value={apartment}
+                  onChangeText={setApartment}
+                  placeholder="Enter Apartment or Villa Number"
+                />
 
-      <AddressMapPickerModal
-        visible={mapPickerVisible}
-        latitude={latitude}
-        longitude={longitude}
-        onClose={() => setMapPickerVisible(false)}
-        onCoordinateChange={handleCoordinateChange}
-        onCityChange={setCity}
-        onBuildingChange={setBuilding}
-        onDetailLocationChange={setDetailLocation}
-      />
-    </>
+                <AddressLabelChips
+                  value={label}
+                  onChange={setLabel}
+                  customLabel={customLabel}
+                  onCustomLabelChange={setCustomLabel}
+                  showCustomInput={showCustomLabelInput}
+                  onShowCustomInput={() => setShowCustomLabelInput(true)}
+                />
+
+                <View style={peStyles.defaultToggleRow}>
+                  <Switch
+                    value={isDefault}
+                    onValueChange={setIsDefault}
+                    trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                    thumbColor={isDefault ? PE_COLORS.primary : '#F9FAFB'}
+                    accessibilityLabel="Set as default location"
+                  />
+                  <Text style={peStyles.radioLabel}>Set as default</Text>
+                </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
+
+            <View style={[peStyles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+              <Pressable
+                style={[
+                  peStyles.submitBtn,
+                  saving || !canSubmit ? peStyles.submitBtnDisabled : null,
+                ]}
+                onPress={submit}
+                disabled={saving || !canSubmit}
+                accessibilityRole="button"
+                accessibilityLabel={isEditing ? 'Update location' : 'Save location'}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={peStyles.submitText}>
+                    {isEditing ? 'Update Location' : 'Save Location'}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </>
+        )}
+      </SafeAreaView>
+    </Modal>
   );
 });
 

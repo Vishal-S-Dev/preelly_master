@@ -4,7 +4,28 @@ import { STORAGE_KEYS } from '../../constants/appConstants';
 import { storage } from '../../utils/storage';
 import { attachCallSignalingListeners } from './callSignaling';
 
-const SOCKET_BASE = ENV.API_BASE_URL.replace(/\/api\/?$/i, '');
+/**
+ * Match web `resolveSocketTarget`:
+ * API base `https://beta.preelly.xyz/preelly-api` → origin + path `/preelly-api/socket.io`
+ * Local `http://host:8029` (no subpath) → `/socket.io`
+ *
+ * Passing `/preelly-api` in the io() URL makes Socket.IO treat it as a namespace
+ * and still hit `/socket.io` at the host root — which nginx does not forward.
+ */
+function resolveSocketTarget(apiBaseUrl: string): { url: string; path: string } {
+  try {
+    const u = new URL(apiBaseUrl);
+    const base = u.pathname.replace(/\/+$/, '').replace(/\/api$/i, '');
+    return {
+      url: u.origin,
+      path: `${base || ''}/socket.io`.replace(/\/{2,}/g, '/') || '/socket.io',
+    };
+  } catch {
+    return { url: apiBaseUrl.replace(/\/preelly-api\/?$/i, ''), path: '/socket.io' };
+  }
+}
+
+const SOCKET_TARGET = resolveSocketTarget(ENV.API_BASE_URL);
 
 let socket: Socket | null = null;
 let pendingUserId: string | null = null;
@@ -47,7 +68,20 @@ function wireSocketLifecycle(sock: Socket): void {
   sock.off('connect', rejoin);
   sock.off('reconnect', rejoin);
   sock.on('connect', rejoin);
-  sock.on('reconnect', rejoin);
+
+  if (__DEV__) {
+    sock.on('connect_error', (error: Error) => {
+      console.warn(
+        '[ChatSocket] connect_error',
+        error.message,
+        SOCKET_TARGET.url,
+        SOCKET_TARGET.path,
+      );
+    });
+    sock.on('connect', () => {
+      console.log('[ChatSocket] connected', sock.id, SOCKET_TARGET.url, SOCKET_TARGET.path);
+    });
+  }
 }
 
 function waitForConnect(sock: Socket, timeoutMs = 15000): Promise<void> {
@@ -72,8 +106,20 @@ export async function getChatSocket(): Promise<Socket> {
   const tokenChanged = token !== lastAuthToken;
 
   if (!socket) {
-    socket = io(SOCKET_BASE, {
-      transports: ['websocket', 'polling'],
+    if (__DEV__) {
+      console.log(
+        '[ChatSocket] connecting to',
+        SOCKET_TARGET.url,
+        'path=',
+        SOCKET_TARGET.path,
+      );
+    }
+    socket = io(SOCKET_TARGET.url, {
+      // Same as web: mount under /preelly-api/socket.io on beta.
+      path: SOCKET_TARGET.path,
+      // Polling first — works when WS upgrade is blocked by proxies.
+      transports: ['polling', 'websocket'],
+      upgrade: true,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: Infinity,
@@ -131,10 +177,26 @@ export function disconnectChatSocket(): void {
   lastAuthToken = null;
 }
 
-export function joinChatRoom(threadId: string): void {
-  socket?.emit('join-room', `chat-${threadId}`);
+export async function joinChatRoom(threadId: string): Promise<void> {
+  const id = String(threadId || '').trim();
+  if (!id) {
+    return;
+  }
+  const sock = await getChatSocket();
+  sock.emit('join-room', `chat-${id}`);
 }
 
 export function leaveChatRoom(threadId: string): void {
-  socket?.emit('leave-room', `chat-${threadId}`);
+  const id = String(threadId || '').trim();
+  if (!id) {
+    return;
+  }
+  socket?.emit('leave-room', `chat-${id}`);
+}
+
+/** Compare chat ids from socket payloads (ObjectId / string) with route threadId. */
+export function socketChatIdMatches(chatId: unknown, threadId: string): boolean {
+  const a = normalizeSocketUserId(chatId);
+  const b = String(threadId || '').trim();
+  return Boolean(a && b && a === b);
 }

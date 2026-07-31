@@ -6,7 +6,8 @@ import {
 } from '../redux/slices/presenceSlice';
 import { useAppSelector } from './useRedux';
 
-export type AvatarDotTone = 'green' | 'none';
+/** green = online/active, red = attention (unread while offline), none = no badge */
+export type AvatarDotTone = 'green' | 'red' | 'none';
 
 export function useContactPresence(
   contactUserId?: string | null,
@@ -22,7 +23,7 @@ export function useContactPresence(
   return useMemo(() => {
     if (options?.alwaysOnline) {
       return {
-        dot: 'green',
+        dot: 'green' as const,
         statusText: options.hasUnread
           ? ''
           : formatPresenceStatus({ isOnline: true, updatedAt: options.updatedAt }),
@@ -30,13 +31,23 @@ export function useContactPresence(
     }
 
     const online = Boolean(contactUserId && isOnline);
+    const hasUnread = Boolean(options?.hasUnread);
+
+    let dot: AvatarDotTone = 'none';
+    if (online) {
+      dot = 'green';
+    } else if (hasUnread) {
+      // Reference: unread rows show a red status pip on the contact avatar
+      dot = 'red';
+    }
+
     return {
-      dot: online ? 'green' : 'none',
+      dot,
       statusText: formatPresenceStatus({
         isOnline: online,
         lastSeen,
         updatedAt: options?.updatedAt,
-        hasUnread: options?.hasUnread,
+        hasUnread,
       }),
     };
   }, [

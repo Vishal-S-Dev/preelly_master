@@ -17,7 +17,7 @@ interface Props {
   styles: CreatePostStyles;
 }
 
-const CATEGORY_IMAGE_SIZE = 30;
+const CATEGORY_IMAGE_SIZE = 20;
 
 export const CategoryGridCard = memo<Props>(({ category, index, selected, onPress, styles }) => {
   const imageUri = useMemo(() => resolveCategoryImageUrl(category), [category]);
@@ -56,7 +56,7 @@ export const CategoryGridCard = memo<Props>(({ category, index, selected, onPres
           style={{
             width: CATEGORY_IMAGE_SIZE,
             height: CATEGORY_IMAGE_SIZE,
-            borderRadius: 8,
+            borderRadius: 0,
           }}
           resizeMode="contain"
           resizeMethod="resize"

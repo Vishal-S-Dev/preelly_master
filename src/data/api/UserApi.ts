@@ -191,4 +191,17 @@ export const UserApi = {
     );
     return unwrap(data);
   },
+
+  async blockUser(userId: string): Promise<{ blocked: boolean; message: string }> {
+    const { data } = await httpClient.post<{ blocked?: boolean; message?: string }>(
+      `/api/user/${userId}/block`,
+      undefined,
+      { baseURL: API_BASE },
+    );
+    const body = unwrap(data);
+    return {
+      blocked: Boolean(body?.blocked),
+      message: typeof body?.message === 'string' ? body.message : body?.blocked ? 'User blocked' : 'User unblocked',
+    };
+  },
 };

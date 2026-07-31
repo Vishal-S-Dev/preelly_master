@@ -11,7 +11,7 @@ export const QV_COLORS = {
   subtitle: '#6B7280',
   priceBg: '#0026FF',
   priceText: '#FFFFFF',
-  statPillBg: '#F3F4F6',
+  statPillBg: '#FFFFFF',
   statText: '#374151',
   availableBg: '#22C55E',
   availableText: '#FFFFFF',
@@ -91,6 +91,15 @@ export const qvStyles = StyleSheet.create({
     paddingHorizontal: wp('2.8%'),
     paddingVertical: hp('0.7%'),
     gap: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 3 },
+    }),
   },
   statPillText: {
     fontSize: wp('3.1%'),
@@ -105,6 +114,15 @@ export const qvStyles = StyleSheet.create({
     backgroundColor: QV_COLORS.statPillBg,
     justifyContent: 'center',
     alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 3 },
+    }),
   },
   headerRow: {
     flexDirection: 'row',

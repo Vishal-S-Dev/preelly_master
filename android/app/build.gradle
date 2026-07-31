@@ -86,6 +86,8 @@ android {
         versionCode 1
         versionName "1.0"
         resValue "string", "build_config_package", "com.preelly"
+        // Injected from .env via react-native-config (dotenv.gradle). Required for Google Map tiles.
+        resValue "string", "google_maps_api_key", (project.env.get("GOOGLE_MAPS_API_KEY") ?: "")
     }
     signingConfigs {
         debug {

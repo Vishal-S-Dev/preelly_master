@@ -164,6 +164,28 @@ export const verifyOtpStyles = StyleSheet.create({
     fontWeight: '700',
     color: OTP_COLORS.primary,
   },
+  alreadyRegisteredBanner: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: OTP_RADIUS.box,
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1.4%'),
+    marginBottom: OTP_SPACING.md,
+  },
+  alreadyRegisteredText: {
+    fontSize: wp('3.4%'),
+    lineHeight: wp('5%'),
+    color: '#B91C1C',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  resendPrompt: {
+    fontSize: wp('3.5%'),
+    color: OTP_COLORS.resendMuted,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
 });
 
 export const otpBoxStyles = StyleSheet.create({

@@ -15,6 +15,10 @@ interface Props {
   onPressImage?: (index: number) => void;
 }
 
+const COLLAGE_WIDTH = 260;
+const COLLAGE_HEIGHT = 280;
+const GAP = 2;
+
 export const ChatImageAttachmentsGrid: React.FC<Props> = ({
   attachments,
   caption,
@@ -31,8 +35,74 @@ export const ChatImageAttachmentsGrid: React.FC<Props> = ({
     return null;
   }
 
-  const extra = Math.max(0, attachments.filter(isImageAttachment).length - 4);
-  const single = images.length === 1;
+  const totalImages = attachments.filter(isImageAttachment).length;
+  const extra = Math.max(0, totalImages - 4);
+  const count = images.length;
+
+  const renderCell = (
+    item: ChatMessageAttachment,
+    index: number,
+    cellStyle: object,
+    showExtra = false,
+  ) => {
+    const uri = resolveAttachmentUrl(item.url);
+    return (
+      <Pressable
+        key={`${item.url}_${index}`}
+        style={[styles.cell, cellStyle]}
+        onPress={() => onPressImage?.(index)}
+      >
+        <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+        {showExtra ? (
+          <View style={styles.moreOverlay}>
+            <Text style={styles.moreText}>+{extra}</Text>
+          </View>
+        ) : null}
+      </Pressable>
+    );
+  };
+
+  const renderCollage = () => {
+    if (count === 1) {
+      return (
+        <View style={[styles.grid, styles.gridSingle]}>
+          {renderCell(images[0], 0, styles.cellSingle)}
+        </View>
+      );
+    }
+
+    if (count === 2) {
+      return (
+        <View style={[styles.grid, styles.gridTwo]}>
+          {renderCell(images[0], 0, styles.cellHalf)}
+          {renderCell(images[1], 1, styles.cellHalf)}
+        </View>
+      );
+    }
+
+    // 3-panel mosaic (reference): left tall + right stacked pair
+    if (count === 3) {
+      return (
+        <View style={[styles.grid, styles.gridThree]}>
+          {renderCell(images[0], 0, styles.cellPrimary)}
+          <View style={styles.rightColumn}>
+            {renderCell(images[1], 1, styles.cellSecondary)}
+            {renderCell(images[2], 2, styles.cellSecondary)}
+          </View>
+        </View>
+      );
+    }
+
+    // 4 images: 2x2
+    return (
+      <View style={[styles.grid, styles.gridFour]}>
+        {renderCell(images[0], 0, styles.cellQuarter)}
+        {renderCell(images[1], 1, styles.cellQuarter)}
+        {renderCell(images[2], 2, styles.cellQuarter)}
+        {renderCell(images[3], 3, styles.cellQuarter, extra > 0)}
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.wrap, dimmed ? styles.dimmed : null]}>
@@ -46,37 +116,14 @@ export const ChatImageAttachmentsGrid: React.FC<Props> = ({
           {caption}
         </Text>
       ) : null}
-      <View style={[styles.grid, single ? styles.gridSingle : styles.gridMulti]}>
-        {images.map((item, index) => {
-          const uri = resolveAttachmentUrl(item.url);
-          const isLastWithExtra = index === images.length - 1 && extra > 0;
-          return (
-            <Pressable
-              key={`${item.url}_${index}`}
-              style={[
-                styles.cell,
-                single ? styles.cellSingle : null,
-                images.length === 3 && index === 0 ? styles.cellTall : null,
-              ]}
-              onPress={() => onPressImage?.(index)}
-            >
-              <Image source={{ uri }} style={styles.image} resizeMode="cover" />
-              {isLastWithExtra ? (
-                <View style={styles.moreOverlay}>
-                  <Text style={styles.moreText}>+{extra}</Text>
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        })}
-      </View>
+      {renderCollage()}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   wrap: {
-    maxWidth: 244,
+    maxWidth: COLLAGE_WIDTH,
   },
   dimmed: {
     opacity: 0.72,
@@ -87,30 +134,57 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   grid: {
+    width: COLLAGE_WIDTH,
     overflow: 'hidden',
     borderRadius: 18,
-    gap: 2,
+    backgroundColor: '#FFFFFF',
   },
   gridSingle: {
-    width: 244,
+    height: 220,
   },
-  gridMulti: {
-    width: 244,
+  gridTwo: {
+    height: COLLAGE_HEIGHT,
+    flexDirection: 'row',
+    gap: GAP,
+  },
+  gridThree: {
+    height: COLLAGE_HEIGHT,
+    flexDirection: 'row',
+    gap: GAP,
+  },
+  gridFour: {
+    height: COLLAGE_HEIGHT,
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: GAP,
+  },
+  rightColumn: {
+    flex: 0.4,
+    gap: GAP,
   },
   cell: {
-    width: '49.5%',
-    height: 120,
     backgroundColor: '#E5E7EB',
     overflow: 'hidden',
   },
   cellSingle: {
     width: '100%',
-    height: 220,
+    height: '100%',
   },
-  cellTall: {
-    height: 242,
+  cellHalf: {
+    flex: 1,
+    height: '100%',
+  },
+  cellPrimary: {
+    flex: 0.6,
+    height: '100%',
+  },
+  cellSecondary: {
+    flex: 1,
+    width: '100%',
+  },
+  cellQuarter: {
+    width: (COLLAGE_WIDTH - GAP) / 2,
+    height: (COLLAGE_HEIGHT - GAP) / 2,
   },
   image: {
     width: '100%',

@@ -7,5 +7,7 @@ export interface User {
   role: string;
   isVerified: boolean;
   isProfileComplete: boolean;
+  isEmailVerified?: boolean;
+  isPhoneVerified?: boolean;
   bio: string;
 }

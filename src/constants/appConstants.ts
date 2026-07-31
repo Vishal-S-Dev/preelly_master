@@ -24,7 +24,6 @@ export const API_ENDPOINTS = {
   USER_SAVED: '/user/saved',
   USER_LIKED: '/user/liked',
   DYNAMIC_FORM: '/api/v1/web/dynamic-form',
-  CATEGORIES_ROOTS: '/api/categories/roots',
   CATEGORIES: '/api/categories',
   PROPERTY_CATEGORIES: '/api/v1/web/categories/property-categories',
   CLASSIFIEDS_CATEGORIES: '/api/v1/classifieds/categories',
@@ -43,6 +42,8 @@ export const API_ENDPOINTS = {
   PAYMENT_TRANSACTIONS: '/api/payment/transaction',
   CART: '/api/cart',
   CART_ADD_FROM_OFFER: '/api/cart/from-offer',
+  CART_PREELLY_CONDITIONS: '/api/cart/preelly-conditions',
+  CART_PREELLY_NOT_INTERESTED: '/api/cart/preelly-not-interested',
   CHECKOUT_SERVICES: '/api/v1/web/checkout-services',
   BUYER_COUPON_VALIDATE: '/api/buyer-coupon/validate',
 } as const;

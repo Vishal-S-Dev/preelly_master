@@ -28,9 +28,13 @@ const prodWebBaseUrl = normalize(readEnv('PREELLY_WEB_API_BASE_URL_PROD'));
 export const ENV = {
   API_BASE_URL:
     (__DEV__ ? devBaseUrl : prodBaseUrl) ??
-    (__DEV__ ? 'http://117.254.196.100:8029' : 'http://117.254.196.100:8029'),
+    (__DEV__
+      ? 'https://beta.preelly.xyz/preelly-api'
+      : 'https://beta.preelly.xyz/preelly-api'),
   WEB_API_BASE_URL:
     (__DEV__ ? devWebBaseUrl : prodWebBaseUrl) ??
-    (__DEV__ ? 'http://117.254.196.100:8029' : 'http://117.254.196.100:8029'),
+    (__DEV__
+      ? 'https://beta.preelly.xyz/preelly-api'
+      : 'https://beta.preelly.xyz/preelly-api'),
   API_TIMEOUT_MS: 12000,
 } as const;

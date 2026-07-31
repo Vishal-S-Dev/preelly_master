@@ -8,6 +8,7 @@ declare module 'react-native-config' {
     CCA_ACCESS_CODE?: string;
     CCA_WORKING_KEY?: string;
     CCA_DEV_FALLBACK_ENABLED?: string;
+    GOOGLE_MAPS_API_KEY?: string;
   }
 
   export const Config: NativeConfig;

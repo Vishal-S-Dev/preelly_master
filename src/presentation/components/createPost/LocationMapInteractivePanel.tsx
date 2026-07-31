@@ -12,6 +12,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { MapController, MapCoordinate, MapRegion } from '../../../types/mapRegion.types';
 import { buildStaticMapPreviewUrl } from '../../../utils/staticMapUrl';
+import { resolveGoogleMapsProvider } from '../../../utils/mapProvider';
 import { getMapsNativeModule } from '../../../utils/mapsNativeModule';
 import { AppTheme } from '../../theme/colors';
 import { getLocationMapPickerStyles } from './locationMapPickerStyles';
@@ -51,6 +52,7 @@ export const LocationMapInteractivePanel = memo<Props>(
     const mapStyles = useMemo(() => getLocationMapPickerStyles(theme), [theme]);
     const nativeMapRef = useRef<any>(null);
     const mapsModule = mapsLinked ? getMapsNativeModule() : null;
+    const googleProvider = useMemo(() => resolveGoogleMapsProvider(), []);
 
     useEffect(() => {
       if (!mapsModule) {
@@ -93,13 +95,12 @@ export const LocationMapInteractivePanel = memo<Props>(
       }
 
       const MapView = mapsModule.default;
-      const { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } = mapsModule;
-      const mapProvider = Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT;
+      const { Marker } = mapsModule;
 
       return (
         <MapView
           ref={nativeMapRef}
-          provider={mapProvider}
+          provider={googleProvider}
           style={mapStyles.map}
           initialRegion={region}
           onRegionChangeComplete={onRegionChangeComplete}
@@ -109,7 +110,7 @@ export const LocationMapInteractivePanel = memo<Props>(
           showsCompass={false}
           toolbarEnabled={false}
           rotateEnabled
-          pitchEnabled
+          pitchEnabled={false}
           scrollEnabled
           zoomEnabled
           loadingEnabled
@@ -119,6 +120,7 @@ export const LocationMapInteractivePanel = memo<Props>(
             coordinate={markerCoordinate}
             draggable
             pinColor="#EF4444"
+            tracksViewChanges={false}
             onDragEnd={event => onMarkerDragEnd(event.nativeEvent.coordinate)}
           />
         </MapView>

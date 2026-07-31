@@ -1,5 +1,8 @@
 import { AuthRepository } from '../repository/AuthRepository';
-import { SendOtpRequestDTO } from '../../data/dto/authDto';
+import {
+  SendOtpRequestDTO,
+  VerifyOtpRequestDto,
+} from '../../data/dto/authDto';
 
 export class SendOtpUseCase {
   constructor(private readonly repo: AuthRepository) {}
@@ -10,7 +13,11 @@ export class SendOtpUseCase {
 
 export class VerifyOtpUseCase {
   constructor(private readonly repo: AuthRepository) {}
-  execute(email: string, otp: string) {
-    return this.repo.verifyOtp(email.trim().toLowerCase(), otp.trim());
+  execute(request: VerifyOtpRequestDto) {
+    return this.repo.verifyOtp({
+      ...request,
+      otp: request.otp.trim(),
+      email: request.email?.trim().toLowerCase(),
+    });
   }
 }

@@ -30,9 +30,10 @@ const normalizeCategories = (payload: CategoriesListResponse | Category[]): Cate
 };
 
 export const CategoryApi = {
+  /** Root categories: GET /api/categories?parent_id= (empty parent_id) */
   async getRootCategories(): Promise<Category[]> {
     const { data } = await httpClient.get<CategoriesListResponse | Category[]>(
-      API_ENDPOINTS.CATEGORIES_ROOTS,
+      `${API_ENDPOINTS.CATEGORIES}?parent_id=`,
     );
     return normalizeCategories(data);
   },
@@ -40,7 +41,7 @@ export const CategoryApi = {
   async getSubcategories(parentId: string): Promise<Category[]> {
     const { data } = await httpClient.get<CategoriesListResponse | Category[]>(
       API_ENDPOINTS.CATEGORIES,
-      { params: { parentId } },
+      { params: { parent_id: parentId } },
     );
     return normalizeCategories(data);
   },

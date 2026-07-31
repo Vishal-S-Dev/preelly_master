@@ -11,6 +11,8 @@ export interface Category {
   order?: number;
   sortOrder?: number;
   parentId?: string | null;
+  /** 1 = has nested children (show another subcategory page); 0 = leaf → media step */
+  isChild?: number | boolean | string;
   level?: number;
   isActive?: boolean;
   isDeleted?: boolean;

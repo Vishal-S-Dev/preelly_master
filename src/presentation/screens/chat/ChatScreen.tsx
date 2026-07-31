@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Feather from 'react-native-vector-icons/Feather';
 import { resolveMediaUrl } from '../../../utils/mediaUrl';
 import {
   DirectChatAvatar,
@@ -26,7 +27,11 @@ import { useChatPresence } from '../../hooks/useChatPresence';
 import { useContactPresence } from '../../hooks/useContactPresence';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { fetchChats } from '../../redux/slices/chatSlice';
-import { getChatScreenStyles, ChatScreenStyles } from './chatScreenStyles';
+import {
+  CHAT_ACCENT,
+  getChatScreenStyles,
+  ChatScreenStyles,
+} from './chatScreenStyles';
 import { RootStackParamList } from '../../navigation/types';
 import {
   ChatFilter,
@@ -39,7 +44,7 @@ import {
 type ChatNav = NativeStackNavigationProp<RootStackParamList>;
 
 const VerifiedBadge: React.FC = () => (
-  <Icon name="check-decagram" size={15} color="#2563EB" style={{ marginLeft: 2 }} />
+  <Icon name="check-decagram" size={15} color={CHAT_ACCENT.verifiedBlue} />
 );
 
 const ProductChatRow: React.FC<{
@@ -327,9 +332,23 @@ export const ChatScreen: React.FC = () => {
     theme.primary,
   ]);
 
+  const onHeaderBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
   return (
     <View style={[styles.screen, { paddingTop: headerPaddingTop }]}>
       <View style={styles.header}>
+        <Pressable
+          hitSlop={12}
+          style={styles.headerBackBtn}
+          onPress={onHeaderBack}
+          accessibilityRole="button"
+          accessibilityLabel="Go back">
+          <Feather name="chevron-left" size={28} color={CHAT_ACCENT.composeNavy} />
+        </Pressable>
         <View style={styles.headerCenter}>
           <View style={styles.headerAvatarWrap}>
             <Image source={{ uri: headerAvatarUri }} style={styles.headerAvatar} />
@@ -347,8 +366,12 @@ export const ChatScreen: React.FC = () => {
             <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
           </View>
         </View>
-        <Pressable hitSlop={12} style={styles.headerIconBtn}>
-          <Icon name="square-edit-outline" size={24} color={theme.text} />
+        <Pressable
+          hitSlop={12}
+          style={styles.headerIconBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Compose message">
+          <Icon name="square-edit-outline" size={24} color={CHAT_ACCENT.composeNavy} />
         </Pressable>
       </View>
 

@@ -5,22 +5,26 @@ import {
 } from 'react-native-responsive-screen';
 
 export const AUTH_COLORS = {
-  gradientStart: '#1E00FF',
+  gradientStart: '#1A00FF',
+  gradientMid: '#6B1BFF',
   gradientEnd: '#C400FF',
   cardBg: '#FFFFFF',
   heading: '#0B1534',
   subtitle: '#5B6F8E',
   sectionTitle: '#111827',
   inputBg: '#F4F6FB',
-  inputBorder: '#D8E0EF',
+  inputBorder: '#E8EDF5',
   inputBorderFocus: '#1E4DFF',
   placeholder: '#9AA8BC',
-  primaryButton: '#0026FF',
+  primaryButton: '#0044FF',
+  primaryButtonEnd: '#1E4DFF',
   dividerText: '#7A8DA8',
   dividerLine: '#E2E8F0',
-  guestText: '#6B7C94',
+  guestText: '#0044FF',
   error: '#DC2626',
   icon: '#8B9AB5',
+  toggleTrack: '#F0F3F9',
+  toggleInactiveText: '#4A5C78',
 };
 
 export const AUTH_SPACING = {
@@ -32,10 +36,10 @@ export const AUTH_SPACING = {
 };
 
 export const AUTH_RADIUS = {
-  input: wp('3.5%'),
-  card: wp('7%'),
-  button: wp('12%'),
-  social: wp('12%'),
+  input: wp('3.2%'),
+  card: wp('9%'),
+  button: wp('14%'),
+  social: wp('3.5%'),
 };
 
 export const loginScreenStyles = StyleSheet.create({
@@ -44,47 +48,43 @@ export const loginScreenStyles = StyleSheet.create({
     backgroundColor: AUTH_COLORS.gradientEnd,
   },
   headerSection: {
-    flex: 0.25,
-
-    minHeight: hp('28%'),
-    maxHeight: hp('46%'),
+    flex: 0.34,
+    minHeight: hp('30%'),
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: wp('0%'),
+    paddingBottom: hp('2%'),
   },
   logoWrap: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   slogan: {
-    position: 'absolute',
-    top: 1,
-    bottom: 0,
-    flex: 1,
     alignSelf: 'center',
   },
   cardSection: {
-    flex: 0.75,
-    minHeight: hp('52%'),
-    marginTop: -10,
+    flex: 0.66,
+    minHeight: hp('54%'),
+    marginTop: -hp('2.5%'),
   },
   card: {
     flex: 1,
     backgroundColor: AUTH_COLORS.cardBg,
     borderTopLeftRadius: AUTH_RADIUS.card,
     borderTopRightRadius: AUTH_RADIUS.card,
-    paddingHorizontal: wp('6%'),
-    paddingTop: hp('3%'),
+    paddingHorizontal: wp('6.5%'),
+    paddingTop: hp('3.5%'),
     paddingBottom: hp('2%'),
     ...Platform.select({
       ios: {
         shadowColor: '#0B1534',
-        shadowOffset: { width: 0, height: -6 },
-        shadowOpacity: 0.12,
-        shadowRadius: 18,
+        shadowOffset: { width: 0, height: -8 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
       },
       android: {
-        elevation: 16,
+        elevation: 18,
       },
     }),
   },
@@ -93,15 +93,17 @@ export const loginScreenStyles = StyleSheet.create({
     paddingBottom: hp('3%'),
   },
   welcomeTitle: {
-    fontSize: wp('7.5%'),
+    fontSize: wp('8%'),
     fontWeight: '800',
     color: AUTH_COLORS.heading,
-    lineHeight: wp('9%'),
+    lineHeight: wp('9.5%'),
+    letterSpacing: -0.3,
   },
   welcomeSubtitle: {
-    marginTop: AUTH_SPACING.xs,
-    fontSize: wp('3.6%'),
-    lineHeight: wp('5%'),
+    marginTop: hp('0.8%'),
+    marginBottom: hp('2.4%'),
+    fontSize: wp('3.7%'),
+    lineHeight: wp('5.2%'),
     color: AUTH_COLORS.subtitle,
     fontWeight: '500',
   },
@@ -119,8 +121,8 @@ export const loginScreenStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AUTH_COLORS.inputBorder,
     borderRadius: AUTH_RADIUS.input,
-    paddingHorizontal: wp('3.5%'),
-    minHeight: hp('6.9%'),
+    paddingHorizontal: wp('3.8%'),
+    minHeight: hp('6.8%'),
     marginBottom: AUTH_SPACING.md,
   },
   inputRowFocused: {
@@ -171,32 +173,33 @@ export const loginScreenStyles = StyleSheet.create({
     color: AUTH_COLORS.primaryButton,
   },
   primaryButtonWrap: {
-    marginTop: AUTH_SPACING.sm,
+    marginTop: hp('0.6%'),
     borderRadius: AUTH_RADIUS.button,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: AUTH_COLORS.primaryButton,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.28,
+        shadowRadius: 14,
       },
       android: {
-        elevation: 6,
+        elevation: 8,
       },
     }),
   },
   primaryButton: {
     borderRadius: AUTH_RADIUS.button,
-    minHeight: hp('6.4%'),
+    minHeight: hp('6.6%'),
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: wp('4.2%'),
-    fontWeight: '800',
+    fontSize: wp('4.3%'),
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   errorText: {
     marginTop: AUTH_SPACING.sm,
@@ -209,27 +212,28 @@ export const loginScreenStyles = StyleSheet.create({
   socialDividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: AUTH_SPACING.lg,
-    marginBottom: AUTH_SPACING.lg,
+    marginTop: hp('3%'),
+    marginBottom: hp('2.4%'),
   },
   socialDividerText: {
     marginHorizontal: wp('2.5%'),
-    fontSize: wp('3.2%'),
+    fontSize: wp('3.15%'),
     color: AUTH_COLORS.dividerText,
     fontWeight: '500',
     textAlign: 'center',
     flexShrink: 1,
+    lineHeight: wp('4.4%'),
   },
   socialRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: wp('6%'),
-    marginBottom: AUTH_SPACING.lg,
+    gap: wp('5%'),
+    marginBottom: hp('2.8%'),
   },
   socialButton: {
-    width: wp('14%'),
-    height: wp('14%'),
+    width: wp('15%'),
+    height: wp('15%'),
     borderRadius: AUTH_RADIUS.social,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
@@ -239,14 +243,17 @@ export const loginScreenStyles = StyleSheet.create({
     ...Platform.select({
       ios: {
         shadowColor: '#0B1534',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
         shadowRadius: 8,
       },
       android: {
-        elevation: 4,
+        elevation: 3,
       },
     }),
+  },
+  socialButtonDisabled: {
+    opacity: 0.6,
   },
   guestButton: {
     alignSelf: 'center',
@@ -256,9 +263,12 @@ export const loginScreenStyles = StyleSheet.create({
     paddingHorizontal: wp('2%'),
   },
   guestText: {
-    fontSize: wp('3.6%'),
-    fontWeight: '600',
+    fontSize: wp('3.7%'),
+    fontWeight: '700',
     color: AUTH_COLORS.guestText,
+  },
+  guestArrow: {
+    marginLeft: 4,
   },
   registerText: {
     fontSize: wp('3.9%'),
@@ -287,9 +297,8 @@ export const loginScreenStyles = StyleSheet.create({
     marginBottom: AUTH_SPACING.md,
   },
   flag: {
-    fontSize: 18,
+    fontSize: wp('5.2%'),
   },
-
   code: {
     marginLeft: 5,
     fontWeight: '500',
@@ -305,5 +314,75 @@ export const loginScreenStyles = StyleSheet.create({
     paddingHorizontal: wp('3.5%'),
     minHeight: hp('6.9%'),
     marginBottom: AUTH_SPACING.md,
+  },
+  channelToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: AUTH_COLORS.toggleTrack,
+    borderRadius: AUTH_RADIUS.input,
+    padding: 4,
+    marginBottom: hp('2%'),
+  },
+  channelToggleButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('1.45%'),
+    borderRadius: AUTH_RADIUS.input - 2,
+  },
+  channelToggleButtonActive: {
+    backgroundColor: AUTH_COLORS.primaryButton,
+    ...Platform.select({
+      ios: {
+        shadowColor: AUTH_COLORS.primaryButton,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  channelToggleText: {
+    fontSize: wp('3.65%'),
+    fontWeight: '600',
+    color: AUTH_COLORS.toggleInactiveText,
+  },
+  channelToggleTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  alreadyRegisteredBanner: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: AUTH_RADIUS.input,
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1.4%'),
+    marginBottom: AUTH_SPACING.md,
+  },
+  alreadyRegisteredText: {
+    fontSize: wp('3.4%'),
+    lineHeight: wp('5%'),
+    color: '#B91C1C',
+    fontWeight: '500',
+  },
+  phoneInputDivider: {
+    fontSize: wp('3.8%'),
+    color: AUTH_COLORS.placeholder,
+    marginRight: wp('1.5%'),
+    fontWeight: '500',
+  },
+  inlineCountryPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: wp('2%'),
+    marginRight: wp('0.5%'),
+  },
+  inlineCountryCode: {
+    marginLeft: 4,
+    fontWeight: '600',
+    color: AUTH_COLORS.heading,
+    fontSize: wp('3.8%'),
   },
 });

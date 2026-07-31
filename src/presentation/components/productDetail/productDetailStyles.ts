@@ -45,7 +45,7 @@ export const pdStyles = StyleSheet.create({
     marginTop: hp('1.4%'),
     borderRadius: 16,
     padding: wp('1.5%'),
-    ...Platform.select({
+    /*...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOpacity: 0.06,
@@ -53,7 +53,7 @@ export const pdStyles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
       },
       android: { elevation: 3 },
-    }),
+    }),*/
   },
   sectionTitle: {
     fontSize: wp('4.6%'),
@@ -127,10 +127,20 @@ export const pdStyles = StyleSheet.create({
   availableBadge: {
     backgroundColor: '#1EB700',
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+    flexGrow: 0,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  availableText: { color: '#FFF', fontWeight: '700', fontSize: wp('3.2%') },
+  availableText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: wp('3.2%'),
+    flexShrink: 0,
+  },
   productTitle: {
     fontSize: wp('4.6%'),
     fontWeight: '800',

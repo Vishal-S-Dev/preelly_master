@@ -110,4 +110,33 @@ export const ChatApi = {
   ): Promise<void> {
     await httpClient.post(`${chatByIdPath(chatId)}/call-event`, data);
   },
+
+  async toggleMute(chatId: string): Promise<{ muted: boolean; message: string }> {
+    const { data } = await httpClient.put<{ muted?: boolean; message?: string }>(
+      `${chatByIdPath(chatId)}/mute`,
+    );
+    return {
+      muted: Boolean(data?.muted),
+      message:
+        typeof data?.message === 'string'
+          ? data.message
+          : data?.muted
+            ? 'Notifications muted'
+            : 'Notifications unmuted',
+    };
+  },
+
+  async reportUser(
+    chatId: string,
+    payload: { reason: string; details?: string; reportedUserId?: string },
+  ): Promise<{ message: string; reportId?: string }> {
+    const { data } = await httpClient.post<{ message?: string; reportId?: string }>(
+      `${chatByIdPath(chatId)}/report`,
+      payload,
+    );
+    return {
+      message: typeof data?.message === 'string' ? data.message : 'Report submitted',
+      reportId: data?.reportId,
+    };
+  },
 };

@@ -28,6 +28,13 @@ end
 target 'Preelly' do
   config = use_native_modules!
 
+  # Google Maps on iOS (autolinking disabled in react-native.config.js to avoid
+  # installing the default Apple-only Maps subspec alongside Google).
+  # Fabric components are registered manually via PreellyDependencyProvider.
+  pod 'react-native-maps',
+      :path => '../node_modules/react-native-maps',
+      :subspecs => ['Google']
+
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.

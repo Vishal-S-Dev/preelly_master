@@ -5,21 +5,13 @@ export const getLocationMapPickerStyles = (theme: AppTheme) =>
   StyleSheet.create({
     wrapper: {
       marginTop: 24,
+      marginBottom: 8,
     },
     sectionTitle: {
       fontSize: 18,
       fontWeight: '700',
-      color: theme.text,
-      marginBottom: 12,
-    },
-    input: {
-      borderRadius: 12,
-      backgroundColor: theme.card,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      color: theme.text,
-      marginBottom: 10,
-      fontSize: 15,
+      color: '#1E2A5A',
+      marginBottom: 14,
     },
     card: {
       backgroundColor: theme.background,
@@ -30,11 +22,11 @@ export const getLocationMapPickerStyles = (theme: AppTheme) =>
       ...Platform.select({
         ios: {
           shadowColor: '#0F172A',
-          shadowOpacity: 0.08,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.06,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
         },
-        android: { elevation: 4 },
+        android: { elevation: 3 },
       }),
     },
     cardHeader: {
@@ -52,11 +44,11 @@ export const getLocationMapPickerStyles = (theme: AppTheme) =>
       lineHeight: 22,
     },
     infoIconWrap: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: theme.text,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      borderWidth: 1.5,
+      borderColor: '#111827',
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 1,
@@ -65,7 +57,7 @@ export const getLocationMapPickerStyles = (theme: AppTheme) =>
       fontSize: 14,
       lineHeight: 20,
       color: theme.subText,
-      marginBottom: 16,
+      marginBottom: 14,
     },
     mapShell: {
       height: 220,
@@ -75,12 +67,18 @@ export const getLocationMapPickerStyles = (theme: AppTheme) =>
     },
     map: {
       ...StyleSheet.absoluteFill,
+      width: '100%',
+      height: '100%',
     },
     mapOverlay: {
       ...StyleSheet.absoluteFill,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'rgba(248,250,252,0.72)',
+    },
+    mapTapOverlay: {
+      ...StyleSheet.absoluteFill,
+      zIndex: 5,
     },
     currentLocationBtn: {
       position: 'absolute',
@@ -108,6 +106,51 @@ export const getLocationMapPickerStyles = (theme: AppTheme) =>
       lineHeight: 16,
       color: theme.subText,
     },
+    fieldBlock: {
+      marginTop: 16,
+    },
+    fieldLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#6B7280',
+      marginBottom: 8,
+    },
+    inputShell: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 14,
+      backgroundColor: '#F5F7FF',
+      borderWidth: 1,
+      borderColor: '#E4E9F7',
+      paddingHorizontal: 14,
+      minHeight: Platform.OS === 'ios' ? 52 : 54,
+    },
+    input: {
+      flex: 1,
+      color: theme.text,
+      fontSize: 15,
+      paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+    },
+    optionalText: {
+      marginLeft: 8,
+      fontSize: 13,
+      fontWeight: '500',
+      color: '#9CA3AF',
+    },
+    tipBox: {
+      marginTop: 18,
+      borderRadius: 14,
+      backgroundColor: '#EAF2FF',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    tipText: {
+      fontSize: 13,
+      lineHeight: 19,
+      color: '#1E3A8A',
+      fontWeight: '500',
+    },
+    // Legacy modal styles kept for LocationMapPickerModal / interactive panel
     modalRoot: {
       flex: 1,
       backgroundColor: theme.background,

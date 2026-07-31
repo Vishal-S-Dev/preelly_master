@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Preelly</string>
-    <string name="google_maps_api_key"></string>
+    <!-- google_maps_api_key is injected from .env (GOOGLE_MAPS_API_KEY) via android/app/build.gradle resValue -->
 </resources>

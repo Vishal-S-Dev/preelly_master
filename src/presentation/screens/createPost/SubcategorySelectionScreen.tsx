@@ -1,189 +1,135 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useCreatePostStore } from '../../../store/createPostStore';
-import { CreatePostStackParamList } from '../../../types/createPost.types';
-import { isClassifiedsCategory } from '../../../utils/isClassifiedsCategory';
-import { isPropertyCategory } from '../../../utils/isPropertyCategory';
-import { CreatePostHeader } from '../../components/createPost/StepIndicator';
+import React, { useCallback, useMemo } from 'react';
 import {
-  PropertySubcategoryAccordion,
-  PropertySubcategorySelection,
-} from '../../components/createPost/PropertySubcategoryAccordion';
+  FlatList,
+  ListRenderItem,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useCreatePostStore } from '../../../store/createPostStore';
+import { Category } from '../../../types/category.types';
+import { CreatePostStackParamList } from '../../../types/createPost.types';
+import { categoryHasChildren } from '../../../utils/categoryHasChildren';
+import { CreatePostHeader } from '../../components/createPost/StepIndicator';
 import { SubcategoryListSkeleton } from '../../components/createPost/SubcategoryListSkeleton';
-import { useClassifiedsCategories } from '../../hooks/useClassifiedsCategories';
 import { useCreatePostStyles } from '../../hooks/useCreatePostStyles';
-import { usePropertyCategories } from '../../hooks/usePropertyCategories';
 import { useSubcategories } from '../../hooks/useSubcategories';
+
+// NOTE: Property / classifieds nested accordion flows temporarily disabled.
+// Use unified /api/categories?parent_id= tree with isChild instead.
+// import { isClassifiedsCategory } from '../../../utils/isClassifiedsCategory';
+// import { isPropertyCategory } from '../../../utils/isPropertyCategory';
+// import {
+//   PropertySubcategoryAccordion,
+//   PropertySubcategorySelection,
+// } from '../../components/createPost/PropertySubcategoryAccordion';
+// import { useClassifiedsCategories } from '../../hooks/useClassifiedsCategories';
+// import { usePropertyCategories } from '../../hooks/usePropertyCategories';
 
 type Props = NativeStackScreenProps<CreatePostStackParamList, 'CreatePostSubcategory'>;
 
-export const SubcategorySelectionScreen: React.FC<Props> = ({ navigation }) => {
+export const SubcategorySelectionScreen: React.FC<Props> = ({ navigation, route }) => {
   const styles = useCreatePostStyles();
-  const { categoryId, categoryName, subcategoryId, setSubcategory, setPropertySubcategory } =
-    useCreatePostStore();
+  const { setSubcategory } = useCreatePostStore();
 
-  const isProperty = isPropertyCategory(categoryName);
-  const isClassifieds = isClassifiedsCategory(categoryName);
-  const isNestedCategory = isProperty || isClassifieds;
+  const parentId = route.params.parentId;
+  const headerTitle = route.params.title;
 
   const {
-    data: propertyCategories = [],
-    isLoading: isPropertyLoading,
-    isError: isPropertyError,
-    refetch: refetchProperty,
-  } = usePropertyCategories(isProperty);
+    data: items = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useSubcategories(parentId);
 
-  const {
-    data: classifiedsCategories = [],
-    isLoading: isClassifiedsLoading,
-    isError: isClassifiedsError,
-    refetch: refetchClassifieds,
-  } = useClassifiedsCategories(isClassifieds);
+  // --- Commented: property / classifieds special-case APIs ---
+  // const isProperty = isPropertyCategory(categoryName);
+  // const isClassifieds = isClassifiedsCategory(categoryName);
+  // const isNestedCategory = isProperty || isClassifieds;
+  // const { data: propertyCategories = [], ... } = usePropertyCategories(isProperty);
+  // const { data: classifiedsCategories = [], ... } = useClassifiedsCategories(isClassifieds);
 
-  const {
-    data: standardItems = [],
-    isLoading: isStandardLoading,
-    isError: isStandardError,
-    refetch: refetchStandard,
-  } = useSubcategories(isNestedCategory ? undefined : categoryId);
+  const onSelect = useCallback(
+    (item: Category) => {
+      if (categoryHasChildren(item)) {
+        // Nested level — same subcategory UI with this item as parent
+        navigation.push('CreatePostSubcategory', {
+          parentId: item._id,
+          title: item.name,
+        });
+        return;
+      }
 
-  const nestedCategories = isProperty ? propertyCategories : classifiedsCategories;
-  const isNestedLoading = isProperty ? isPropertyLoading : isClassifiedsLoading;
-  const isNestedError = isProperty ? isPropertyError : isClassifiedsError;
-  const refetchNested = isProperty ? refetchProperty : refetchClassifieds;
-  const nestedEmptyTitle = isProperty
-    ? 'No Property Categories Available'
-    : 'No Classifieds Categories Available';
-  const nestedErrorTitle = isProperty
-    ? 'Unable to load property categories'
-    : 'Unable to load classifieds categories';
-
-  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
-  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | undefined>(
-    subcategoryId,
-  );
-
-  const onSelectStandard = useCallback(
-    (id: string, name: string) => {
-      setSubcategory(id, name);
+      // Leaf — continue create-post media step
+      setSubcategory(item._id, item.name);
       navigation.navigate('CreatePostMediaStep');
     },
     [navigation, setSubcategory],
   );
 
-  const onToggleExpand = useCallback((parentId: string) => {
-    setExpandedCategoryId(prev => (prev === parentId ? null : parentId));
-  }, []);
-
-  const onSelectNestedSubcategory = useCallback(
-    (selection: PropertySubcategorySelection) => {
-      setSelectedSubcategoryId(selection.subcategoryId);
-      setPropertySubcategory(selection.parentId, selection.subcategoryId, selection.name);
-      navigation.navigate('CreatePostMediaStep');
-    },
-    [navigation, setPropertySubcategory],
+  const renderItem: ListRenderItem<Category> = useCallback(
+    ({ item }) => (
+      <Pressable
+        style={styles.subcategoryRow}
+        onPress={() => onSelect(item)}
+        accessibilityRole="button"
+        accessibilityLabel={item.name}>
+        <Text style={styles.subcategoryRowText}>{item.name}</Text>
+      </Pressable>
+    ),
+    [onSelect, styles.subcategoryRow, styles.subcategoryRowText],
   );
 
-  const nestedContent = useMemo(() => {
-    if (isNestedLoading) {
+  const keyExtractor = useCallback((item: Category) => item._id, []);
+
+  const ItemSeparator = useCallback(
+    () => <View style={styles.subcategorySeparator} />,
+    [styles.subcategorySeparator],
+  );
+
+  const listEmpty = useMemo(() => {
+    if (isLoading) {
       return <SubcategoryListSkeleton />;
     }
-
-    if (isNestedError) {
-      return (
-        <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>{nestedErrorTitle}</Text>
-          <Text style={styles.stateText}>Please check your connection and try again.</Text>
-          <Pressable style={styles.retryButton} onPress={() => refetchNested()}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </Pressable>
-        </View>
-      );
-    }
-
-    if (nestedCategories.length === 0) {
-      return (
-        <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>{nestedEmptyTitle}</Text>
-        </View>
-      );
-    }
-
-    return (
-      <PropertySubcategoryAccordion
-        categories={nestedCategories}
-        expandedCategoryId={expandedCategoryId}
-        selectedSubcategoryId={selectedSubcategoryId}
-        onToggleExpand={onToggleExpand}
-        onSelectSubcategory={onSelectNestedSubcategory}
-      />
-    );
-  }, [
-    expandedCategoryId,
-    isNestedError,
-    isNestedLoading,
-    nestedCategories,
-    nestedEmptyTitle,
-    nestedErrorTitle,
-    onSelectNestedSubcategory,
-    onToggleExpand,
-    refetchNested,
-    selectedSubcategoryId,
-    styles,
-  ]);
-
-  const standardContent = useMemo(() => {
-    if (isStandardLoading) {
-      return <SubcategoryListSkeleton />;
-    }
-
-    if (isStandardError) {
+    if (isError) {
       return (
         <View style={styles.centerState}>
           <Text style={styles.stateTitle}>Unable to load subcategories</Text>
           <Text style={styles.stateText}>Please check your connection and try again.</Text>
-          <Pressable style={styles.retryButton} onPress={() => refetchStandard()}>
+          <Pressable style={styles.retryButton} onPress={() => refetch()}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
         </View>
       );
     }
-
-    if (standardItems.length === 0) {
-      return (
-        <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>No subcategories available</Text>
-        </View>
-      );
-    }
-
-    return standardItems.map(item => (
-      <Pressable key={item._id} style={styles.listItem} onPress={() => onSelectStandard(item._id, item.name)}>
-        <Text style={styles.listItemText}>{item.name}</Text>
-        <Icon name="chevron-right" size={22} color="#9CA3AF" />
-      </Pressable>
-    ));
-  }, [
-    isStandardError,
-    isStandardLoading,
-    onSelectStandard,
-    refetchStandard,
-    standardItems,
-    styles,
-  ]);
+    return (
+      <View style={styles.centerState}>
+        <Text style={styles.stateTitle}>No subcategories available</Text>
+      </View>
+    );
+  }, [isError, isLoading, refetch, styles]);
 
   return (
     <View style={styles.screen}>
       <CreatePostHeader
-        title={categoryName}
+        title={headerTitle}
         backgroundColor={styles.screen.backgroundColor}
         onBack={() => navigation.goBack()}
       />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
-        {isNestedCategory ? nestedContent : standardContent}
-      </ScrollView>
+      <FlatList
+        data={isLoading || isError ? [] : items}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ItemSeparatorComponent={ItemSeparator}
+        ListEmptyComponent={listEmpty}
+        contentContainerStyle={[
+          styles.subcategoryListContent,
+          (isLoading || isError || items.length === 0) && styles.subcategoryListContentEmpty,
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      />
     </View>
   );
 };

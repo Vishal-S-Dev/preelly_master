@@ -33,6 +33,9 @@ export type RootStackParamList = {
   CreatePost: undefined;
   ProfileEdit: { requireCompletion?: boolean } | undefined;
   Login: undefined;
+  AuthLinkEmail: undefined;
+  AuthLinkPhone: undefined;
+  /** @deprecated Use Login — kept for deep links / legacy navigation */
   SignIn: undefined;
   LoginWithPassword: undefined;
   VerifyOtp: undefined;
@@ -74,7 +77,16 @@ export type RootStackParamList = {
   Notifications: undefined;
   FollowRequests: undefined;
   MySettings: undefined;
-  CartCheckout: { productId?: string } | undefined;
+  CartCheckout:
+    | {
+        productId?: string;
+        preellyApproved?: boolean;
+        /** Buyer tapped Not Interested — keep Pay Through Preelly off. */
+        preellyDeclined?: boolean;
+        preellyConditions?: string[];
+        preellyComment?: string;
+      }
+    | undefined;
   GetVerified: undefined;
   PaymentWebView: {
     session: PaymentInitiateResponse;

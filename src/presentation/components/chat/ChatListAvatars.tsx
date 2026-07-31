@@ -2,28 +2,42 @@ import React, { memo } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const AVATAR_SIZE = 56;
-const OVERLAP_SIZE = 32;
+const AVATAR_SIZE = 60;
+const OVERLAP_SIZE = 28;
 const DIRECT_SIZE = AVATAR_SIZE;
 const PRODUCT_SIZE = AVATAR_SIZE;
 const GROUP_CONTAINER = AVATAR_SIZE;
-const GROUP_FACE = 40;
+const GROUP_FACE = 42;
+
+/** Direct avatar status pip */
+const DOT_DIRECT = 14;
+/** Smaller pip for product-overlap / group faces */
+const DOT_OVERLAP = 12;
+const DOT_STROKE = 2.5;
 
 type DotTone = 'green' | 'red' | 'none';
 
 interface DotProps {
   tone: DotTone;
+  size?: number;
   style?: object;
 }
 
-const StatusDot = memo<DotProps>(({ tone, style }) => {
+const StatusDot = memo<DotProps>(({ tone, size = DOT_DIRECT, style }) => {
   if (tone === 'none') {
     return null;
   }
   return (
     <View
+      pointerEvents="none"
       style={[
         styles.statusDot,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: DOT_STROKE,
+        },
         tone === 'green' ? styles.dotGreen : styles.dotRed,
         style,
       ]}
@@ -45,7 +59,7 @@ export const DirectChatAvatar = memo<DirectProps>(({ avatarUri, dot = 'none', si
       source={{ uri: avatarUri }}
       style={[styles.directAvatar, { width: size, height: size, borderRadius: size / 2 }]}
     />
-    <StatusDot tone={dot} style={styles.directDot} />
+    <StatusDot tone={dot} size={DOT_DIRECT} style={styles.directDot} />
   </View>
 ));
 
@@ -63,7 +77,7 @@ export const ProductChatAvatar = memo<ProductProps>(
       <Image source={{ uri: productImageUri }} style={styles.productCircle} />
       <View style={styles.overlapAvatarWrap}>
         <Image source={{ uri: contactAvatarUri }} style={styles.overlapAvatar} />
-        <StatusDot tone={dot} style={styles.overlapDot} />
+        <StatusDot tone={dot} size={DOT_OVERLAP} style={styles.overlapDot} />
       </View>
     </View>
   ),
@@ -140,7 +154,7 @@ export const GroupChatAvatar = memo<GroupProps>(
             </View>
           )}
         </View>
-        <StatusDot tone={dot} style={styles.groupDot} />
+        <StatusDot tone={dot} size={DOT_OVERLAP} style={styles.groupDot} />
       </View>
     );
   },
@@ -151,22 +165,26 @@ GroupChatAvatar.displayName = 'GroupChatAvatar';
 const styles = StyleSheet.create({
   directWrap: {
     position: 'relative',
-    marginRight: 12,
+    marginRight: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'visible',
   },
   directAvatar: {
     backgroundColor: '#E5E7EB',
   },
+  /** Bottom-right of the large contact avatar */
   directDot: {
+    position: 'absolute',
     right: 0,
     bottom: 0,
+    zIndex: 2,
   },
   productVisual: {
     position: 'relative',
     width: PRODUCT_SIZE,
     height: PRODUCT_SIZE,
-    marginRight: 12,
+    marginRight: 14,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'visible',
@@ -179,12 +197,12 @@ const styles = StyleSheet.create({
   },
   overlapAvatarWrap: {
     position: 'absolute',
-    right: -2,
-    bottom: -2,
-    width: OVERLAP_SIZE + 6,
-    height: OVERLAP_SIZE + 6,
-    justifyContent: 'center',
-    alignItems: 'center',
+    right: -3,
+    bottom: -3,
+    width: OVERLAP_SIZE,
+    height: OVERLAP_SIZE,
+    overflow: 'visible',
+    zIndex: 2,
   },
   overlapAvatar: {
     width: OVERLAP_SIZE,
@@ -194,15 +212,19 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     backgroundColor: '#E5E7EB',
   },
+  /** Bottom-right of the small overlapping contact avatar */
   overlapDot: {
-    right: 1,
-    bottom: 1,
+    position: 'absolute',
+    right: -1,
+    bottom: -1,
+    zIndex: 3,
   },
   groupWrap: {
     width: GROUP_CONTAINER,
     height: GROUP_CONTAINER,
-    marginRight: 12,
+    marginRight: 14,
     position: 'relative',
+    overflow: 'visible',
   },
   groupCluster: {
     width: GROUP_CONTAINER,
@@ -258,21 +280,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   groupDot: {
-    right: 0,
-    bottom: 0,
-    zIndex: 3,
+    position: 'absolute',
+    right: -1,
+    bottom: -1,
+    zIndex: 4,
   },
   statusDot: {
     position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
     borderColor: '#FFFFFF',
+    backgroundColor: '#22C55E',
   },
+  /** Online / Active now */
   dotGreen: {
     backgroundColor: '#22C55E',
   },
+  /** Unread / needs attention (offline) */
   dotRed: {
     backgroundColor: '#EF4444',
   },

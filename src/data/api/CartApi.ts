@@ -22,6 +22,30 @@ export const CartApi = {
   },
 
   /**
+   * Persist seller-approved Preelly inspection conditions onto the buyer's cart.
+   * Backend: POST /api/cart/preelly-conditions
+   */
+  async savePreellyConditions(
+    chatId: string,
+    conditions: string[],
+    comment: string,
+  ): Promise<void> {
+    await httpClient.post(API_ENDPOINTS.CART_PREELLY_CONDITIONS, {
+      chatId,
+      conditions,
+      comment,
+    });
+  },
+
+  /**
+   * Buyer declined Preelly Pay in chat.
+   * Backend: POST /api/cart/preelly-not-interested
+   */
+  async setPreellyNotInterested(chatId: string): Promise<void> {
+    await httpClient.post(API_ENDPOINTS.CART_PREELLY_NOT_INTERESTED, { chatId });
+  },
+
+  /**
    * Get the current user's active cart items.
    * Backend: GET /api/cart → { success, data: CartItem[] }
    */
@@ -34,4 +58,3 @@ export const CartApi = {
 
   resolveProductId,
 };
-

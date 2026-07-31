@@ -3,13 +3,18 @@ import { STORAGE_KEYS } from '../../../constants/appConstants';
 import { AuthRepositoryImpl } from '../../../data/repository/AuthRepositoryImpl';
 import { User } from '../../../domain/models/User';
 import { LoginUseCase } from '../../../domain/usecases/LoginUseCase';
-import { SendOtpUseCase, VerifyOtpUseCase } from '../../../domain/usecases/authUseCases';
+import {
+  SendOtpUseCase,
+  VerifyOtpUseCase,
+} from '../../../domain/usecases/authUseCases';
 import { storage } from '../../../utils/storage';
 import { clearChatState } from './chatSlice';
 import { resetPresenceState } from '../../../data/network/presenceSocket';
 import { ensureSocketReadyForUser } from '../../../data/network/chatSocket';
 import { attachPresenceListeners } from '../../../data/network/presenceSocket';
-import { SendOtpRequestDTO } from '../../../data/dto/authDto';
+import { SendOtpRequestDTO, VerifyOtpRequestDto } from '../../../data/dto/authDto';
+import { AuthJourneyState } from '../../../types/authJourney.types';
+import { mergeAuthJourney, resolveNextAuthJourneyStep } from '../../../utils/authJourneyUtils';
 
 const repo = new AuthRepositoryImpl();
 const loginUseCase = new LoginUseCase(repo);
@@ -20,8 +25,8 @@ interface AuthState {
   user: User | null;
   accessToken: string | null;
   refreshToken: string | null;
-  emailForOtp: string;
-  lastOtpRequest: SendOtpRequestDTO | null;
+  otpSession: SendOtpRequestDTO | null;
+  authJourney: AuthJourneyState | null;
   loading: boolean;
   isGuest: boolean;
   isAuthenticated: boolean;
@@ -32,8 +37,8 @@ const initialState: AuthState = {
   user: null,
   accessToken: null,
   refreshToken: null,
-  emailForOtp: '',
-  lastOtpRequest: null,
+  otpSession: null,
+  authJourney: null,
   loading: false,
   isGuest: false,
   isAuthenticated: false,
@@ -77,14 +82,24 @@ export const logoutUser = createAsyncThunk('auth/logoutUser', async (_, { dispat
 
 export const verifyOtp = createAsyncThunk(
   'auth/verifyOtp',
-  async ({ email, otp }: { email: string; otp: string }, { dispatch }) => {
-    const session = await verifyOtpUseCase.execute(email, otp);
-    await repo.storeSession(session);
-    if (session.user?.id) {
-      await ensureSocketReadyForUser(session.user.id);
-      attachPresenceListeners(dispatch).catch(() => undefined);
+  async (request: VerifyOtpRequestDto, { dispatch, rejectWithValue }) => {
+    try {
+      const result = await verifyOtpUseCase.execute(request);
+      if (result.kind === 'authenticated') {
+        await repo.storeSession(result.session);
+        if (result.session.user?.id) {
+          await ensureSocketReadyForUser(result.session.user.id);
+          attachPresenceListeners(dispatch).catch(() => undefined);
+        }
+      }
+      return result;
+    } catch (error: any) {
+      const apiError = error?.response?.data;
+      if (apiError?.message) {
+        return rejectWithValue(apiError);
+      }
+      return rejectWithValue({ message: error?.message ?? 'OTP verification failed' });
     }
-    return session;
   },
 );
 
@@ -118,6 +133,7 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.isGuest = true;
       state.user = null;
+      state.authJourney = null;
     },
     logoutSuccess(state) {
       state.isAuthenticated = false;
@@ -125,11 +141,19 @@ const authSlice = createSlice({
       state.accessToken = null;
       state.refreshToken = null;
       state.isGuest = false;
+      state.otpSession = null;
+      state.authJourney = null;
     },
     updateAuthUser(state, action: PayloadAction<Partial<User>>) {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
       }
+    },
+    setAuthJourney(state, action: PayloadAction<AuthJourneyState | null>) {
+      state.authJourney = action.payload;
+    },
+    clearAuthJourney(state) {
+      state.authJourney = null;
     },
   },
   extraReducers: builder => {
@@ -145,6 +169,7 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.isAuthenticated = true;
         state.isGuest = false;
+        state.otpSession = null;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -156,8 +181,19 @@ const authSlice = createSlice({
       })
       .addCase(sendOtp.fulfilled, (state, action) => {
         state.loading = false;
-        state.emailForOtp = action.payload.email.trim().toLowerCase();
-        state.lastOtpRequest = action.payload;
+        state.otpSession = action.payload;
+        const channel = action.payload.channel ?? 'email';
+        state.authJourney = mergeAuthJourney(state.authJourney, {
+          primaryChannel: channel,
+          step:
+            state.authJourney?.step === 'link_phone' || state.authJourney?.step === 'link_email'
+              ? 'secondary_otp'
+              : 'primary_otp',
+          email: action.payload.email,
+          phone: action.payload.phone,
+          phoneCountryCode: action.payload.phoneCountryCode,
+          phoneCountryIso: action.payload.phoneCountryIso,
+        });
       })
       .addCase(sendOtp.rejected, (state, action) => {
         state.loading = false;
@@ -172,21 +208,57 @@ const authSlice = createSlice({
       })
       .addCase(verifyOtp.fulfilled, (state, action) => {
         state.loading = false;
-        state.accessToken = action.payload.accessToken;
-        state.refreshToken = action.payload.refreshToken;
+        state.otpSession = null;
+
+        if (action.payload.kind === 'authenticated') {
+          state.accessToken = action.payload.session.accessToken;
+          state.refreshToken = action.payload.session.refreshToken;
+          state.user = action.payload.session.user;
+          state.isAuthenticated = true;
+          state.isGuest = false;
+
+          const next = resolveNextAuthJourneyStep(action.payload.session.user);
+          if (next) {
+            state.authJourney = mergeAuthJourney(state.authJourney, {
+              ...next,
+              email: action.payload.session.user.email,
+              phone: action.payload.session.user.phone,
+            });
+          } else {
+            state.authJourney = null;
+          }
+          return;
+        }
+
         state.user = action.payload.user;
-        state.isAuthenticated = true;
+        state.isAuthenticated = false;
         state.isGuest = false;
+        state.authJourney = mergeAuthJourney(state.authJourney, {
+          step: action.payload.nextStep === 'phone' ? 'link_phone' : 'link_email',
+          email: action.payload.user.email,
+          phone: action.payload.user.phone,
+          primaryChannel: state.authJourney?.primaryChannel ?? 'whatsapp',
+        });
       })
       .addCase(verifyOtp.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message ?? 'OTP verification failed';
+        state.error =
+          (action.payload as { message?: string } | undefined)?.message ??
+          action.error.message ??
+          'OTP verification failed';
       })
       .addCase(loadStoredSession.fulfilled, (state, action) => {
         state.accessToken = action.payload.accessToken;
         state.refreshToken = action.payload.refreshToken;
         state.user = action.payload.user;
         state.isAuthenticated = Boolean(action.payload.accessToken);
+
+        if (state.isAuthenticated && action.payload.user) {
+          const next = resolveNextAuthJourneyStep(action.payload.user);
+          state.authJourney = next ? mergeAuthJourney(null, next) : null;
+        } else {
+          state.authJourney = null;
+        }
       })
       .addCase(logoutUser.fulfilled, state => {
         state.isAuthenticated = false;
@@ -194,9 +266,12 @@ const authSlice = createSlice({
         state.accessToken = null;
         state.refreshToken = null;
         state.isGuest = false;
+        state.otpSession = null;
+        state.authJourney = null;
       });
   },
 });
 
-export const { continueAsGuest, logoutSuccess, updateAuthUser } = authSlice.actions;
+export const { continueAsGuest, logoutSuccess, updateAuthUser, setAuthJourney, clearAuthJourney } =
+  authSlice.actions;
 export default authSlice.reducer;

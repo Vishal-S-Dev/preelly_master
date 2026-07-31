@@ -44,6 +44,10 @@ export interface CartPopulatedProduct {
   category?: CartProductCategoryRef;
   subcategory?: CartProductCategoryRef | string;
   features?: CartProductFeatureGroup[];
+  productMultiAttributes?: Array<{
+    fieldKey?: string;
+    fieldValues?: string[];
+  }>;
 }
 
 export interface CartItem {
@@ -54,6 +58,14 @@ export interface CartItem {
   subtotal?: number;
   totalAmount?: number;
   cartStatus?: string;
+  preellyInspection?: {
+    conditions?: string[];
+    comment?: string;
+    approved?: boolean;
+    approvedAt?: string;
+    notInterested?: boolean;
+    updatedAt?: string;
+  };
 }
 
 export interface PickDropInfo {

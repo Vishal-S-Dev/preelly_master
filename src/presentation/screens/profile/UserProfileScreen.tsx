@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -18,11 +19,14 @@ import { RootStackParamList } from '../../navigation/types';
 import { ProfileBio } from '../../components/profile/ProfileBio';
 import { ProfileHeader } from '../../components/profile/ProfileHeader';
 import { ProfileStats } from '../../components/profile/ProfileStats';
-//import { ProfileTabs } from '../../components/profile/ProfileTabs';
 import { ProductGridCard } from '../../components/profile/ProductGridCard';
 import { UserProfileActionButtons } from '../../components/profile/UserProfileActionButtons';
+import { ProfileMoreBottomSheet } from '../../components/profile/ProfileMoreBottomSheet';
+import { ReportUserBottomSheet } from '../../components/profile/ReportUserBottomSheet';
 import { useProfileStyles } from '../../hooks/useProfileStyles';
 import { useOtherUserProfileData } from '../../hooks/useOtherUserProfileData';
+import { useAppSelector } from '../../hooks/useRedux';
+import { userSafetyService } from '../../../services/userSafety.service';
 import { ProfileProductGridItem } from '../../../types/profile.types';
 
 type OtherProfileRoute = RouteProp<RootStackParamList, 'OtherProfile'>;
@@ -54,6 +58,7 @@ export const UserProfileScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<OtherProfileRoute>();
   const userId = route.params.userId;
+  const viewerUserId = useAppSelector(state => state.auth.user?.id ?? '');
 
   const {
     profile,
@@ -72,6 +77,30 @@ export const UserProfileScreen: React.FC = () => {
     isOwnProfile,
   } = useOtherUserProfileData(userId);
 
+  const moreSheetRef = useRef<BottomSheetModal>(null);
+  const reportSheetRef = useRef<BottomSheetModal>(null);
+
+  const [safetyBusy, setSafetyBusy] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+
+  const refreshMuteState = useCallback(async () => {
+    if (!userId || !viewerUserId || isOwnProfile) {
+      setIsMuted(false);
+      return;
+    }
+    try {
+      const muted = await userSafetyService.areNotificationsMuted(userId, viewerUserId);
+      setIsMuted(muted);
+    } catch {
+      // Keep last known state on transient failures.
+    }
+  }, [isOwnProfile, userId, viewerUserId]);
+
+  useEffect(() => {
+    void refreshMuteState();
+  }, [refreshMuteState]);
+
   const onShareProfile = useCallback(async () => {
     try {
       await Share.share({
@@ -87,11 +116,102 @@ export const UserProfileScreen: React.FC = () => {
   }, []);
 
   const openMoreMenu = useCallback(() => {
-    Alert.alert('Profile options', undefined, [
-      { text: 'Report' },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    void refreshMuteState();
+    moreSheetRef.current?.present();
+  }, [refreshMuteState]);
+
+  const handleBlock = useCallback(() => {
+    const currentlyBlocked = followState.status === 'blocked';
+    const displayName = profile.name?.trim() || 'this user';
+
+    Alert.alert(
+      currentlyBlocked ? 'Unblock user?' : 'Block user?',
+      currentlyBlocked
+        ? `${displayName} will be able to follow you again.`
+        : `Block ${displayName}? They will no longer be able to follow you.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: currentlyBlocked ? 'Unblock' : 'Block',
+          style: currentlyBlocked ? 'default' : 'destructive',
+          onPress: () => {
+            void (async () => {
+              setSafetyBusy(true);
+              try {
+                const result = await userSafetyService.blockUser(userId);
+                Alert.alert(result.blocked ? 'Blocked' : 'Unblocked', result.message);
+                if (result.blocked) {
+                  navigation.goBack();
+                } else {
+                  await onRefresh();
+                }
+              } catch (err) {
+                Alert.alert(
+                  'Unable to update',
+                  err instanceof Error ? err.message : 'Failed to block user',
+                );
+              } finally {
+                setSafetyBusy(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  }, [followState.status, navigation, onRefresh, profile.name, userId]);
+
+  const handleOpenReport = useCallback(() => {
+    reportSheetRef.current?.present();
   }, []);
+
+  const handleSubmitReport = useCallback(
+    (payload: { reason: string; details: string }) => {
+      void (async () => {
+        setReportSubmitting(true);
+        try {
+          const result = await userSafetyService.reportUser({
+            reportedUserId: userId,
+            reason: payload.reason,
+            details: payload.details,
+            productId: items[0]?.id ?? reelProducts[0]?.id ?? null,
+          });
+          reportSheetRef.current?.dismiss();
+          Alert.alert('Report submitted', result.message || 'Our team will review it.');
+        } catch (err) {
+          Alert.alert(
+            'Unable to report',
+            err instanceof Error ? err.message : 'Failed to submit report',
+          );
+        } finally {
+          setReportSubmitting(false);
+        }
+      })();
+    },
+    [items, reelProducts, userId],
+  );
+
+  const handleMute = useCallback(() => {
+    if (!viewerUserId) {
+      Alert.alert('Sign in required', 'Please sign in to manage notifications.');
+      return;
+    }
+
+    void (async () => {
+      setSafetyBusy(true);
+      try {
+        const result = await userSafetyService.toggleMuteForUser(userId, viewerUserId);
+        setIsMuted(result.muted);
+        Alert.alert(result.muted ? 'Muted' : 'Unmuted', result.message);
+      } catch (err) {
+        Alert.alert(
+          'Unable to update',
+          err instanceof Error ? err.message : 'Failed to update notifications',
+        );
+      } finally {
+        setSafetyBusy(false);
+      }
+    })();
+  }, [userId, viewerUserId]);
 
   const listHeader = useMemo(
     () => (
@@ -120,7 +240,6 @@ export const UserProfileScreen: React.FC = () => {
           ) : null}
           <ProfileBio lines={profile.bioLines} />
         </View>
-        {/*<ProfileTabs activeTab="posts" onChange={() => undefined} variant="visitor" />*/}
         {loading && items.length === 0 ? <GridSkeleton /> : null}
       </Animated.View>
     ),
@@ -209,6 +328,28 @@ export const UserProfileScreen: React.FC = () => {
         windowSize={7}
         removeClippedSubviews
       />
+
+      {!isOwnProfile ? (
+        <>
+          <ProfileMoreBottomSheet
+            ref={moreSheetRef}
+            state={{
+              isBlocked: followState.status === 'blocked',
+              isMuted,
+              busy: safetyBusy,
+            }}
+            onBlock={handleBlock}
+            onReport={handleOpenReport}
+            onMute={handleMute}
+          />
+          <ReportUserBottomSheet
+            ref={reportSheetRef}
+            userName={profile.name}
+            submitting={reportSubmitting}
+            onSubmit={handleSubmitReport}
+          />
+        </>
+      ) : null}
     </SafeAreaView>
   );
 };

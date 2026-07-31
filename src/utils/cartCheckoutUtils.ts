@@ -76,8 +76,22 @@ export const resolveCategoryLabel = (product: CartPopulatedProduct | null): stri
 };
 
 export const flattenProductConditions = (product: CartPopulatedProduct | null): string[] => {
+  const values: string[] = [];
+
+  const multiAttrs = Array.isArray(product?.productMultiAttributes)
+    ? product.productMultiAttributes
+    : [];
+  for (const attr of multiAttrs) {
+    if (attr?.fieldKey === 'categoryPath') {
+      continue;
+    }
+    if (Array.isArray(attr?.fieldValues)) {
+      values.push(...attr.fieldValues);
+    }
+  }
+
   const groups = Array.isArray(product?.features) ? product.features : [];
-  const values = groups.flatMap(group => (Array.isArray(group?.values) ? group.values : []));
+  values.push(...groups.flatMap(group => (Array.isArray(group?.values) ? group.values : [])));
   return [...new Set(values.map(value => String(value).trim()).filter(Boolean))];
 };
 
