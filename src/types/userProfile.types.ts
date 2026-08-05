@@ -83,4 +83,8 @@ export type UserFollowStatus = 'none' | 'pending' | 'active' | 'self' | 'blocked
 
 export interface UserFollowStatusResponseDTO {
   status: UserFollowStatus;
+  /** True when the current viewer has blocked this user. */
+  blockedByMe?: boolean;
+  /** True when this user has blocked the current viewer. */
+  blockedMe?: boolean;
 }

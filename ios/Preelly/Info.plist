@@ -54,6 +54,8 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Preelly needs camera access to capture listing videos and photos.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Preelly uses your location to pin your listing accurately on the map.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Preelly uses your location to pin your listing accurately on the map.</string>
 	<key>NSMicrophoneUsageDescription</key>

@@ -112,8 +112,12 @@ export const UserProfileScreen: React.FC = () => {
   }, [profile.name]);
 
   const onMessageUser = useCallback(() => {
+    if (followState.status === 'blocked') {
+      Alert.alert('Unavailable', 'Unblock this user to send them a message.');
+      return;
+    }
     Alert.alert('Message', 'Chat will open here.');
-  }, []);
+  }, [followState.status]);
 
   const openMoreMenu = useCallback(() => {
     void refreshMuteState();
@@ -138,7 +142,9 @@ export const UserProfileScreen: React.FC = () => {
             void (async () => {
               setSafetyBusy(true);
               try {
-                const result = await userSafetyService.blockUser(userId);
+                const result = currentlyBlocked
+                  ? await userSafetyService.unblockUser(userId)
+                  : await userSafetyService.blockUser(userId);
                 Alert.alert(result.blocked ? 'Blocked' : 'Unblocked', result.message);
                 if (result.blocked) {
                   navigation.goBack();
@@ -148,7 +154,9 @@ export const UserProfileScreen: React.FC = () => {
               } catch (err) {
                 Alert.alert(
                   'Unable to update',
-                  err instanceof Error ? err.message : 'Failed to block user',
+                  err instanceof Error
+                    ? err.message
+                    : `Failed to ${currentlyBlocked ? 'unblock' : 'block'} user`,
                 );
               } finally {
                 setSafetyBusy(false);

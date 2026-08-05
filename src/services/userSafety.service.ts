@@ -68,6 +68,14 @@ export const userSafetyService = {
     }
   },
 
+  async unblockUser(userId: string): Promise<{ blocked: boolean; message: string }> {
+    try {
+      return await UserApi.unblockUser(userId);
+    } catch (error) {
+      throw new Error(apiErrorMessage(error, 'Failed to unblock user'));
+    }
+  },
+
   async getChatsWithUser(otherUserId: string): Promise<ChatDocumentDTO[]> {
     const chats = await ChatApi.getChats();
     return findChatsWithUser(chats, otherUserId);

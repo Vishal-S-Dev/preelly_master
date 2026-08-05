@@ -1,4 +1,4 @@
-package com.preelly
+package com.preelly.app
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

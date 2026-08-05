@@ -120,8 +120,10 @@ export const useOtherUserProfileData = (userId: string) => {
 
     setFollowStatusLoading(true);
     try {
-      const { status } = await profileService.getFollowStatus(userId);
-      const followState = mapFollowStatusToState(status);
+      const { status, blockedByMe } = await profileService.getFollowStatus(userId);
+      const followState: ProfileFollowState = blockedByMe
+        ? { following: false, pending: false, status: 'blocked' }
+        : mapFollowStatusToState(status);
       setProfile(current => {
         if (!current) {
           return current;

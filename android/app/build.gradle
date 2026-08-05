@@ -78,14 +78,14 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.preelly"
+    namespace "com.preelly.app"
     defaultConfig {
-        applicationId "com.preelly"
+        applicationId "com.preelly.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
-        resValue "string", "build_config_package", "com.preelly"
+        resValue "string", "build_config_package", "com.preelly.app"
         // Injected from .env via react-native-config (dotenv.gradle). Required for Google Map tiles.
         resValue "string", "google_maps_api_key", (project.env.get("GOOGLE_MAPS_API_KEY") ?: "")
     }

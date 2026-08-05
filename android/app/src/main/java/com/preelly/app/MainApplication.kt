@@ -1,4 +1,4 @@
-package com.preelly
+package com.preelly.app
 
 import android.app.Application
 import com.facebook.react.PackageList
