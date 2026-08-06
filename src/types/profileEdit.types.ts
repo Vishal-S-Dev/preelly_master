@@ -34,3 +34,41 @@ export interface LocationPayload {
   coordinates?: [number, number];
   isDefault?: boolean;
 }
+
+export interface BankAccount {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  iban?: string;
+  swift?: string;
+  branchName?: string;
+  isPrimary: boolean;
+}
+
+export interface BankAccountPayload {
+  bankName: string;
+  accountNumber: string;
+  iban?: string;
+  swift?: string;
+  branchName?: string;
+  isPrimary?: boolean;
+}
+
+export interface SavedCard {
+  id: string;
+  brand: string;
+  last4: string;
+  expiry?: string;
+  holderName?: string;
+  nickname?: string;
+  isPrimary: boolean;
+}
+
+export interface SavedCardPayload {
+  /** Raw digits. Omit when editing without replacing the card number. */
+  cardNumber?: string;
+  expiry?: string;
+  holderName?: string;
+  nickname?: string;
+  isPrimary?: boolean;
+}

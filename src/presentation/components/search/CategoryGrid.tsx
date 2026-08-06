@@ -1,5 +1,5 @@
-import React, { memo, useCallback } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, {
@@ -9,9 +9,16 @@ import Animated, {
 } from 'react-native-reanimated';
 import { CategoryApi } from '../../../data/api/categoryApi';
 import { Category } from '../../../types/category.types';
-import { getCategoryCardColor, getCategoryIcon } from '../../../utils/categoryIcons';
+import {
+  getCategoryCardColor,
+  getCategoryIcon,
+  normalizeCategoryKey,
+  resolveCategoryImageUrl,
+} from '../../../utils/categoryIcons';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { CategoryGridSkeleton } from '../skeletons/CategoryGridSkeleton';
+
+const CATEGORY_IMAGE_SIZE = 26;
 
 interface Props {
   onPressCategory?: (categoryId: string, categoryName: string) => void;
@@ -20,15 +27,28 @@ interface Props {
 
 const CATEGORY_ICON_COLORS: Record<string, string> = {
   motors: '#D97706',
+  automotive: '#D97706',
   property: '#2563EB',
   fashion: '#DB2777',
+  fashionaccessories: '#DB2777',
+  fashionaccesseries: '#DB2777',
   furniture: '#16A34A',
+  furniturefixtures: '#16A34A',
   classifieds: '#EA580C',
   electronics: '#4F46E5',
+  applianceselectronics: '#4F46E5',
+  giveaways: '#B45309',
+  sportsoutdoors: '#2563EB',
+  beautyhealth: '#EA580C',
+  anythingeverything: '#4F46E5',
+  gadgets: '#DB2777',
+  kidsstuff: '#16A34A',
 };
 
-const resolveIconColor = (slug: string, themeText: string): string =>
-  CATEGORY_ICON_COLORS[slug.toLowerCase()] ?? themeText;
+const resolveIconColor = (slug: string, name: string, themeText: string): string =>
+  CATEGORY_ICON_COLORS[normalizeCategoryKey(slug)] ??
+  CATEGORY_ICON_COLORS[normalizeCategoryKey(name)] ??
+  themeText;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -40,8 +60,22 @@ const CategoryCard = memo<{
 }>(({ category, color, selected, onPress }) => {
   const theme = useAppTheme();
   const scale = useSharedValue(1);
-  const iconName = category.icon ?? getCategoryIcon(category.slug, category.name);
-  const iconColor = resolveIconColor(category.slug, theme.text);
+
+  // Same priority as Create Post's CategoryGridCard: a real uploaded image wins,
+  // then an emoji, and only as a last resort a MaterialCommunityIcons glyph — either
+  // the API's own `icon` (when it isn't a media path) or our curated fallback map.
+  const imageUri = useMemo(() => resolveCategoryImageUrl(category), [category]);
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUri]);
+  const onImageError = useCallback(() => setImageFailed(true), []);
+
+  const iconName =
+    category.icon && !category.icon.includes('/')
+      ? category.icon
+      : getCategoryIcon(category.slug, category.name);
+  const iconColor = resolveIconColor(category.slug, category.name, theme.text);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -78,7 +112,23 @@ const CategoryCard = memo<{
         </View>
       ) : null}
 
-      <Icon name={iconName} size={24} color={iconColor} style={styles.categoryIcon} />
+      {imageUri && !imageFailed ? (
+        <Image
+          source={{ uri: imageUri }}
+          style={[styles.categoryIcon, { width: CATEGORY_IMAGE_SIZE, height: CATEGORY_IMAGE_SIZE }]}
+          resizeMode="contain"
+          resizeMethod="resize"
+          fadeDuration={0}
+          onError={onImageError}
+          accessibilityIgnoresInvertColors
+        />
+      ) : category.emoji?.trim() ? (
+        <Text style={[styles.categoryIcon, { fontSize: 24, lineHeight: 28 }]}>
+          {category.emoji.trim()}
+        </Text>
+      ) : (
+        <Icon name={iconName} size={24} color={iconColor} style={styles.categoryIcon} />
+      )}
       <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
         {category.name}
       </Text>

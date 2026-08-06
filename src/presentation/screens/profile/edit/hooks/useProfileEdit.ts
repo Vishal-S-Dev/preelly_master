@@ -6,8 +6,12 @@ import { Alert } from 'react-native';
 import { UserApi } from '../../../../../data/api/UserApi';
 import { STORAGE_KEYS } from '../../../../../constants/appConstants';
 import {
+  BankAccount,
+  BankAccountPayload,
   LocationPayload,
   ProfileEditFormValues,
+  SavedCard,
+  SavedCardPayload,
   UserLocation,
 } from '../../../../../types/profileEdit.types';
 import { UserProfileDTO } from '../../../../../types/userProfile.types';
@@ -22,6 +26,7 @@ import { buildMergedProfilePayload } from '../profilePayloadBuilder';
 import { profileEditSchema } from '../validation/profileEditSchema';
 import { profileCompletionSchema } from '../validation/profileCompletionSchema';
 import { mapLocationDto } from '../utils/locationDtoUtils';
+import { mapBankAccountDto, mapSavedCardDto } from '../utils/bankCardDtoUtils';
 import {
   isIdentityVerificationActionable,
   resolveIdentityVerificationStatus,
@@ -30,6 +35,8 @@ import {
 
 const PROFILE_EDIT_KEY = ['profileEdit'];
 const LOCATIONS_KEY = ['profileLocations'];
+const BANK_ACCOUNTS_KEY = ['profileBankAccounts'];
+const SAVED_CARDS_KEY = ['profileSavedCards'];
 
 export interface UseProfileEditOptions {
   requireCompletion?: boolean;
@@ -44,6 +51,12 @@ export const useProfileEdit = (options?: UseProfileEditOptions) => {
   const [addressModal, setAddressModal] = useState<null | { mode: 'add' } | { mode: 'edit'; location: UserLocation }>(
     null,
   );
+  const [bankModal, setBankModal] = useState<null | { mode: 'add' } | { mode: 'edit'; account: BankAccount }>(
+    null,
+  );
+  const [cardModal, setCardModal] = useState<null | { mode: 'add' } | { mode: 'edit'; card: SavedCard }>(
+    null,
+  );
 
   const profileQuery = useQuery({
     queryKey: PROFILE_EDIT_KEY,
@@ -53,6 +66,16 @@ export const useProfileEdit = (options?: UseProfileEditOptions) => {
   const locationsQuery = useQuery({
     queryKey: LOCATIONS_KEY,
     queryFn: () => UserApi.getLocations(),
+  });
+
+  const bankAccountsQuery = useQuery({
+    queryKey: BANK_ACCOUNTS_KEY,
+    queryFn: () => UserApi.getBankAccounts(),
+  });
+
+  const savedCardsQuery = useQuery({
+    queryKey: SAVED_CARDS_KEY,
+    queryFn: () => UserApi.getSavedCards(),
   });
 
   const defaultValues = useMemo<ProfileEditFormValues>(() => {
@@ -87,6 +110,16 @@ export const useProfileEdit = (options?: UseProfileEditOptions) => {
   const locations = useMemo(
     () => (locationsQuery.data ?? []).map(mapLocationDto),
     [locationsQuery.data],
+  );
+
+  const bankAccounts = useMemo(
+    () => (bankAccountsQuery.data ?? []).map(mapBankAccountDto),
+    [bankAccountsQuery.data],
+  );
+
+  const savedCards = useMemo(
+    () => (savedCardsQuery.data ?? []).map(mapSavedCardDto),
+    [savedCardsQuery.data],
   );
 
   const persistAuthUser = useCallback(
@@ -177,6 +210,58 @@ export const useProfileEdit = (options?: UseProfileEditOptions) => {
     },
   });
 
+  const bankMutation = useMutation({
+    mutationFn: async (input: {
+      mode: 'add' | 'edit' | 'delete' | 'default';
+      id?: string;
+      payload?: BankAccountPayload;
+    }) => {
+      if (input.mode === 'add' && input.payload) {
+        return UserApi.addBankAccount(input.payload);
+      }
+      if (input.mode === 'edit' && input.id && input.payload) {
+        return UserApi.updateBankAccount(input.id, input.payload);
+      }
+      if (input.mode === 'delete' && input.id) {
+        await UserApi.deleteBankAccount(input.id);
+        return null;
+      }
+      if (input.mode === 'default' && input.id) {
+        return UserApi.updateBankAccount(input.id, { isPrimary: true } as BankAccountPayload);
+      }
+      return null;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: BANK_ACCOUNTS_KEY });
+    },
+  });
+
+  const cardMutation = useMutation({
+    mutationFn: async (input: {
+      mode: 'add' | 'edit' | 'delete' | 'default';
+      id?: string;
+      payload?: SavedCardPayload;
+    }) => {
+      if (input.mode === 'add' && input.payload) {
+        return UserApi.addSavedCard(input.payload);
+      }
+      if (input.mode === 'edit' && input.id && input.payload) {
+        return UserApi.updateSavedCard(input.id, input.payload);
+      }
+      if (input.mode === 'delete' && input.id) {
+        await UserApi.deleteSavedCard(input.id);
+        return null;
+      }
+      if (input.mode === 'default' && input.id) {
+        return UserApi.updateSavedCard(input.id, { isPrimary: true });
+      }
+      return null;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SAVED_CARDS_KEY });
+    },
+  });
+
   const submit = form.handleSubmit(async values => {
     try {
       const updated = await updateProfileMutation.mutateAsync(values);
@@ -227,6 +312,80 @@ export const useProfileEdit = (options?: UseProfileEditOptions) => {
     [locationMutation],
   );
 
+  const onSetPrimaryBank = useCallback(
+    (id: string) => {
+      bankMutation.mutate({ mode: 'default', id });
+    },
+    [bankMutation],
+  );
+
+  const onDeleteBank = useCallback(
+    (id: string) => {
+      Alert.alert('Delete bank account', 'Remove this bank account from your profile?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => bankMutation.mutate({ mode: 'delete', id }),
+        },
+      ]);
+    },
+    [bankMutation],
+  );
+
+  const onSaveBank = useCallback(
+    async (payload: BankAccountPayload, editId?: string) => {
+      try {
+        if (editId) {
+          await bankMutation.mutateAsync({ mode: 'edit', id: editId, payload });
+        } else {
+          await bankMutation.mutateAsync({ mode: 'add', payload });
+        }
+        setBankModal(null);
+      } catch {
+        Alert.alert('Bank account error', 'Could not save this bank account. Please try again.');
+      }
+    },
+    [bankMutation],
+  );
+
+  const onSetPrimaryCard = useCallback(
+    (id: string) => {
+      cardMutation.mutate({ mode: 'default', id });
+    },
+    [cardMutation],
+  );
+
+  const onDeleteCard = useCallback(
+    (id: string) => {
+      Alert.alert('Delete card', 'Remove this card from your profile?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => cardMutation.mutate({ mode: 'delete', id }),
+        },
+      ]);
+    },
+    [cardMutation],
+  );
+
+  const onSaveCard = useCallback(
+    async (payload: SavedCardPayload, editId?: string) => {
+      try {
+        if (editId) {
+          await cardMutation.mutateAsync({ mode: 'edit', id: editId, payload });
+        } else {
+          await cardMutation.mutateAsync({ mode: 'add', payload });
+        }
+        setCardModal(null);
+      } catch {
+        Alert.alert('Card error', 'Could not save this card. Please try again.');
+      }
+    },
+    [cardMutation],
+  );
+
   const identityVerification = useMemo(() => {
     const profile = profileQuery.data;
     const status = resolveIdentityVerificationStatus({
@@ -251,20 +410,36 @@ export const useProfileEdit = (options?: UseProfileEditOptions) => {
     form,
     submit,
     locations,
+    bankAccounts,
+    savedCards,
     isVerified,
     identityVerification,
     requireCompletion,
     loading: profileQuery.isLoading || locationsQuery.isLoading,
     saving: updateProfileMutation.isPending,
     locationSaving: locationMutation.isPending,
+    bankSaving: bankMutation.isPending,
+    cardSaving: cardMutation.isPending,
     addressModal,
     setAddressModal,
     onSetDefaultLocation,
     onDeleteLocation,
     onSaveLocation,
+    bankModal,
+    setBankModal,
+    onSetPrimaryBank,
+    onDeleteBank,
+    onSaveBank,
+    cardModal,
+    setCardModal,
+    onSetPrimaryCard,
+    onDeleteCard,
+    onSaveCard,
     refetch: () => {
       profileQuery.refetch();
       locationsQuery.refetch();
+      bankAccountsQuery.refetch();
+      savedCardsQuery.refetch();
     },
   };
 };

@@ -9,7 +9,7 @@ export interface ProductQuickViewData {
   year: string;
   mileage: string;
   specsLabel: string;
-  availability: string;
+  availability: 'Available' | 'Sold' | 'Reserved';
   seenByName: string;
   seenByOthers: number;
   postedOnLabel: string;

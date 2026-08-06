@@ -21,6 +21,10 @@ import { RootStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../hooks/useRedux';
 import { AddressCard } from './components/AddressCard';
 import { AddressFormModal } from './components/AddressFormModal';
+import { BankAccountCard } from './components/BankAccountCard';
+import { BankAccountFormModal } from './components/BankAccountFormModal';
+import { SavedCardCard } from './components/SavedCardCard';
+import { SavedCardFormModal } from './components/SavedCardFormModal';
 import { DatePickerInput } from './components/DatePickerInput';
 import { GenderRadioGroup } from './components/GenderRadioGroup';
 import { GetVerifiedCard } from './components/GetVerifiedCard';
@@ -57,15 +61,29 @@ export const ProfileEditScreen: React.FC = () => {
     form,
     submit,
     locations,
+    bankAccounts,
+    savedCards,
     identityVerification,
     loading,
     saving,
     locationSaving,
+    bankSaving,
+    cardSaving,
     addressModal,
     setAddressModal,
     onSetDefaultLocation,
     onDeleteLocation,
     onSaveLocation,
+    bankModal,
+    setBankModal,
+    onSetPrimaryBank,
+    onDeleteBank,
+    onSaveBank,
+    cardModal,
+    setCardModal,
+    onSetPrimaryCard,
+    onDeleteCard,
+    onSaveCard,
   } = useProfileEdit({ requireCompletion, onProfileCompleted });
 
   const { control, formState } = form;
@@ -262,6 +280,42 @@ export const ProfileEditScreen: React.FC = () => {
                   accessibilityLabel="Add new location">
                   <Text style={peStyles.addLocationText}>Add new location</Text>
                 </Pressable>
+
+                <SectionHeader title="Bank Details" subtitle="Please review the details" />
+                {bankAccounts.map(account => (
+                  <BankAccountCard
+                    key={account.id}
+                    account={account}
+                    onSetPrimary={onSetPrimaryBank}
+                    onEdit={acc => setBankModal({ mode: 'edit', account: acc })}
+                    onDelete={onDeleteBank}
+                  />
+                ))}
+                {savedCards.map(card => (
+                  <SavedCardCard
+                    key={card.id}
+                    card={card}
+                    onSetPrimary={onSetPrimaryCard}
+                    onEdit={c => setCardModal({ mode: 'edit', card: c })}
+                    onDelete={onDeleteCard}
+                  />
+                ))}
+                <View style={peStyles.addPillRow}>
+                  <Pressable
+                    style={peStyles.addPillBtn}
+                    onPress={() => setBankModal({ mode: 'add' })}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add new bank account">
+                    <Text style={peStyles.addPillText}>Add New Bank Account</Text>
+                  </Pressable>
+                  <Pressable
+                    style={peStyles.addPillBtn}
+                    onPress={() => setCardModal({ mode: 'add' })}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add new card">
+                    <Text style={peStyles.addPillText}>Add New Card</Text>
+                  </Pressable>
+                </View>
               </>
             ) : null}
           </Animated.View>
@@ -284,13 +338,29 @@ export const ProfileEditScreen: React.FC = () => {
       </View>
 
       {!requireCompletion ? (
-        <AddressFormModal
-          visible={Boolean(addressModal)}
-          initial={addressModal?.mode === 'edit' ? addressModal.location : null}
-          saving={locationSaving}
-          onClose={() => setAddressModal(null)}
-          onSave={onSaveLocation}
-        />
+        <>
+          <AddressFormModal
+            visible={Boolean(addressModal)}
+            initial={addressModal?.mode === 'edit' ? addressModal.location : null}
+            saving={locationSaving}
+            onClose={() => setAddressModal(null)}
+            onSave={onSaveLocation}
+          />
+          <BankAccountFormModal
+            visible={Boolean(bankModal)}
+            initial={bankModal?.mode === 'edit' ? bankModal.account : null}
+            saving={bankSaving}
+            onClose={() => setBankModal(null)}
+            onSave={onSaveBank}
+          />
+          <SavedCardFormModal
+            visible={Boolean(cardModal)}
+            initial={cardModal?.mode === 'edit' ? cardModal.card : null}
+            saving={cardSaving}
+            onClose={() => setCardModal(null)}
+            onSave={onSaveCard}
+          />
+        </>
       ) : null}
     </SafeAreaView>
   );

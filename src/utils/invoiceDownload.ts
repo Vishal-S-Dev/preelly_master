@@ -45,13 +45,13 @@ export const downloadPaymentInvoiceFile = async (
         downloadUrl = tx.invoice.url;
       } else {
         downloadUrl = `${ENV.API_BASE_URL.replace(/\/$/, '')}${
-          API_ENDPOINTS.PAYMENT_TRANSACTIONS
-        }/${encodeURIComponent(transactionId)}/invoice`;
+          API_ENDPOINTS.PAYMENT_INVOICE
+        }/${encodeURIComponent(transactionId)}`;
       }
     } catch {
       downloadUrl = `${ENV.API_BASE_URL.replace(/\/$/, '')}${
-        API_ENDPOINTS.PAYMENT_TRANSACTIONS
-      }/${encodeURIComponent(transactionId)}/invoice`;
+        API_ENDPOINTS.PAYMENT_INVOICE
+      }/${encodeURIComponent(transactionId)}`;
     }
   }
 

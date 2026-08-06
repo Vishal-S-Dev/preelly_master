@@ -94,7 +94,7 @@ export const PaymentApi = {
   ): Promise<PaymentTransaction> {
     return withRetryGet(async () => {
       const { data } = await httpClient.get(
-        `${API_ENDPOINTS.PAYMENT_TRANSACTIONS}/${encodeURIComponent(orderId)}`,
+        `${API_ENDPOINTS.PAYMENT_TRANSACTION}/${encodeURIComponent(orderId)}`,
         config,
       );
       return mapPaymentTransaction(data);
@@ -129,9 +129,7 @@ export const PaymentApi = {
     transactionId: string,
     config?: AxiosRequestConfig,
   ): Promise<{ uri: string; fileName: string; blob?: Blob }> {
-    const invoicePath = `${API_ENDPOINTS.PAYMENT_TRANSACTIONS}/${encodeURIComponent(
-      transactionId,
-    )}/invoice`;
+    const invoicePath = `${API_ENDPOINTS.PAYMENT_INVOICE}/${encodeURIComponent(transactionId)}`;
 
     try {
       const response = await httpClient.get(invoicePath, {

@@ -1,5 +1,6 @@
 import { API_ENDPOINTS, PAGINATION } from '../../constants/appConstants';
 import { ENV } from '../../constants/env';
+import { ArchivedListingsResponseDTO, ArchiveSortKey } from '../../types/archives.types';
 import { ProductDTO, ProductsResponseDTO } from '../dto/ProductDTO';
 import { httpClient } from './httpClient';
 
@@ -161,6 +162,55 @@ export const ProductApi = {
       },
     );
     return { id: data?._id ?? data?.id ?? data?.data?._id ?? productId };
+  },
+
+  /**
+   * Get the current user's own listings, optionally filtered to archived ones.
+   * Backend: GET /api/user/listings
+   */
+  async getMyListings(params: {
+    page: number;
+    limit: number;
+    archived?: boolean;
+    q?: string;
+    sort?: ArchiveSortKey;
+  }): Promise<ArchivedListingsResponseDTO> {
+    const { data } = await httpClient.get<ArchivedListingsResponseDTO>('/api/user/listings', {
+      baseURL: PRODUCTS_BASE_URL,
+      params: {
+        page: params.page,
+        limit: params.limit,
+        archived: params.archived ? 'true' : undefined,
+        q: params.q || undefined,
+        sort: params.sort || undefined,
+      },
+    });
+    return data;
+  },
+
+  /** Backend: PUT /api/products/:id/archive — unpublish an ad, moving it to My Archives. */
+  async archiveProduct(productId: string): Promise<void> {
+    await httpClient.put(
+      `${API_ENDPOINTS.PRODUCTS}/${productId}/archive`,
+      undefined,
+      { baseURL: PRODUCTS_BASE_URL },
+    );
+  },
+
+  /** Backend: PUT /api/products/:id/restore — move an archived ad back to My Ads. */
+  async restoreProduct(productId: string): Promise<void> {
+    await httpClient.put(
+      `${API_ENDPOINTS.PRODUCTS}/${productId}/restore`,
+      undefined,
+      { baseURL: PRODUCTS_BASE_URL },
+    );
+  },
+
+  /** Backend: DELETE /api/products/:id — permanently delete an ad. */
+  async deleteProduct(productId: string): Promise<void> {
+    await httpClient.delete(`${API_ENDPOINTS.PRODUCTS}/${productId}`, {
+      baseURL: PRODUCTS_BASE_URL,
+    });
   },
 
   withBase,

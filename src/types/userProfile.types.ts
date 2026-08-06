@@ -40,6 +40,10 @@ export interface UserProfileDTO {
   savedProducts?: unknown[];
   status?: string;
   lastOauthProvider?: string | null;
+  googleProviderId?: string | null;
+  appleProviderId?: string | null;
+  facebookProviderId?: string | null;
+  instagramProviderId?: string | null;
   moderationWarnings?: number;
   savedLocations?: unknown[];
   memberSince?: string;

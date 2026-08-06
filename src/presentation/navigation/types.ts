@@ -1,5 +1,8 @@
+import { NavigatorScreenParams } from '@react-navigation/native';
 import { Product } from '../../domain/models/Product';
+import { CreatePostStackParamList } from '../../types/createPost.types';
 import { EditProductDetailSeed, EditProductStackParamList } from '../../types/editProduct.types';
+import { ProfileTabKey } from '../../types/profile.types';
 import {
   PaymentInitiateResponse,
   PaymentFlowKind,
@@ -10,7 +13,7 @@ export type UserFeedListingSource = 'posts' | 'saved' | 'liked';
 
 export type RootStackParamList = {
   Onboarding: undefined;
-  MainTabs: undefined;
+  MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   ChatThread: { threadId: string };
   ProductDetail: { productId: string; product?: Product };
   ProductImageGallery: {
@@ -30,7 +33,7 @@ export type RootStackParamList = {
     initialRoute?: Exclude<keyof EditProductStackParamList, 'EditProductHydrate'>;
     detailSeed?: EditProductDetailSeed;
   };
-  CreatePost: undefined;
+  CreatePost: NavigatorScreenParams<CreatePostStackParamList> | undefined;
   ProfileEdit: { requireCompletion?: boolean } | undefined;
   Login: undefined;
   AuthLinkEmail: undefined;
@@ -77,6 +80,22 @@ export type RootStackParamList = {
   Notifications: undefined;
   FollowRequests: undefined;
   MySettings: undefined;
+  MyArchives: undefined;
+  MyDrafts: undefined;
+  MySearches: undefined;
+  BlockedUsers: undefined;
+  Support: undefined;
+  FAQ: undefined;
+  ContactUs: undefined;
+  PrivacySecurity: undefined;
+  SetNewEmail: undefined;
+  SetNewMobile: undefined;
+  ChangeContactOtp: {
+    purpose: 'email' | 'phone';
+    target: string;
+    phoneCountryCode?: string;
+    phoneCountryIso?: string;
+  };
   CartCheckout:
     | {
         productId?: string;
@@ -106,5 +125,5 @@ export type MainTabParamList = {
   Bookmark: undefined;
   Create: undefined;
   Chat: undefined;
-  Profile: undefined;
+  Profile: { initialTab?: ProfileTabKey } | undefined;
 };

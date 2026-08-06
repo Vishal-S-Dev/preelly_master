@@ -1,6 +1,6 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Feather from 'react-native-vector-icons/Feather';
 import { resolveMediaUrl } from '../../../utils/mediaUrl';
+import { CartApi } from '../../../data/api/CartApi';
 import {
   DirectChatAvatar,
   GroupChatAvatar,
@@ -203,6 +204,32 @@ export const ChatScreen: React.FC = () => {
 
   const [activeFilter, setActiveFilter] = useState<ChatFilter>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [cartProductIds, setCartProductIds] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    if (activeFilter !== 'Cart') {
+      return;
+    }
+    let cancelled = false;
+    CartApi.getCart('ACTIVE')
+      .then(items => {
+        if (cancelled) {
+          return;
+        }
+        const ids = items
+          .map(item => CartApi.resolveProductId(item.productId))
+          .filter(Boolean);
+        setCartProductIds(new Set(ids));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCartProductIds(new Set());
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeFilter]);
 
   const headerPaddingTop = useMemo(() => Math.max(insets.top, 12), [insets.top]);
 
@@ -217,10 +244,10 @@ export const ChatScreen: React.FC = () => {
   );
 
   const listData = useMemo(() => {
-    const filtered = filterThreads(threads, activeFilter);
+    const filtered = filterThreads(threads, activeFilter, cartProductIds);
     const rows = mapThreadsToChatRows(filtered);
     return searchChatRows(rows, searchQuery);
-  }, [threads, activeFilter, searchQuery]);
+  }, [threads, activeFilter, searchQuery, cartProductIds]);
 
   const headerSubtitle = useMemo(() => {
     if (!isAuthenticated || isGuest) {
@@ -315,12 +342,22 @@ export const ChatScreen: React.FC = () => {
         </View>
       );
     }
+    if (activeFilter === 'Cart') {
+      return (
+        <View style={styles.centerMessage}>
+          <Text style={styles.emptyBody}>
+            No chats with a cart item or accepted offer yet.
+          </Text>
+        </View>
+      );
+    }
     return (
       <View style={styles.centerMessage}>
         <Text style={styles.emptyBody}>No conversations yet.</Text>
       </View>
     );
   }, [
+    activeFilter,
     dispatch,
     error,
     isAuthenticated,
@@ -346,12 +383,16 @@ export const ChatScreen: React.FC = () => {
           style={styles.headerBackBtn}
           onPress={onHeaderBack}
           accessibilityRole="button"
-          accessibilityLabel="Go back">
-          <Feather name="chevron-left" size={28} color={CHAT_ACCENT.composeNavy} />
+          accessibilityLabel="Go back"
+        >
+          <Icon name="chevron-left" size={28} color={CHAT_ACCENT.composeNavy} />
         </Pressable>
         <View style={styles.headerCenter}>
           <View style={styles.headerAvatarWrap}>
-            <Image source={{ uri: headerAvatarUri }} style={styles.headerAvatar} />
+            <Image
+              source={{ uri: headerAvatarUri }}
+              style={styles.headerAvatar}
+            />
             {totalUnread > 0 && isAuthenticated && !isGuest ? (
               <View style={styles.headerAvatarNotifyDot} />
             ) : null}
@@ -366,13 +407,17 @@ export const ChatScreen: React.FC = () => {
             <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
           </View>
         </View>
-        <Pressable
+        {/*<Pressable
           hitSlop={12}
           style={styles.headerIconBtn}
           accessibilityRole="button"
           accessibilityLabel="Compose message">
-          <Icon name="square-edit-outline" size={24} color={CHAT_ACCENT.composeNavy} />
-        </Pressable>
+          <Icon
+            name="square-edit-outline"
+            size={24}
+            color={CHAT_ACCENT.composeNavy}
+          />
+        </Pressable>*/}
       </View>
 
       <ChatSearchToolbar
@@ -388,13 +433,20 @@ export const ChatScreen: React.FC = () => {
         data={listData}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        contentContainerStyle={[styles.listContent, listData.length === 0 && styles.listContentEmpty]}
+        contentContainerStyle={[
+          styles.listContent,
+          listData.length === 0 && styles.listContentEmpty,
+        ]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={listEmpty}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+          />
         }
       />
     </View>

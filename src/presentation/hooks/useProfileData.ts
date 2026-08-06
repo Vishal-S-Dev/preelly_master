@@ -70,12 +70,12 @@ const mapAuthToProfile = (
   stats,
 });
 
-export const useProfileData = () => {
+export const useProfileData = (initialTab: ProfileTabKey = 'liked') => {
   const authUser = useAppSelector(state => state.auth.user);
   const userId = authUser?.id ?? null;
 
   const [profile, setProfile] = useState<ProfileUserView | null>(null);
-  const [activeTab, setActiveTab] = useState<ProfileTabKey>('liked');
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>(initialTab);
   const [items, setItems] = useState<ProfileProductGridItem[]>([]);
   const [reelProducts, setReelProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(1);

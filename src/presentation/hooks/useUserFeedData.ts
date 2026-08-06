@@ -144,6 +144,14 @@ export const useUserFeedData = ({
     );
   }, []);
 
+  const removeProduct = useCallback((productId: string) => {
+    setProducts(prev => {
+      const next = prev.filter(product => product.id !== productId);
+      setActiveIndex(current => Math.min(current, Math.max(0, next.length - 1)));
+      return next;
+    });
+  }, []);
+
   const initialScrollIndex = useMemo(
     () => resolveInitialIndex(products, initialProductId, initialIndex),
     [initialIndex, initialProductId, products],
@@ -163,5 +171,6 @@ export const useUserFeedData = ({
     applyLikeResult,
     applySaveResult,
     applyViewedResult,
+    removeProduct,
   };
 };

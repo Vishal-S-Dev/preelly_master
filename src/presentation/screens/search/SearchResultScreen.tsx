@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -54,9 +55,11 @@ import {
   useSearchProducts,
 } from '../../hooks/useSearchProducts';
 import { RootStackParamList } from '../../navigation/types';
-import { useAppDispatch } from '../../hooks/useRedux';
+import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { saveProduct } from '../../redux/slices/productSlice';
 import { PANEL_ANIMATION_MS, PANEL_HEIGHT } from '../../utils/searchMotion';
+import { SavedSearchApi } from '../../../data/api/SavedSearchApi';
+import { buildSavedSearchPayload } from '../../../utils/savedSearchPayload';
 import { isMotorsCategory } from './categoryFilterUtils';
 
 type PanelMode = 'none' | 'filter' | 'sort';
@@ -132,6 +135,8 @@ export const SearchResultScreen: React.FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, 'SearchFilter'>>();
   const theme = useAppTheme();
   const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
+  const isGuest = useAppSelector(state => state.auth.isGuest);
 
   const filterSheetRef = useRef<BottomSheetModal>(null);
   const panelProgress = useSharedValue(0);
@@ -140,6 +145,7 @@ export const SearchResultScreen: React.FC = () => {
   const [sort, setSort] = useState<SearchSortOption>('newest');
   const [savedOverrides, setSavedOverrides] = useState<Record<string, boolean>>({});
   const [panelMode, setPanelMode] = useState<PanelMode>('none');
+  const [savingSearch, setSavingSearch] = useState(false);
 
   const [draftCategoryId, setDraftCategoryId] = useState(filters.categoryId);
   const [draftCity, setDraftCity] = useState(filters.city ?? 'All Cities');
@@ -363,6 +369,30 @@ export const SearchResultScreen: React.FC = () => {
     navigation.navigate('Search', { initialQuery: filters.keyword });
   }, [filters.keyword, navigation]);
 
+  const handleSaveSearch = useCallback(() => {
+    if (savingSearch) {
+      return;
+    }
+    if (!isAuthenticated || isGuest) {
+      Alert.alert('Sign in required', 'Please sign in to save this search.');
+      return;
+    }
+    setSavingSearch(true);
+    const payload = buildSavedSearchPayload(filters, sort, resultLabel, true);
+    SavedSearchApi.createSavedSearch(payload)
+      .then(() => {
+        Alert.alert('Search saved', `We'll track new ads matching "${resultLabel}" in My Search.`);
+      })
+      .catch(err => {
+        const message =
+          err && typeof err === 'object' && 'response' in err
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+            : undefined;
+        Alert.alert('Unable to save search', message || 'Failed to save this search');
+      })
+      .finally(() => setSavingSearch(false));
+  }, [filters, isAuthenticated, isGuest, resultLabel, savingSearch, sort]);
+
   const renderItem = useCallback(
     ({ item }: { item: SearchListingItem }) => (
       <SearchResultCard item={item} onPress={handleOpenProduct} onFavorite={handleFavorite} />
@@ -532,6 +562,22 @@ export const SearchResultScreen: React.FC = () => {
             accessibilityHint="Toggle sort options panel"
           />
         </View>
+
+        <Pressable
+          style={[styles.iconButton, { backgroundColor: theme.card }]}
+          onPress={handleSaveSearch}
+          disabled={savingSearch}
+          android_ripple={{ color: theme.subText + '33', borderless: true }}
+          accessibilityRole="button"
+          accessibilityLabel="Save search"
+          accessibilityHint="Track new ads matching this search in My Search"
+        >
+          {savingSearch ? (
+            <ActivityIndicator size="small" color={theme.text} />
+          ) : (
+            <Icon name="bookmark-outline" size={22} color={theme.text} />
+          )}
+        </Pressable>
 
         <Pressable
           style={[styles.iconButton, { backgroundColor: theme.card }]}

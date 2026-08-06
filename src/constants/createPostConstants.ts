@@ -80,6 +80,6 @@ export const VIDEO_CONSTRAINTS = {
   aspectTolerance: 0.08,
   maxImages: 10,
   allowedMimeTypes: ['video/mp4', 'video/quicktime', 'video/mov'],
+  /** Mirrors backend's MIN_TRIM_SECONDS (videoTrimService.js) — smallest span the trim editor allows. */
+  minTrimSeconds: 15,
 };
-
-export const SCREENSHOT_TIMESTAMPS_SEC = [8, 20, 35, 50, 70, 90];

@@ -61,8 +61,11 @@ export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
       if (!product || !onChat) {
         return;
       }
+      if (ref && typeof ref !== 'function') {
+        ref.current?.dismiss();
+      }
       onChat(product);
-    }, [onChat, product]);
+    }, [onChat, product, ref]);
 
     const renderFooter = useCallback(
       (props: BottomSheetFooterProps) => {

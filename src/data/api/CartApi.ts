@@ -46,12 +46,13 @@ export const CartApi = {
   },
 
   /**
-   * Get the current user's active cart items.
-   * Backend: GET /api/cart → { success, data: CartItem[] }
+   * Get the current user's cart items, optionally filtered by status.
+   * Backend: GET /api/cart?cartStatus= → { success, data: CartItem[] }
    */
-  async getCart(): Promise<CartItemDTO[]> {
+  async getCart(cartStatus?: string): Promise<CartItemDTO[]> {
     const { data } = await httpClient.get<{ success?: boolean; data?: CartItemDTO[] }>(
       API_ENDPOINTS.CART,
+      cartStatus ? { params: { cartStatus } } : undefined,
     );
     return data?.data ?? [];
   },

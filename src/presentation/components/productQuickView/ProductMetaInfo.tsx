@@ -12,6 +12,12 @@ interface Props {
   onTitlePress?: () => void;
 }
 
+const AVAILABILITY_PILL_STYLE = {
+  Available: qvStyles.availablePill,
+  Sold: qvStyles.soldPill,
+  Reserved: qvStyles.reservedPill,
+} as const;
+
 export const ProductMetaInfo: React.FC<Props> = ({ data, onTitlePress }) => {
   const { product } = data;
 
@@ -50,7 +56,7 @@ export const ProductMetaInfo: React.FC<Props> = ({ data, onTitlePress }) => {
           <Icon name="earth" size={14} color="#6B7280" />
           <Text style={qvStyles.metaText}>{data.specsLabel}</Text>
         </View>
-        <View style={qvStyles.availablePill}>
+        <View style={AVAILABILITY_PILL_STYLE[data.availability]}>
           <Text style={qvStyles.availableText}>{data.availability}</Text>
         </View>
       </View>

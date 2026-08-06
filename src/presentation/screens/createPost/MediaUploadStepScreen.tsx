@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import UploadIcon from '../../../../assets/icons/icn_upload.svg';
 import CameraIcon from '../../../../assets/icn_camera.svg';
 import { useCreatePostStore } from '../../../store/createPostStore';
@@ -9,6 +10,7 @@ import { CreatePostFooter, CreatePostHeader } from '../../components/createPost/
 import { MediaPickerCard } from '../../components/createPost/MediaPickerCard';
 import { MediaUploadTips } from '../../components/createPost/MediaUploadTips';
 import { VideoPreview } from '../../components/createPost/VideoPreview';
+import { VideoTrimEditor } from '../../components/createPost/VideoTrimEditor';
 import { useMediaPicker } from '../../hooks/useMediaPicker';
 import { useCreatePostStyles } from '../../hooks/useCreatePostStyles';
 import { cpStyles } from '../../components/createPost/createPostStyles';
@@ -20,6 +22,7 @@ export const MediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
   const { categoryName, setVideo } = useCreatePostStore();
   const { video, pickVideoFromGallery, captureVideo } = useMediaPicker();
   const [matchedCardHeight, setMatchedCardHeight] = useState<number | null>(null);
+  const [isEditingVideo, setIsEditingVideo] = useState(false);
 
   const onNext = useCallback(() => {
     if (!video) {
@@ -88,21 +91,54 @@ export const MediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
               style={equalCardStyle}
             />
           </>
-        ) : (
-          <VideoPreview
+        ) : isEditingVideo ? (
+          <VideoTrimEditor
             video={video}
-            onDelete={() => setVideo(null)}
-            onReplace={pickVideoFromGallery}
+            onCancel={() => setIsEditingVideo(false)}
+            onSave={trimmed => {
+              setVideo(trimmed);
+              setIsEditingVideo(false);
+            }}
           />
+        ) : (
+          <>
+            <VideoPreview
+              video={video}
+              onDelete={() => setVideo(null)}
+              onReplace={pickVideoFromGallery}
+            />
+            <Pressable
+              style={[styles.secondaryBtn, localStyles.editVideoBtn]}
+              onPress={() => setIsEditingVideo(true)}
+            >
+              <Icon name="content-cut" size={15} color="#21357C" />
+              <Text style={[styles.secondaryBtnText, localStyles.editVideoBtnText]}>Edit video</Text>
+            </Pressable>
+          </>
         )}
       </ScrollView>
-      <CreatePostFooter
-        backgroundColor={styles.screen.backgroundColor}
-        step={1}
-        total={5}
-        onNext={onNext}
-        disabled={!video}
-      />
+      {!isEditingVideo ? (
+        <CreatePostFooter
+          backgroundColor={styles.screen.backgroundColor}
+          step={1}
+          total={5}
+          onNext={onNext}
+          disabled={!video}
+        />
+      ) : null}
     </View>
   );
 };
+
+const localStyles = StyleSheet.create({
+  editVideoBtn: {
+    flex: 0,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  editVideoBtnText: {
+    fontSize: 13,
+  },
+});

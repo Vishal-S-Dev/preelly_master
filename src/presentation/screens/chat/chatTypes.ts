@@ -8,7 +8,7 @@ import {
   resolveChatRowPresentation,
 } from './chatRowUtils';
 
-export type ChatFilter = 'All' | 'Buying' | 'Selling' | 'Unread' | 'Following' | 'Groups';
+export type ChatFilter = 'All' | 'Cart' | 'Buying' | 'Selling' | 'Unread' | 'Following' | 'Groups';
 
 export type ChatRow =
   | {
@@ -254,8 +254,14 @@ export function searchChatRows(rows: ChatRow[], query: string): ChatRow[] {
   });
 }
 
-export function filterThreads(threads: ChatThread[], filter: ChatFilter): ChatThread[] {
+export function filterThreads(
+  threads: ChatThread[],
+  filter: ChatFilter,
+  cartProductIds?: Set<string>,
+): ChatThread[] {
   switch (filter) {
+    case 'Cart':
+      return threads.filter(t => Boolean(t.productId) && cartProductIds?.has(t.productId as string));
     case 'Buying':
       return threads.filter(
         t =>

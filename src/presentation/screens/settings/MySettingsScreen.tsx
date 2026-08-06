@@ -32,36 +32,32 @@ export const MySettingsScreen: React.FC<Props> = ({ navigation }) => {
 
   const versionLabel = useMemo(() => getBuildVersionLabel(), []);
 
-  const showComingSoon = useCallback((feature: string) => {
-    Alert.alert(feature, 'This section will be available in a future update.');
-  }, []);
-
   const onDashboardPress = useCallback(
     (key: (typeof DASHBOARD_ITEMS)[number]['key']) => {
       switch (key) {
         case 'ads':
-          navigation.navigate('MainTabs');
+          navigation.navigate('MainTabs', { screen: 'Profile', params: { initialTab: 'posts' } });
           break;
         case 'searches':
-          navigation.navigate('Search');
+          navigation.navigate('MySearches');
           break;
         case 'bookings':
-          showComingSoon('My Bookings');
+          navigation.navigate('PaymentHistory');
           break;
         case 'cart':
           navigation.navigate('CartCheckout');
           break;
         case 'drafts':
-          navigation.navigate('CreatePost');
+          navigation.navigate('MyDrafts');
           break;
         case 'archives':
-          showComingSoon('My Archives');
+          navigation.navigate('MyArchives');
           break;
         default:
           break;
       }
     },
-    [navigation, showComingSoon],
+    [navigation],
   );
 
   const onGetVerified = useCallback(() => {
@@ -147,17 +143,22 @@ export const MySettingsScreen: React.FC<Props> = ({ navigation }) => {
           <SettingsMenuItem
             icon="bank-outline"
             label="My Bank Details"
-            onPress={() => showComingSoon('My Bank Details')}
+            onPress={() => navigation.navigate('ProfileEdit')}
           />
-          <SettingsMenuItem
+          {/*<SettingsMenuItem
             icon="receipt"
             label="Transactions"
             onPress={() => navigation.navigate('PaymentHistory')}
-          />
+          />*/}
           <SettingsMenuItem
             icon="cancel"
             label="Blocked Users"
-            onPress={() => showComingSoon('Blocked Users')}
+            onPress={() => navigation.navigate('BlockedUsers')}
+          />
+          <SettingsMenuItem
+            icon="shield-lock-outline"
+            label="Privacy & Security"
+            onPress={() => navigation.navigate('PrivacySecurity')}
           />
         </View>
 
@@ -167,13 +168,13 @@ export const MySettingsScreen: React.FC<Props> = ({ navigation }) => {
           <SettingsMenuItem
             icon="lifebuoy"
             label="Support"
-            onPress={() => showComingSoon('Support')}
+            onPress={() => navigation.navigate('Support')}
           />
-          <SettingsMenuItem icon="help-circle-outline" label="FAQ" onPress={() => showComingSoon('FAQ')} />
+          <SettingsMenuItem icon="help-circle-outline" label="FAQ" onPress={() => navigation.navigate('FAQ')} />
           <SettingsMenuItem
             icon="phone-outline"
             label="Contact Us"
-            onPress={() => showComingSoon('Contact Us')}
+            onPress={() => navigation.navigate('ContactUs')}
           />
         </View>
 

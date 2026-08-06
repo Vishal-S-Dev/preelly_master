@@ -26,7 +26,7 @@ import { ProfileEditScreen } from '../screens/profile/edit/ProfileEditScreen';
 import { GetVerifiedScreen } from '../screens/profile/getVerified/GetVerifiedScreen';
 import { OnboardingScreen } from '../screens/onboarding/OnboardingScreen';
 import { navigationRef } from './navigationRef';
-import { RootStackParamList } from './types';
+import { MainTabParamList, RootStackParamList } from './types';
 import { useAppSelector } from '../hooks/useRedux';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { Image, Platform } from 'react-native';
@@ -39,6 +39,16 @@ import { CategoryFilterScreen } from '../screens/search/CategoryFilterScreen';
 import { NotificationsScreen } from '../screens/notifications/NotificationsScreen';
 import { FollowRequestsScreen } from '../screens/notifications/FollowRequestsScreen';
 import { MySettingsScreen } from '../screens/settings/MySettingsScreen';
+import { MyArchivesScreen } from '../screens/archives/MyArchivesScreen';
+import { MyDraftsScreen } from '../screens/drafts/MyDraftsScreen';
+import { MySearchesScreen } from '../screens/searches/MySearchesScreen';
+import { BlockedUsersScreen } from '../screens/blocked/BlockedUsersScreen';
+import { InfoPageScreen } from '../screens/info/InfoPageScreen';
+import { FAQScreen } from '../screens/faq/FAQScreen';
+import { PrivacySecurityScreen } from '../screens/privacySecurity/PrivacySecurityScreen';
+import { SetNewEmailScreen } from '../screens/privacySecurity/SetNewEmailScreen';
+import { SetNewMobileScreen } from '../screens/privacySecurity/SetNewMobileScreen';
+import { ChangeContactOtpScreen } from '../screens/privacySecurity/ChangeContactOtpScreen';
 import { CartCheckoutScreen } from '../screens/cart/CartCheckoutScreen';
 import { PaymentWebViewScreen } from '../screens/payment/PaymentWebViewScreen';
 import { PaymentSuccessScreen } from '../screens/payment/PaymentSuccessScreen';
@@ -47,7 +57,7 @@ import { PaymentPendingScreen } from '../screens/payment/PaymentPendingScreen';
 import { PaymentCancelledScreen } from '../screens/payment/PaymentCancelledScreen';
 import { PaymentHistoryScreen } from '../screens/payment/PaymentHistoryScreen';
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const TAB_ICONS: Record<string, string> = {
@@ -290,6 +300,61 @@ export const AppNavigator: React.FC = () => {
             <Stack.Screen
               name="MySettings"
               component={MySettingsScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="MyArchives"
+              component={MyArchivesScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="MyDrafts"
+              component={MyDraftsScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="MySearches"
+              component={MySearchesScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="BlockedUsers"
+              component={BlockedUsersScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="Support"
+              component={InfoPageScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="ContactUs"
+              component={InfoPageScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="FAQ"
+              component={FAQScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="PrivacySecurity"
+              component={PrivacySecurityScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="SetNewEmail"
+              component={SetNewEmailScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="SetNewMobile"
+              component={SetNewMobileScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="ChangeContactOtp"
+              component={ChangeContactOtpScreen}
               options={{ animation: 'slide_from_right' }}
             />
             <Stack.Screen

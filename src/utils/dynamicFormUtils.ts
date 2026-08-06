@@ -106,6 +106,12 @@ export const getMaxOptionTreeDepth = (options: FormFieldOption[]): number => {
   return max;
 };
 
+/** Loose fallback comparison for values coming from AI/transcript extraction, which may
+ *  differ from a label-based option only in case or surrounding whitespace (e.g. " suv"
+ *  vs "SUV"). Exact matches (including ID-based options) are always tried first. */
+const looselyEquals = (a: string, b: string): boolean =>
+  a.trim().toLowerCase() === b.trim().toLowerCase();
+
 export const findOptionInTree = (
   options: FormFieldOption[],
   value: string,
@@ -114,6 +120,22 @@ export const findOptionInTree = (
   for (const option of options) {
     const nextPath = [...path, option.label];
     if (option.value === value || option.label === value || option.slug === value) {
+      return { option, path: nextPath };
+    }
+    if (option.children?.length) {
+      const nested = findOptionInTree(option.children, value, nextPath);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+  for (const option of options) {
+    const nextPath = [...path, option.label];
+    if (
+      looselyEquals(option.value, value) ||
+      looselyEquals(option.label, value) ||
+      (option.slug && looselyEquals(option.slug, value))
+    ) {
       return { option, path: nextPath };
     }
     if (option.children?.length) {
@@ -138,6 +160,15 @@ export const findFieldOption = (
   );
   if (flat) {
     return flat;
+  }
+  const loose = options.find(
+    option =>
+      looselyEquals(option.value, value) ||
+      looselyEquals(option.label, value) ||
+      (option.slug && looselyEquals(option.slug, value)),
+  );
+  if (loose) {
+    return loose;
   }
   return findOptionInTree(options, value)?.option;
 };

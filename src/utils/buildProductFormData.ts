@@ -49,6 +49,33 @@ const resolveFieldLabel = (
   return resolveDropdownDisplayLabel(field, values[field.fieldName], fields, values);
 };
 
+/**
+ * Some categories' dynamic-form API exposes the Year dropdown under fieldName "year"
+ * (not "yearId"), with `option.value` being a Filter ObjectId rather than the literal
+ * year — while the backend's Product schema expects `year` to be a plain Number. Resolve
+ * the dropdown's display label (e.g. "2026") instead of forwarding the raw ObjectId, which
+ * would fail with a Mongoose "Cast to Number" error.
+ */
+const resolveManufacturingYear = (
+  formFields: FormField[],
+  dynamicFields: Record<string, string>,
+): string | undefined => {
+  const yearField = findFieldByName(formFields, 'year') ?? findFieldByName(formFields, 'yearid');
+  if (!yearField) {
+    return undefined;
+  }
+  const rawValue = dynamicFields[yearField.fieldName];
+  const trimmed = rawValue?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (!isMongoObjectId(rawValue)) {
+    return /^\d{4}$/.test(trimmed) ? trimmed : undefined;
+  }
+  const label = resolveDropdownDisplayLabel(yearField, rawValue, formFields, dynamicFields)?.trim();
+  return label && /^\d{4}$/.test(label) ? label : undefined;
+};
+
 const extractBrandFromModel = (modelLabel?: string): string | undefined => {
   if (!modelLabel) {
     return undefined;
@@ -83,6 +110,39 @@ const STATIC_DEFAULTS: Record<string, string> = {
   adType: 'free',
 };
 
+/**
+ * Backend vehicle-listing fields that only ever store a Filter/Category ObjectId
+ * (see api/utils/productVehicleFields.js VEHICLE_LISTING_FIELDS). AI/transcript
+ * extraction can populate the matching dynamicFields key with raw label text
+ * (e.g. "Petrol") before the user confirms it via the dropdown — sending that
+ * text here would fail the ObjectId cast server-side, so skip unresolved values
+ * the same way `category`/`subcategory` are already guarded below.
+ */
+const VEHICLE_OBJECT_ID_API_KEYS = new Set([
+  'cityid',
+  'modelid',
+  'trimid',
+  'regionalspecsid',
+  'yearid',
+  'bodytypeid',
+  'seatid',
+  'isinsuredid',
+  'exteriorcolorid',
+  'interiorcolorid',
+  'warrantyid',
+  'fueltypeid',
+  'doorsid',
+  'numberofcylenderid',
+  'transmissiontypeid',
+  'horsepowerid',
+  'steeringsideid',
+  'enginecapacityid',
+  'driverassistancesafetyid',
+  'entertainmenttechnologyid',
+  'comfortconvenienceid',
+  'exteriorid',
+]);
+
 const LEGACY_FIELD_MAP: Record<string, string> = {
   exteriorColor: 'exteriorcolorid',
   interiorColor: 'interiorcolor',
@@ -109,6 +169,7 @@ export const buildProductFormData = (
   );
   const modelLabel = resolveFieldLabel(formFields, 'modelid', dynamicFields);
   const brand = extractBrandFromModel(modelLabel);
+  const manufacturingYear = resolveManufacturingYear(formFields, dynamicFields);
   const { categoryId, subcategoryId } = resolveProductCategoryIds(draft);
 
   if (draft.video) {
@@ -143,6 +204,7 @@ export const buildProductFormData = (
   appendIfPresent(formData, 'locateyouritem', landmark);
   appendIfPresent(formData, 'buildingstreetname', buildingStreet);
   appendIfPresent(formData, 'brand', brand);
+  appendIfPresent(formData, 'year', manufacturingYear);
   appendIfPresent(formData, 'contactName', options.contactName);
   appendIfPresent(formData, 'contactPhone', phone);
   appendIfPresent(formData, 'phonenumber', phone);
@@ -164,6 +226,7 @@ export const buildProductFormData = (
     'locateyouritem',
     'buildingstreetname',
     'brand',
+    'year',
     'condition',
     'pricetype',
     'adtype',
@@ -194,7 +257,8 @@ export const buildProductFormData = (
       typeof storeValue === 'string' &&
       storeValue.trim() &&
       !hasDynamicValue(apiKey) &&
-      !appendedKeys.has(apiKey)
+      !appendedKeys.has(apiKey) &&
+      !(VEHICLE_OBJECT_ID_API_KEYS.has(apiKey) && !isMongoObjectId(storeValue))
     ) {
       appendIfPresent(formData, apiKey, storeValue);
       appendedKeys.add(apiKey);
@@ -210,7 +274,10 @@ export const buildProductFormData = (
     if (isPromotedListingFieldKey(apiKey)) {
       return;
     }
-    if ((apiKey === 'category' || apiKey === 'subcategory') && !isMongoObjectId(value)) {
+    if (
+      (apiKey === 'category' || apiKey === 'subcategory' || VEHICLE_OBJECT_ID_API_KEYS.has(apiKey)) &&
+      !isMongoObjectId(value)
+    ) {
       return;
     }
     appendIfPresent(formData, apiKey, value);

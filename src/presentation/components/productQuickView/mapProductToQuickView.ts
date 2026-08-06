@@ -2,6 +2,16 @@ import { Product } from '../../../domain/models/Product';
 import { ProductApi } from '../../../data/api/ProductApi';
 import { ProductQuickViewData } from './productQuickViewTypes';
 
+const resolveAvailability = (product: Product): ProductQuickViewData['availability'] => {
+  if (product.isSold) {
+    return 'Sold';
+  }
+  if (product.isPaused) {
+    return 'Reserved';
+  }
+  return 'Available';
+};
+
 const formatPostedDate = (isoDate: string): string => {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) {
@@ -47,7 +57,7 @@ export const mapProductToQuickView = (product: Product): ProductQuickViewData =>
     year: product.year ?? '—',
     mileage: formatMileage(product.mileage),
     specsLabel: product.regionalSpecs ?? '—',
-    availability: 'Available',
+    availability: resolveAvailability(product),
     seenByName: product.user?.name?.split(' ')[0] ?? '—',
     seenByOthers: 400 + (seedNum % 500),
     postedOnLabel: formatPostedDate(product.createdAt),

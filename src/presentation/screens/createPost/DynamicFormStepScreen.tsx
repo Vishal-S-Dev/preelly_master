@@ -41,13 +41,19 @@ export const DynamicFormStepScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Invalid price', 'Enter a valid price.');
       return;
     }
-    const year = dynamicFields.year;
-    if (year && !validateYear(year)) {
-      Alert.alert('Invalid year', 'Enter a valid manufacturing year.');
-      return;
+    // Year is a Dropdown backed by an options list (option.value is often a Filter ObjectId,
+    // not the literal year) for most categories — only free-text Year fields need range checking,
+    // since the dropdown's own options already constrain the selection to valid years.
+    const yearField = stepFields.find(field => /^year(id)?$/i.test(field.fieldName));
+    if (yearField?.fieldType === 'Text') {
+      const year = dynamicFields[yearField.fieldName];
+      if (year && !validateYear(year)) {
+        Alert.alert('Invalid year', 'Enter a valid manufacturing year.');
+        return;
+      }
     }
     navigation.navigate('CreatePostAdvancedFormStep');
-  }, [dynamicFields.year, navigation, phone, price]);
+  }, [dynamicFields, navigation, phone, price, stepFields]);
 
   const renderField = useCallback(
     (field: FormField) => {

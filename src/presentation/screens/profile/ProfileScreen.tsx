@@ -1,7 +1,7 @@
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/types';
+import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import {
   ActivityIndicator,
   Alert,
@@ -147,6 +147,8 @@ ProfileListHeader.displayName = 'ProfileListHeader';
 export const ProfileScreen: React.FC = () => {
   const { styles, colors } = useProfileStyles();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<MainTabParamList, 'Profile'>>();
+  const initialTab = route.params?.initialTab;
   const dispatch = useAppDispatch();
   const photoSheetRef = useRef<BottomSheetModal>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -164,7 +166,13 @@ export const ProfileScreen: React.FC = () => {
     reloadProfileMeta,
     onLoadMore,
     setAvatarPreview,
-  } = useProfileData();
+  } = useProfileData(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      onTabChange(initialTab);
+    }
+  }, [initialTab, onTabChange]);
 
   const persistAvatarToSession = useCallback(
     async (avatar: string | null | undefined) => {

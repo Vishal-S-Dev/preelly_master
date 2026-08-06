@@ -1,12 +1,20 @@
 import { ENV } from '../../constants/env';
 import { httpClient } from './httpClient';
-import { LocationPayload } from '../../types/profileEdit.types';
+import {
+  BankAccountPayload,
+  LocationPayload,
+  SavedCardPayload,
+} from '../../types/profileEdit.types';
 import { ProfileApiUserDTO } from '../../services/profile.service';
 import {
   UserFollowStatusResponseDTO,
   UserFollowToggleResponseDTO,
   UserProfileDTO,
 } from '../../types/userProfile.types';
+import {
+  BlockedUsersResponseDTO,
+  UserSearchResponseDTO,
+} from '../../types/blockedUsers.types';
 import { API_ENDPOINTS } from '../../constants/appConstants';
 
 const API_BASE = ENV.API_BASE_URL;
@@ -24,6 +32,28 @@ export interface LocationDTO {
     coordinates?: [number, number];
     type?: string;
   };
+}
+
+export interface BankAccountDTO {
+  _id?: string;
+  id?: string;
+  bankName?: string;
+  accountNumber?: string;
+  iban?: string;
+  swift?: string;
+  branchName?: string;
+  isPrimary?: boolean;
+}
+
+export interface SavedCardDTO {
+  _id?: string;
+  id?: string;
+  brand?: string;
+  last4?: string;
+  expiry?: string;
+  holderName?: string;
+  nickname?: string;
+  isPrimary?: boolean;
 }
 
 interface UploadImageFile {
@@ -140,6 +170,154 @@ export const UserApi = {
     await httpClient.delete(`/api/user/locations/${locId}`, { baseURL: API_BASE });
   },
 
+  async getBankAccounts(): Promise<BankAccountDTO[]> {
+    try {
+      const { data } = await httpClient.get<{ bankAccounts?: BankAccountDTO[] } | BankAccountDTO[]>(
+        '/api/user/bank-accounts',
+        { baseURL: API_BASE },
+      );
+      if (Array.isArray(data)) {
+        return data;
+      }
+      return data?.bankAccounts ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  async addBankAccount(payload: BankAccountPayload): Promise<BankAccountDTO> {
+    const { data } = await httpClient.post<{ bankAccount?: BankAccountDTO } | BankAccountDTO>(
+      '/api/user/bank-accounts',
+      payload,
+      { baseURL: API_BASE },
+    );
+    const body = unwrap(data);
+    return body && typeof body === 'object' && 'bankAccount' in body
+      ? (body as { bankAccount: BankAccountDTO }).bankAccount
+      : (body as BankAccountDTO);
+  },
+
+  async updateBankAccount(accountId: string, payload: Partial<BankAccountPayload>): Promise<BankAccountDTO> {
+    const { data } = await httpClient.put<{ bankAccount?: BankAccountDTO } | BankAccountDTO>(
+      `/api/user/bank-accounts/${accountId}`,
+      payload,
+      { baseURL: API_BASE },
+    );
+    const body = unwrap(data);
+    return body && typeof body === 'object' && 'bankAccount' in body
+      ? (body as { bankAccount: BankAccountDTO }).bankAccount
+      : (body as BankAccountDTO);
+  },
+
+  async deleteBankAccount(accountId: string): Promise<void> {
+    await httpClient.delete(`/api/user/bank-accounts/${accountId}`, { baseURL: API_BASE });
+  },
+
+  async getSavedCards(): Promise<SavedCardDTO[]> {
+    try {
+      const { data } = await httpClient.get<{ savedCards?: SavedCardDTO[] } | SavedCardDTO[]>(
+        '/api/user/saved-cards',
+        { baseURL: API_BASE },
+      );
+      if (Array.isArray(data)) {
+        return data;
+      }
+      return data?.savedCards ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  async addSavedCard(payload: SavedCardPayload): Promise<SavedCardDTO> {
+    const { data } = await httpClient.post<{ savedCard?: SavedCardDTO } | SavedCardDTO>(
+      '/api/user/saved-cards',
+      payload,
+      { baseURL: API_BASE },
+    );
+    const body = unwrap(data);
+    return body && typeof body === 'object' && 'savedCard' in body
+      ? (body as { savedCard: SavedCardDTO }).savedCard
+      : (body as SavedCardDTO);
+  },
+
+  async updateSavedCard(cardId: string, payload: Partial<SavedCardPayload>): Promise<SavedCardDTO> {
+    const { data } = await httpClient.put<{ savedCard?: SavedCardDTO } | SavedCardDTO>(
+      `/api/user/saved-cards/${cardId}`,
+      payload,
+      { baseURL: API_BASE },
+    );
+    const body = unwrap(data);
+    return body && typeof body === 'object' && 'savedCard' in body
+      ? (body as { savedCard: SavedCardDTO }).savedCard
+      : (body as SavedCardDTO);
+  },
+
+  async deleteSavedCard(cardId: string): Promise<void> {
+    await httpClient.delete(`/api/user/saved-cards/${cardId}`, { baseURL: API_BASE });
+  },
+
+  /** Backend: POST /api/user/change-email/request { email } — sends an OTP to the NEW email. */
+  async requestEmailChange(email: string): Promise<{ message: string; email: string; otpLength: number }> {
+    const { data } = await httpClient.post(
+      '/api/user/change-email/request',
+      { email },
+      { baseURL: API_BASE },
+    );
+    return data;
+  },
+
+  /** Backend: POST /api/user/change-email/verify { email, otp } */
+  async verifyEmailChange(
+    email: string,
+    otp: string,
+  ): Promise<{ message: string; email: string; isEmailVerified: boolean }> {
+    const { data } = await httpClient.post(
+      '/api/user/change-email/verify',
+      { email, otp },
+      { baseURL: API_BASE },
+    );
+    return data;
+  },
+
+  /** Backend: POST /api/user/change-phone/request { phone, phoneCountryCode, phoneCountryIso } — sends an OTP to the NEW phone. */
+  async requestPhoneChange(
+    phone: string,
+    phoneCountryCode?: string,
+    phoneCountryIso?: string,
+  ): Promise<{ message: string; phone: string; otpLength: number }> {
+    const { data } = await httpClient.post(
+      '/api/user/change-phone/request',
+      { phone, phoneCountryCode, phoneCountryIso },
+      { baseURL: API_BASE },
+    );
+    return data;
+  },
+
+  /** Backend: POST /api/user/change-phone/verify { phone, otp, phoneCountryCode, phoneCountryIso } */
+  async verifyPhoneChange(
+    phone: string,
+    otp: string,
+    phoneCountryCode?: string,
+    phoneCountryIso?: string,
+  ): Promise<{ message: string; phone: string; isPhoneVerified: boolean }> {
+    const { data } = await httpClient.post(
+      '/api/user/change-phone/verify',
+      { phone, otp, phoneCountryCode, phoneCountryIso },
+      { baseURL: API_BASE },
+    );
+    return data;
+  },
+
+  /** Backend: POST /api/user/unlink-social { provider } */
+  async unlinkSocial(provider: 'google' | 'apple' | 'facebook' | 'instagram'): Promise<{ message: string }> {
+    const { data } = await httpClient.post(
+      '/api/user/unlink-social',
+      { provider },
+      { baseURL: API_BASE },
+    );
+    return data;
+  },
+
   async submitIdentityVerification(
     front: UploadImageFile,
     back: UploadImageFile,
@@ -216,5 +394,31 @@ export const UserApi = {
       blocked: Boolean(body?.blocked),
       message: typeof body?.message === 'string' ? body.message : 'User unblocked',
     };
+  },
+
+  /** Backend: GET /api/user/blocked?page=&limit=&q= */
+  async getBlockedUsers(params: {
+    page: number;
+    limit: number;
+    q?: string;
+  }): Promise<BlockedUsersResponseDTO> {
+    const { data } = await httpClient.get<BlockedUsersResponseDTO>('/api/user/blocked', {
+      baseURL: API_BASE,
+      params: {
+        page: params.page,
+        limit: params.limit,
+        q: params.q || undefined,
+      },
+    });
+    return data;
+  },
+
+  /** Backend: GET /api/user/search?q=&limit= */
+  async searchUsers(q: string, limit = 20): Promise<UserSearchResponseDTO> {
+    const { data } = await httpClient.get<UserSearchResponseDTO>('/api/user/search', {
+      baseURL: API_BASE,
+      params: { q, limit },
+    });
+    return { users: data.users ?? [] };
   },
 };

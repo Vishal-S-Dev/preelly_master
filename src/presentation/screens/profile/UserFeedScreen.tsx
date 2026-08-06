@@ -17,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../../../domain/models/Product';
+import { ProductApi } from '../../../data/api/ProductApi';
 import { Loader } from '../../components/common/Loader';
 import { CommentsBottomSheet } from '../../components/comments/CommentsBottomSheet';
 import { ProductQuickViewSheet } from '../../components/productQuickView/ProductQuickViewSheet';
@@ -75,6 +76,7 @@ export const UserFeedScreen: React.FC = () => {
     applyLikeResult,
     applySaveResult,
     applyViewedResult,
+    removeProduct,
   } = useUserFeedData({
     userId,
     initialProductId,
@@ -214,12 +216,27 @@ export const UserFeedScreen: React.FC = () => {
         return;
       }
 
+      if (action === 'unpublish') {
+        ProductApi.archiveProduct(product.id)
+          .then(() => {
+            removeProduct(product.id);
+            Alert.alert('Unpublished', 'Ad moved to My Archives');
+          })
+          .catch(err => {
+            const message =
+              err && typeof err === 'object' && 'response' in err
+                ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+                : undefined;
+            Alert.alert('Unable to unpublish', message || 'Failed to unpublish ad');
+          });
+        return;
+      }
+
       const labels: Record<string, string> = {
         warehouse: 'Move to Warehouse',
         insight: 'See Insight',
         boost: 'Boost this Ad',
         sold: 'Mark as sold',
-        unpublish: 'Unpublish this',
       };
 
       Alert.alert(
@@ -227,7 +244,7 @@ export const UserFeedScreen: React.FC = () => {
         'This action will be available in a future update.',
       );
     },
-    [navigation],
+    [navigation, removeProduct],
   );
 
   const onScrollToIndexFailed = useCallback((info: { index: number }) => {

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { STORAGE_KEYS } from '../../constants/appConstants';
 import { CREATE_POST_DRAFT_KEY } from '../../constants/createPostConstants';
 import { CartApi } from '../../data/api/CartApi';
+import { ProductApi } from '../../data/api/ProductApi';
+import { SavedSearchApi } from '../../data/api/SavedSearchApi';
 import { profileService } from '../../services/profile.service';
 import { SettingsDashboardCounts, SettingsProfileSummary } from '../../types/settings.types';
 import { getDisplayAvatarUri } from '../../utils/mediaUrl';
@@ -19,18 +20,6 @@ const EMPTY_COUNTS: SettingsDashboardCounts = {
   cart: 0,
   drafts: 0,
   archives: 0,
-};
-
-const parseRecentSearchCount = (raw: string | null): number => {
-  if (!raw) {
-    return 0;
-  }
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? parsed.length : 0;
-  } catch {
-    return 0;
-  }
 };
 
 const hasPersistedDraft = async (): Promise<boolean> => {
@@ -81,13 +70,18 @@ export const useMySettingsData = () => {
     };
 
     try {
-      const [profileDto, listings, saved, recentRaw, draftExists, cartItems] = await Promise.all([
+      const [profileDto, listings, saved, savedSearches, draftExists, cartItems, archives] = await Promise.all([
         userId ? profileService.getCurrentUserProfile().catch(() => null) : Promise.resolve(null),
         userId ? profileService.getUserListings(userId, 1, 18).catch(() => null) : Promise.resolve(null),
         profileService.getSavedProducts(1, 18).catch(() => null),
-        storage.getString(STORAGE_KEYS.RECENT_SEARCHES),
+        userId
+          ? SavedSearchApi.getSavedSearches().catch(() => ({ savedSearches: [], tabs: [] }))
+          : Promise.resolve({ savedSearches: [], tabs: [] }),
         hasPersistedDraft(),
         CartApi.getCart().catch(() => []),
+        userId
+          ? ProductApi.getMyListings({ archived: true, page: 1, limit: 1 }).catch(() => null)
+          : Promise.resolve(null),
       ]);
 
       const identityVerificationStatus = profileDto?.identityVerificationStatus ?? null;
@@ -117,11 +111,11 @@ export const useMySettingsData = () => {
 
       setCounts({
         ads: profileDto?.stats?.totalProducts ?? listings?.items.length ?? 0,
-        searches: parseRecentSearchCount(recentRaw),
+        searches: savedSearches.savedSearches.length,
         bookings: 0,
         cart: Array.isArray(cartItems) ? cartItems.length : 0,
         drafts: draftExists ? 1 : 0,
-        archives: 0,
+        archives: archives?.total ?? 0,
       });
     } catch {
       setProfile(fallbackProfile);

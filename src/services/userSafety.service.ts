@@ -1,6 +1,7 @@
 import { ChatApi } from '../data/api/ChatApi';
 import { UserApi } from '../data/api/UserApi';
 import { ChatDocumentDTO } from '../data/dto/ChatDTO';
+import { BlockedUsersResponseDTO, UserSearchResponseDTO } from '../types/blockedUsers.types';
 
 export const USER_REPORT_REASONS = [
   'Spam or scam',
@@ -73,6 +74,26 @@ export const userSafetyService = {
       return await UserApi.unblockUser(userId);
     } catch (error) {
       throw new Error(apiErrorMessage(error, 'Failed to unblock user'));
+    }
+  },
+
+  async getBlockedUsers(params: {
+    page: number;
+    limit: number;
+    q?: string;
+  }): Promise<BlockedUsersResponseDTO> {
+    try {
+      return await UserApi.getBlockedUsers(params);
+    } catch (error) {
+      throw new Error(apiErrorMessage(error, 'Failed to load blocked users'));
+    }
+  },
+
+  async searchUsers(q: string, limit = 20): Promise<UserSearchResponseDTO> {
+    try {
+      return await UserApi.searchUsers(q, limit);
+    } catch (error) {
+      throw new Error(apiErrorMessage(error, 'Failed to search users'));
     }
   },
 

@@ -9,6 +9,12 @@ interface Props {
   detail: ProductDetailView;
 }
 
+const AVAILABILITY_BADGE_STYLE: Record<string, typeof pdStyles.availableBadge> = {
+  Sold: pdStyles.soldBadge,
+  Unavailable: pdStyles.unavailableBadge,
+  Available: pdStyles.availableBadge,
+};
+
 export const ProductHeaderCard = memo<Props>(({ detail }) => {
   const { product, year, mileage, specsLabel, postedOnLabel, availability } = detail;
   //const priceLabel = `${product.currency} ${product.price.toLocaleString()}`;
@@ -24,7 +30,7 @@ export const ProductHeaderCard = memo<Props>(({ detail }) => {
           price={product.price}
           size="compact"
         />
-        <View style={pdStyles.availableBadge}>
+        <View style={AVAILABILITY_BADGE_STYLE[availability] ?? pdStyles.availableBadge}>
           <Text style={pdStyles.availableText}>{availability}</Text>
         </View>
       </View>

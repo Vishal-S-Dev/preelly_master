@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { ListingApi } from '../../data/api/ListingApi';
 import { VideoApi } from '../../data/api/VideoApi';
-import { SCREENSHOT_TIMESTAMPS_SEC } from '../../constants/createPostConstants';
+import { VIDEO_CONSTRAINTS } from '../../constants/createPostConstants';
 import { useCreatePostStore } from '../../store/createPostStore';
 
 const isVehicleCategory = (name?: string) =>
@@ -43,22 +43,21 @@ export const useCreatePostTranscription = () => {
         }
       }
 
-      const screenshots: Array<{ id: string; uri: string; fromVideo: boolean }> = [];
-      for (const timestamp of SCREENSHOT_TIMESTAMPS_SEC) {
-        const url = await VideoApi.captureScreenshot(
-          video.uri,
-          video.name,
-          video.type,
-          timestamp,
-        );
-        if (url) {
-          screenshots.push({
-            id: `shot_${timestamp}`,
-            uri: url,
-            fromVideo: true,
-          });
-        }
-      }
+      // Single upload — the server samples the video and returns several curated shots,
+      // instead of re-uploading the whole video once per timestamp.
+      const screenshotUrls = await VideoApi.autoCaptureScreenshots(
+        video.uri,
+        video.name,
+        video.type,
+      ).catch(() => [] as string[]);
+
+      const screenshots = screenshotUrls
+        .slice(0, VIDEO_CONSTRAINTS.maxImages)
+        .map((url, index) => ({
+          id: `shot_${index}`,
+          uri: url,
+          fromVideo: true,
+        }));
 
       if (__DEV__) {
         console.log(
@@ -67,15 +66,8 @@ export const useCreatePostTranscription = () => {
         );
       }
 
-      store.setImages(screenshots.slice(0, 1));
+      store.setImages(screenshots);
       store.applyExtractionToFields();
-
-      if (transcriptResponse.extractedData?.title) {
-        store.setTitle(String(transcriptResponse.extractedData.title));
-      }
-      if (transcriptResponse.extractedData?.description) {
-        store.setDescription(String(transcriptResponse.extractedData.description));
-      }
 
       return transcriptResponse;
     },

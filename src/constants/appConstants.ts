@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
   USER_LISTINGS: '/user/listings',
   USER_SAVED: '/user/saved',
   USER_LIKED: '/user/liked',
+  SAVED_SEARCHES: '/api/user/saved-searches',
   DYNAMIC_FORM: '/api/v1/web/dynamic-form',
   CATEGORIES: '/api/categories',
   PROPERTY_CATEGORIES: '/api/v1/web/categories/property-categories',
@@ -39,7 +40,12 @@ export const API_ENDPOINTS = {
   PAYMENT_INITIATE: '/api/payment/initiate',
   PAYMENT_CHECKOUT_INITIATE: '/api/payment/checkout/initiate',
   PAYMENT_CALLBACK: '/api/payment/ccavenue/callback',
-  PAYMENT_TRANSACTIONS: '/api/payment/transaction',
+  /** List endpoint: GET /api/payment/transactions (plural — not a typo, differs from the singular detail route below). */
+  PAYMENT_TRANSACTIONS: '/api/payment/transactions',
+  /** Single-transaction detail: GET /api/payment/transaction/:orderId (singular). */
+  PAYMENT_TRANSACTION: '/api/payment/transaction',
+  /** Invoice download: GET /api/payment/invoice/:orderId (top-level path, not nested under transaction). */
+  PAYMENT_INVOICE: '/api/payment/invoice',
   CART: '/api/cart',
   CART_ADD_FROM_OFFER: '/api/cart/from-offer',
   CART_PREELLY_CONDITIONS: '/api/cart/preelly-conditions',

@@ -1,20 +1,39 @@
 import { resolveMediaUrl } from './mediaUrl';
 import { Category } from '../types/category.types';
 
+/** Lowercases and strips non-alphanumerics so "Fashion & Accessories" / "fashion-accessories" match one key. */
+export const normalizeCategoryKey = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]/g, '');
+
 const SLUG_ICON_MAP: Record<string, string> = {
   motors: 'car-sports',
+  automotive: 'car-sports',
   property: 'home-city-outline',
   fashion: 'tshirt-crew-outline',
+  fashionaccessories: 'tshirt-crew-outline',
+  // API label has been observed with this misspelling — kept as an alias, not a canonical spelling.
+  fashionaccesseries: 'tshirt-crew-outline',
   furniture: 'sofa-outline',
+  furniturefixtures: 'sofa-outline',
   classifieds: 'newspaper-variant-outline',
   electronics: 'cellphone',
+  applianceselectronics: 'fridge-outline',
+  giveaways: 'gift-outline',
+  sportsoutdoors: 'basketball',
+  beautyhealth: 'spa-outline',
+  anythingeverything: 'shape-outline',
+  gadgets: 'chip',
+  kidsstuff: 'toy-brick-outline',
 };
 
 const CARD_COLORS = ['#FEF3C7', '#DBEAFE', '#FCE7F3', '#DCFCE7', '#FFEDD5', '#E0E7FF'];
 
 export const getCategoryIcon = (slug?: string, name?: string): string => {
-  const key = (slug ?? name ?? '').toLowerCase();
-  return SLUG_ICON_MAP[key] ?? 'shape-outline';
+  const bySlug = slug ? SLUG_ICON_MAP[normalizeCategoryKey(slug)] : undefined;
+  if (bySlug) {
+    return bySlug;
+  }
+  const byName = name ? SLUG_ICON_MAP[normalizeCategoryKey(name)] : undefined;
+  return byName ?? 'shape-outline';
 };
 
 export const getCategoryCardColor = (index: number): string =>
