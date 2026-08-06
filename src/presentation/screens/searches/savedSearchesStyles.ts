@@ -1,0 +1,213 @@
+import { StyleSheet } from 'react-native';
+import {
+  heightPercentageToDP as hp,
+  widthPercentageToDP as wp,
+} from 'react-native-responsive-screen';
+import { fontText } from '../../../utils/fonts';
+
+export const SAVED_SEARCH_COLORS = {
+  bg: '#FFFFFF',
+  card: '#F3F4F6',
+  border: '#E5E7EB',
+  text: '#111827',
+  muted: '#6B7280',
+  faint: '#94A3B8',
+  primary: '#0000FF',
+  danger: '#DC2626',
+  tagBg: '#E2E4E9',
+  tagText: '#374151',
+  thumbBg: '#E5E7EB',
+};
+
+export const savedSearchesStyles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: SAVED_SEARCH_COLORS.bg },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: wp('8%'),
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    minHeight: 48,
+  },
+  headerTitle: {
+    ...fontText.semibold13,
+    fontSize: 17,
+    color: SAVED_SEARCH_COLORS.text,
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabsScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SAVED_SEARCH_COLORS.border,
+  },
+  tabsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 24,
+    paddingHorizontal: wp('5%'),
+    paddingBottom: 12,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: SAVED_SEARCH_COLORS.primary,
+  },
+  tabLabel: {
+    ...fontText.medium13,
+    fontSize: 15,
+    color: SAVED_SEARCH_COLORS.muted,
+  },
+  tabLabelActive: {
+    ...fontText.semibold13,
+    fontSize: 15,
+    color: SAVED_SEARCH_COLORS.primary,
+  },
+  tabCount: {
+    ...fontText.semibold13,
+    fontSize: 11,
+    color: SAVED_SEARCH_COLORS.muted,
+    backgroundColor: SAVED_SEARCH_COLORS.tagBg,
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: wp('5%'),
+    paddingTop: 14,
+    paddingBottom: hp('4%'),
+  },
+  emptyBody: {
+    ...fontText.regular12,
+    fontSize: 14,
+    color: SAVED_SEARCH_COLORS.muted,
+    textAlign: 'center',
+    marginTop: 40,
+    lineHeight: 20,
+  },
+  errorText: {
+    ...fontText.medium13,
+    color: SAVED_SEARCH_COLORS.danger,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  card: {
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    backgroundColor: SAVED_SEARCH_COLORS.card,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  breadcrumb: {
+    ...fontText.regular12,
+    fontSize: 12,
+    color: SAVED_SEARCH_COLORS.faint,
+    flex: 1,
+  },
+  cardIconsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  iconBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 2,
+  },
+  titleText: {
+    ...fontText.bold13,
+    fontSize: 17,
+    color: SAVED_SEARCH_COLORS.text,
+  },
+  newAdsBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: SAVED_SEARCH_COLORS.primary,
+  },
+  newAdsBadgeText: {
+    ...fontText.semibold13,
+    fontSize: 11,
+    color: '#FFFFFF',
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 12,
+  },
+  bottomLeft: { flex: 1, minWidth: 0 },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: SAVED_SEARCH_COLORS.tagBg,
+  },
+  tagText: {
+    ...fontText.semibold13,
+    fontSize: 10,
+    color: SAVED_SEARCH_COLORS.tagText,
+    letterSpacing: 0.3,
+  },
+  savedOnText: {
+    ...fontText.regular12,
+    fontSize: 12,
+    color: SAVED_SEARCH_COLORS.faint,
+    marginTop: 10,
+  },
+  previewStack: {
+    height: 48,
+    width: 76,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  previewThumb: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: SAVED_SEARCH_COLORS.bg,
+    backgroundColor: SAVED_SEARCH_COLORS.thumbBg,
+  },
+});

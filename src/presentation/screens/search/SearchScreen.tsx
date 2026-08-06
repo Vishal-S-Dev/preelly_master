@@ -14,10 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import {
-  POPULAR_LISTING_SECTIONS,
-  SEARCH_SUGGESTIONS_MIN_LENGTH,
-} from '../../../constants/searchConstants';
+import { SEARCH_SUGGESTIONS_MIN_LENGTH } from '../../../constants/searchConstants';
 import { SearchListingItem } from '../../../types/search.types';
 import { Category } from '../../../types/category.types';
 import {
@@ -697,24 +694,27 @@ export const SearchScreen: React.FC = () => {
           </Animated.View>
         ) : null}
 
+        {/*
+          There is no per-category "popular" endpoint on the backend or web — `usePopularListings`
+          returns one global trending list. Previously this rendered 4 sections labelled "Popular in
+          Car" / "Popular in Property" / "Popular in Electronics" / "Furniture & Garden", all showing
+          the exact same (non-category-filtered) data — misleading duplicate content. Collapsed to a
+          single, honestly-labelled section until a real per-category endpoint exists.
+        */}
         {!showCategoryFilters &&
-          (listingsQuery.isLoading
-            ? POPULAR_LISTING_SECTIONS.map(section => (
-                <HorizontalVideoListingSkeleton key={section.id} />
-              ))
-            : POPULAR_LISTING_SECTIONS.map(section => (
-                <HorizontalVideoListing
-                  key={section.id}
-                  title={section.title}
-                  data={listingsQuery.data ?? []}
-                  type={section.id}
-                  loading={listingsQuery.isFetching}
-                  error={listingsQuery.isError}
-                  onPress={handleOpenListing}
-                />
-              )))}
+          (listingsQuery.isLoading ? (
+            <HorizontalVideoListingSkeleton />
+          ) : (
+            <HorizontalVideoListing
+              title="Popular Listings"
+              data={listingsQuery.data ?? []}
+              loading={listingsQuery.isFetching}
+              error={listingsQuery.isError}
+              onPress={handleOpenListing}
+            />
+          ))}
 
-        {!showCategoryFilters ? (
+        {/*{!showCategoryFilters ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Browse by category</Text>
           <AccordionCategory onPressSubcategory={(categoryId, subId, label) => {
@@ -724,7 +724,7 @@ export const SearchScreen: React.FC = () => {
             handleSubcategorySelect(subId, label);
           }} />
         </View>
-        ) : null}
+        ) : null}*/}
       </ScrollView>
 
       {showCategoryFilters ? (
