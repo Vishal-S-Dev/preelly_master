@@ -3,6 +3,7 @@ import { CREATE_POST_DRAFT_KEY } from '../../constants/createPostConstants';
 import { CartApi } from '../../data/api/CartApi';
 import { ProductApi } from '../../data/api/ProductApi';
 import { SavedSearchApi } from '../../data/api/SavedSearchApi';
+import { paymentService } from '../../services/payment.service';
 import { profileService } from '../../services/profile.service';
 import { SettingsDashboardCounts, SettingsProfileSummary } from '../../types/settings.types';
 import { getDisplayAvatarUri } from '../../utils/mediaUrl';
@@ -70,23 +71,29 @@ export const useMySettingsData = () => {
     };
 
     try {
-      const [profileDto, listings, saved, savedSearches, draftExists, cartItems, archives] = await Promise.all([
-        // `GET /api/user/profile` (no id) never computes `stats.totalProducts` server-side, so
-        // the "My Ads" count below would silently fall back to `listings.items.length` — capped
-        // at this call's own limit (18) and never the true total. The id-based route does run
-        // that aggregation, and matches what the web app calls even for your own profile.
-        userId ? profileService.getUserProfile(userId).catch(() => null) : Promise.resolve(null),
-        userId ? profileService.getUserListings(userId, 1, 18).catch(() => null) : Promise.resolve(null),
-        profileService.getSavedProducts(1, 18).catch(() => null),
-        userId
-          ? SavedSearchApi.getSavedSearches().catch(() => ({ savedSearches: [], tabs: [] }))
-          : Promise.resolve({ savedSearches: [], tabs: [] }),
-        hasPersistedDraft(),
-        CartApi.getCart().catch(() => []),
-        userId
-          ? ProductApi.getMyListings({ archived: true, page: 1, limit: 1 }).catch(() => null)
-          : Promise.resolve(null),
-      ]);
+      const [profileDto, listings, saved, savedSearches, draftExists, cartItems, archives, bookings] =
+        await Promise.all([
+          // `GET /api/user/profile` (no id) never computes `stats.totalProducts` server-side, so
+          // the "My Ads" count below would silently fall back to `listings.items.length` — capped
+          // at this call's own limit (18) and never the true total. The id-based route does run
+          // that aggregation, and matches what the web app calls even for your own profile.
+          userId ? profileService.getUserProfile(userId).catch(() => null) : Promise.resolve(null),
+          userId ? profileService.getUserListings(userId, 1, 18).catch(() => null) : Promise.resolve(null),
+          profileService.getSavedProducts(1, 18).catch(() => null),
+          userId
+            ? SavedSearchApi.getSavedSearches().catch(() => ({ savedSearches: [], tabs: [] }))
+            : Promise.resolve({ savedSearches: [], tabs: [] }),
+          hasPersistedDraft(),
+          CartApi.getCart().catch(() => []),
+          userId
+            ? ProductApi.getMyListings({ archived: true, page: 1, limit: 1 }).catch(() => null)
+            : Promise.resolve(null),
+          // "My Bookings" maps to payment/transaction history — the card already navigates to
+          // PaymentHistoryScreen, and there is no separate booking domain/endpoint in the app.
+          userId
+            ? paymentService.getTransactions({ page: 1, limit: 1 }).catch(() => null)
+            : Promise.resolve(null),
+        ]);
 
       const identityVerificationStatus = profileDto?.identityVerificationStatus ?? null;
       const identityVerifiedAt = profileDto?.identityVerifiedAt ?? null;
@@ -116,7 +123,7 @@ export const useMySettingsData = () => {
       setCounts({
         ads: profileDto?.stats?.totalProducts ?? listings?.items.length ?? 0,
         searches: savedSearches.savedSearches.length,
-        bookings: 0,
+        bookings: bookings?.total ?? 0,
         cart: Array.isArray(cartItems) ? cartItems.length : 0,
         drafts: draftExists ? 1 : 0,
         archives: archives?.total ?? 0,
