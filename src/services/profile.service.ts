@@ -5,8 +5,10 @@ import { ProductDTO } from '../data/dto/ProductDTO';
 import { Product } from '../domain/models/Product';
 import { UserApi } from '../data/api/UserApi';
 import { httpClient } from '../data/api/httpClient';
-import type { ProfileProductGridItem } from '../types/profile.types';
+import { getDisplayAvatarUri } from '../utils/mediaUrl';
+import type { ProfileProductGridItem, UserConnectionListing } from '../types/profile.types';
 import type {
+  UserConnectionDTO,
   UserFollowStatusResponseDTO,
   UserFollowToggleResponseDTO,
   UserProfileDTO,
@@ -15,12 +17,6 @@ import type {
 const PROFILE_BASE = ENV.API_BASE_URL;
 
 export type ProfileApiUserDTO = UserProfileDTO;
-
-export interface FollowCountDTO {
-  count?: number;
-  followers?: unknown[];
-  following?: unknown[];
-}
 
 export interface ProfileListingsResult {
   items: ProfileProductGridItem[];
@@ -36,6 +32,16 @@ const resolveListingImage = (dto: ProductDTO, seed: number): string => {
   }
   return `https://picsum.photos/seed/profile-${seed}/400/560`;
 };
+
+const mapUserConnection = (dto: UserConnectionDTO): UserConnectionListing => ({
+  id: dto._id ?? dto.id ?? '',
+  name: dto.name?.trim() || 'User',
+  avatarUri: getDisplayAvatarUri(dto.avatar, dto.name),
+  email: dto.email,
+  rating: dto.rating ?? 0,
+  isVerified: Boolean(dto.isVerified),
+  isFollowing: dto.isFollowing,
+});
 
 const mapProductToGrid = (dto: ProductDTO, seed: number): ProfileProductGridItem => {
   const id = dto._id ?? dto.id ?? `product_${seed}`;
@@ -186,34 +192,32 @@ export const profileService = {
     return UserApi.getFollowStatus(userId);
   },
 
+  // Reuse the exact same call the Followers/Following list screens make (UserApi.getFollowersList
+  // /getFollowingList) rather than a second, separately-implemented request to the same endpoint —
+  // matching how the web app does it (one call to GET /api/user/:id/followers, trust `.count`),
+  // and guaranteeing the count can never drift from what the list itself shows.
+  // Deliberately does NOT catch/degrade to 0 here — a transient network failure must look like a
+  // failure to the caller, not like "this user genuinely has 0 followers". Callers refetch this
+  // periodically (e.g. on screen focus), so swallowing errors into a fake 0 would visibly regress
+  // an already-correct count back to zero on nothing more than one flaky request.
   async getFollowersCount(userId: string): Promise<number> {
-    try {
-      const { data } = await httpClient.get<FollowCountDTO>(
-        `/user/${userId}/followers`,
-        { baseURL: PROFILE_BASE },
-      );
-      if (typeof data.count === 'number') {
-        return data.count;
-      }
-      return Array.isArray(data.followers) ? data.followers.length : 0;
-    } catch {
-      return 0;
-    }
+    const { count, followers } = await UserApi.getFollowersList(userId);
+    return typeof count === 'number' ? count : followers?.length ?? 0;
   },
 
   async getFollowingCount(userId: string): Promise<number> {
-    try {
-      const { data } = await httpClient.get<FollowCountDTO>(
-        `/user/${userId}/following`,
-        { baseURL: PROFILE_BASE },
-      );
-      if (typeof data.count === 'number') {
-        return data.count;
-      }
-      return Array.isArray(data.following) ? data.following.length : 0;
-    } catch {
-      return 0;
-    }
+    const { count, following } = await UserApi.getFollowingList(userId);
+    return typeof count === 'number' ? count : following?.length ?? 0;
+  },
+
+  async getFollowers(userId: string): Promise<UserConnectionListing[]> {
+    const { followers } = await UserApi.getFollowersList(userId);
+    return (followers ?? []).map(mapUserConnection);
+  },
+
+  async getFollowing(userId: string): Promise<UserConnectionListing[]> {
+    const { following } = await UserApi.getFollowingList(userId);
+    return (following ?? []).map(mapUserConnection);
   },
 
   async getUserListings(

@@ -47,6 +47,13 @@ export const gvStyles = StyleSheet.create({
   },
   uploadCardEmpty: {
     flex: 1,
+  },
+  uploadCardPlaceholderImage: {
+    opacity: 0.35,
+  },
+  uploadCardScrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(250,251,255,0.72)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,

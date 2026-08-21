@@ -74,6 +74,8 @@ type ProfileStaticHeaderProps = {
   onEditProfile: () => void;
   onShareProfile: () => void;
   onMore: () => void;
+  onPressFollowers: () => void;
+  onPressFollowing: () => void;
 };
 
 const ProfileStaticHeader = memo<ProfileStaticHeaderProps>(
@@ -84,6 +86,8 @@ const ProfileStaticHeader = memo<ProfileStaticHeaderProps>(
     onEditProfile,
     onShareProfile,
     onMore,
+    onPressFollowers,
+    onPressFollowing,
   }) => (
     <Animated.View entering={FadeInDown.duration(380)}>
       <ProfileHeader
@@ -92,7 +96,11 @@ const ProfileStaticHeader = memo<ProfileStaticHeaderProps>(
         uploadingAvatar={uploadingAvatar}
       />
       <View style={{ paddingHorizontal: 20 }}>
-        <ProfileStats stats={profile.stats} />
+        <ProfileStats
+          stats={profile.stats}
+          onPressFollowers={onPressFollowers}
+          onPressFollowing={onPressFollowing}
+        />
         <ProfileActionButtons
           onEditProfile={onEditProfile}
           onShareProfile={onShareProfile}
@@ -115,6 +123,8 @@ type ProfileListHeaderProps = {
   onEditProfile: () => void;
   onShareProfile: () => void;
   onMore: () => void;
+  onPressFollowers: () => void;
+  onPressFollowing: () => void;
 };
 
 const ProfileListHeader = memo<ProfileListHeaderProps>(
@@ -127,6 +137,8 @@ const ProfileListHeader = memo<ProfileListHeaderProps>(
     onEditProfile,
     onShareProfile,
     onMore,
+    onPressFollowers,
+    onPressFollowing,
   }) => (
     <>
       <ProfileStaticHeader
@@ -136,6 +148,8 @@ const ProfileListHeader = memo<ProfileListHeaderProps>(
         onEditProfile={onEditProfile}
         onShareProfile={onShareProfile}
         onMore={onMore}
+        onPressFollowers={onPressFollowers}
+        onPressFollowing={onPressFollowing}
       />
       <ProfileTabs activeTab={activeTab} onChange={onTabChange} />
     </>
@@ -348,6 +362,28 @@ export const ProfileScreen: React.FC = () => {
     }
   }, [profile.name]);
 
+  const openFollowers = useCallback(() => {
+    if (!profile.id) {
+      return;
+    }
+    navigation.navigate('UserConnections', {
+      userId: profile.id,
+      mode: 'followers',
+      userName: profile.name,
+    });
+  }, [navigation, profile.id, profile.name]);
+
+  const openFollowing = useCallback(() => {
+    if (!profile.id) {
+      return;
+    }
+    navigation.navigate('UserConnections', {
+      userId: profile.id,
+      mode: 'following',
+      userName: profile.name,
+    });
+  }, [navigation, profile.id, profile.name]);
+
   const listHeader = useMemo(
     () => (
       <ProfileListHeader
@@ -359,11 +395,15 @@ export const ProfileScreen: React.FC = () => {
         onEditProfile={onEditProfile}
         onShareProfile={onShareProfile}
         onMore={openMoreMenu}
+        onPressFollowers={openFollowers}
+        onPressFollowing={openFollowing}
       />
     ),
     [
       activeTab,
       onEditProfile,
+      openFollowers,
+      openFollowing,
       onShareProfile,
       onTabChange,
       openMoreMenu,
@@ -379,13 +419,17 @@ export const ProfileScreen: React.FC = () => {
       if (!profileUserId) {
         return;
       }
+      // "Posts" is always this profile's own uploads. "Saved"/"Liked" can mix in other
+      // sellers' listings, so UserFeedScreen re-checks ownership per item (against
+      // product.seller.id) rather than trusting this as a single blanket flag — this is
+      // just a reasonable default for the item initially tapped.
       navigation.navigate('UserFeed', {
         userId: profileUserId,
         initialProductId: productId,
         initialIndex: index,
         seedProducts: reelProducts,
         listingSource: activeTab === 'posts' ? 'posts' : activeTab,
-        ownerMode: true,
+        ownerMode: activeTab === 'posts',
       });
     },
     [activeTab, navigation, profile.id, reelProducts],

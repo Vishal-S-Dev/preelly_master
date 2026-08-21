@@ -5,14 +5,12 @@ import { FeedApi, FeedType } from '../../../data/api/feedApi';
 import { FeedReelDto, QuickViewFieldDto } from '../../../data/dto/FeedDTO';
 import { ProductRepositoryImpl } from '../../../data/repository/ProductRepositoryImpl';
 import { Product } from '../../../domain/models/Product';
-import { GetProductsUseCase } from '../../../domain/usecases/GetProductsUseCase';
 import { LikeProductUseCase, SaveProductUseCase } from '../../../domain/usecases/productUseCases';
 import {
   recordProductViewSilently,
 } from '../../../services/productView.service';
 
 const productRepo = new ProductRepositoryImpl();
-const getProductsUseCase = new GetProductsUseCase(productRepo);
 const likeProductUseCase = new LikeProductUseCase(productRepo);
 const saveProductUseCase = new SaveProductUseCase(productRepo);
 
@@ -84,33 +82,54 @@ const mapFeedReelToProduct = (item: FeedReelDto): Product => {
   };
 };
 
-interface ProductState {
+interface FeedState {
   products: Product[];
   page: number;
   hasMore: boolean;
-  feedType: FeedType;
   loading: boolean;
   refreshing: boolean;
   activeIndex: number;
 }
 
-const initialState: ProductState = {
+const createInitialFeedState = (): FeedState => ({
   products: [],
   page: PAGINATION.INITIAL_PAGE,
   hasMore: true,
-  feedType: 'trending',
   loading: false,
   refreshing: false,
   activeIndex: 0,
+});
+
+interface ProductState {
+  /**
+   * Both feeds are kept independently (rather than a single swapped-out list) so switching
+   * between "Trending" and "Following" is instant — the destination feed is already loaded,
+   * matching the Instagram-style swipe UX where both pages preview real content while dragging.
+   */
+  feeds: Record<FeedType, FeedState>;
+}
+
+const initialState: ProductState = {
+  feeds: {
+    trending: createInitialFeedState(),
+    following: createInitialFeedState(),
+  },
 };
 
-export const fetchProducts = createAsyncThunk(
-  'product/fetchProducts',
-  async ({ page, refresh = false }: { page: number; refresh?: boolean }) => {
-    const payload = await getProductsUseCase.execute(page, PAGINATION.LIMIT);
-    return { payload, refresh };
-  },
-);
+/** Applies `updater` to a product wherever it appears, across every feed — the same underlying
+ * product can be present in both Trending and Following simultaneously. */
+const updateProductInAllFeeds = (
+  state: ProductState,
+  productId: string,
+  updater: (product: Product) => Product,
+) => {
+  (Object.keys(state.feeds) as FeedType[]).forEach(feedType => {
+    const feed = state.feeds[feedType];
+    feed.products = feed.products.map(product =>
+      product.id === productId ? updater(product) : product,
+    );
+  });
+};
 
 export const fetchProductsFromFeed = createAsyncThunk(
   'product/fetchProductsFromFeed',
@@ -186,37 +205,33 @@ export const markProductViewed = createAsyncThunk(
 );
 
 const applyOptimisticLikeToggle = (state: ProductState, productId: string) => {
-  state.products = state.products.map(product =>
-    product.id === productId
-      ? {
-          ...product,
-          liked: !product.liked,
-          likesCount: product.liked
-            ? Math.max(0, product.likesCount - 1)
-            : product.likesCount + 1,
-        }
-      : product,
-  );
+  updateProductInAllFeeds(state, productId, product => ({
+    ...product,
+    liked: !product.liked,
+    likesCount: product.liked
+      ? Math.max(0, product.likesCount - 1)
+      : product.likesCount + 1,
+  }));
 };
 
 const applyOptimisticSaveToggle = (state: ProductState, productId: string) => {
-  state.products = state.products.map(product =>
-    product.id === productId
-      ? { ...product, isSaved: !product.isSaved }
-      : product,
-  );
+  updateProductInAllFeeds(state, productId, product => ({
+    ...product,
+    isSaved: !product.isSaved,
+  }));
 };
 
 const productSlice = createSlice({
   name: 'product',
   initialState,
   reducers: {
-    setActiveIndex(state, action: PayloadAction<number>) {
-      state.activeIndex = action.payload;
+    setActiveIndex(state, action: PayloadAction<{ feedType: FeedType; index: number }>) {
+      state.feeds[action.payload.feedType].activeIndex = action.payload.index;
     },
-    togglePause(state, action: PayloadAction<string>) {
-      state.products = state.products.map(product =>
-        product.id === action.payload
+    togglePause(state, action: PayloadAction<{ feedType: FeedType; productId: string }>) {
+      const feed = state.feeds[action.payload.feedType];
+      feed.products = feed.products.map(product =>
+        product.id === action.payload.productId
           ? { ...product, isPaused: !product.isPaused }
           : product,
       );
@@ -225,76 +240,51 @@ const productSlice = createSlice({
       applyOptimisticLikeToggle(state, action.payload);
     },
     toggleSave(state, action: PayloadAction<string>) {
-      state.products = state.products.map(product =>
-        product.id === action.payload
-          ? { ...product, isSaved: !product.isSaved }
-          : product,
-      );
+      applyOptimisticSaveToggle(state, action.payload);
     },
     markProductAsViewedLocal(state, action: PayloadAction<string>) {
-      state.products = state.products.map(product =>
-        product.id === action.payload
-          ? {
-              ...product,
-              isViewed: true,
-              views: product.isViewed ? product.views : product.views + 1,
-            }
-          : product,
-      );
+      updateProductInAllFeeds(state, action.payload, product => ({
+        ...product,
+        isViewed: true,
+        views: product.isViewed ? product.views : product.views + 1,
+      }));
     },
   },
   extraReducers: builder => {
     builder
-      .addCase(fetchProducts.pending, (state, action) => {
-        state.loading = !action.meta.arg.refresh;
-        state.refreshing = Boolean(action.meta.arg.refresh);
-      })
-      .addCase(fetchProducts.fulfilled, (state, action) => {
-        const { payload, refresh } = action.payload;
-        state.loading = false;
-        state.refreshing = false;
-        state.page = payload.page;
-        state.hasMore = payload.hasMore;
-        state.products = refresh
-          ? payload.products
-          : [...state.products, ...payload.products];
-      })
-      .addCase(fetchProducts.rejected, state => {
-        state.loading = false;
-        state.refreshing = false;
-      })
       .addCase(fetchProductsFromFeed.pending, (state, action) => {
-        state.loading = !action.meta.arg.refresh;
-        state.refreshing = Boolean(action.meta.arg.refresh);
+        const feed = state.feeds[action.meta.arg.feedType ?? 'trending'];
+        feed.loading = !action.meta.arg.refresh;
+        feed.refreshing = Boolean(action.meta.arg.refresh);
       })
       .addCase(fetchProductsFromFeed.fulfilled, (state, action) => {
         const { payload, refresh } = action.payload;
-        state.loading = false;
-        state.refreshing = false;
-        state.feedType = payload.feedType;
-        state.page = payload.page;
-        state.hasMore = payload.hasMore;
-        state.products = refresh
+        const feed = state.feeds[payload.feedType];
+        feed.loading = false;
+        feed.refreshing = false;
+        feed.page = payload.page;
+        feed.hasMore = payload.hasMore;
+        feed.products = refresh
           ? payload.products
-          : [...state.products, ...payload.products];
+          : [...feed.products, ...payload.products];
+        if (refresh) {
+          feed.activeIndex = 0;
+        }
       })
-      .addCase(fetchProductsFromFeed.rejected, state => {
-        state.loading = false;
-        state.refreshing = false;
+      .addCase(fetchProductsFromFeed.rejected, (state, action) => {
+        const feed = state.feeds[action.meta.arg.feedType ?? 'trending'];
+        feed.loading = false;
+        feed.refreshing = false;
       })
       .addCase(likeProduct.pending, (state, action) => {
         applyOptimisticLikeToggle(state, action.meta.arg);
       })
       .addCase(likeProduct.fulfilled, (state, action) => {
-        state.products = state.products.map(product =>
-          product.id === action.payload.productId
-            ? {
-                ...product,
-                liked: action.payload.liked,
-                likesCount: Math.max(0, action.payload.likeCount),
-              }
-            : product,
-        );
+        updateProductInAllFeeds(state, action.payload.productId, product => ({
+          ...product,
+          liked: action.payload.liked,
+          likesCount: Math.max(0, action.payload.likeCount),
+        }));
       })
       .addCase(likeProduct.rejected, (state, action) => {
         const productId =
@@ -308,11 +298,10 @@ const productSlice = createSlice({
         applyOptimisticSaveToggle(state, action.meta.arg);
       })
       .addCase(saveProduct.fulfilled, (state, action) => {
-        state.products = state.products.map(product =>
-          product.id === action.payload.productId
-            ? { ...product, isSaved: Boolean(action.payload.saved) }
-            : product,
-        );
+        updateProductInAllFeeds(state, action.payload.productId, product => ({
+          ...product,
+          isSaved: Boolean(action.payload.saved),
+        }));
       })
       .addCase(saveProduct.rejected, (state, action) => {
         const productId =
@@ -326,15 +315,11 @@ const productSlice = createSlice({
         if (!action.payload.recorded) {
           return;
         }
-        state.products = state.products.map(product =>
-          product.id === action.payload.productId
-            ? {
-                ...product,
-                isViewed: true,
-                views: product.isViewed ? product.views : product.views + 1,
-              }
-            : product,
-        );
+        updateProductInAllFeeds(state, action.payload.productId, product => ({
+          ...product,
+          isViewed: true,
+          views: product.isViewed ? product.views : product.views + 1,
+        }));
       });
   },
 });

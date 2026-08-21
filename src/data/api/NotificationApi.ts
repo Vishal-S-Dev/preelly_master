@@ -12,7 +12,26 @@ export interface GetNotificationsParams {
   page?: number;
 }
 
+export interface RegisterDeviceTokenPayload {
+  token: string;
+  platform: 'android' | 'ios';
+  deviceId: string;
+}
+
 export const NotificationApi = {
+  /** Backend contract proposed in API_ENDPOINTS.DEVICE_TOKENS — see comment there. */
+  async registerDeviceToken(payload: RegisterDeviceTokenPayload): Promise<void> {
+    await httpClient.post(API_ENDPOINTS.DEVICE_TOKENS, payload, {
+      baseURL: API_BASE,
+    });
+  },
+
+  async unregisterDeviceToken(token: string): Promise<void> {
+    await httpClient.delete(`${API_ENDPOINTS.DEVICE_TOKENS}/${encodeURIComponent(token)}`, {
+      baseURL: API_BASE,
+    });
+  },
+
   async getNotifications(params: GetNotificationsParams = {}): Promise<NotificationsResponseDTO> {
     const limit = params.limit ?? 20;
     const page = params.page ?? 1;

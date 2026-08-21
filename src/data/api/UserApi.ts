@@ -7,6 +7,7 @@ import {
 } from '../../types/profileEdit.types';
 import { ProfileApiUserDTO } from '../../services/profile.service';
 import {
+  UserConnectionListResponseDTO,
   UserFollowStatusResponseDTO,
   UserFollowToggleResponseDTO,
   UserProfileDTO,
@@ -365,6 +366,22 @@ export const UserApi = {
   async getFollowStatus(userId: string): Promise<UserFollowStatusResponseDTO> {
     const { data } = await httpClient.get<UserFollowStatusResponseDTO>(
       `/api/user/${userId}/follow-status`,
+      { baseURL: API_BASE },
+    );
+    return unwrap(data);
+  },
+
+  async getFollowersList(userId: string): Promise<UserConnectionListResponseDTO> {
+    const { data } = await httpClient.get<UserConnectionListResponseDTO>(
+      `/api/user/${userId}/followers`,
+      { baseURL: API_BASE },
+    );
+    return unwrap(data);
+  },
+
+  async getFollowingList(userId: string): Promise<UserConnectionListResponseDTO> {
+    const { data } = await httpClient.get<UserConnectionListResponseDTO>(
+      `/api/user/${userId}/following`,
       { baseURL: API_BASE },
     );
     return unwrap(data);

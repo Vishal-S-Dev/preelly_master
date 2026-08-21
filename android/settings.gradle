@@ -10,6 +10,11 @@ dependencyResolutionManagement {
     google()
     mavenCentral()
     maven { url("$rootDir/../node_modules/@react-native-async-storage/async-storage/android/local_repo") }
+    // Required by @notifee/react-native — its `app.notifee:core` artifact only exists in this
+    // bundled local repo, not on Maven Central/Google. Gradle 9's PREFER_SETTINGS repositories
+    // mode (above) ignores the equivalent `allprojects{}` repo notifee's own build.gradle adds,
+    // so it must be declared centrally here instead.
+    maven { url("$rootDir/../node_modules/@notifee/react-native/android/libs") }
   }
 }
 

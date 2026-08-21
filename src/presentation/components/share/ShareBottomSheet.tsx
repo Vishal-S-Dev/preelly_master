@@ -1,10 +1,4 @@
-import React, {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { forwardRef, useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -25,69 +19,55 @@ import {
 } from '@gorhom/bottom-sheet';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SharePayload, ShareRecipient, SocialSharePlatform } from '../../../types/share.types';
-import { shareService } from '../../../services/share.service';
-import { shareViaPlatform, copyShareLink } from '../../../utils/shareSocial';
-import { useShareFollowers } from '../../hooks/useShareFollowers';
-import { useAppSelector } from '../../hooks/useRedux';
+import { ShareSheetState } from '../../hooks/useShareSheetState';
 import { ShareSearchBar } from './ShareSearchBar';
 import { ShareSendActions } from './ShareSendActions';
 import { ShareUserGridItem } from './ShareUserGridItem';
-import { SelectedUsersList } from './SelectedUsersList';
 import { SocialShareFooter } from './SocialShareFooter';
 import { shareSheetStyles, SHARE_UI } from './shareSheetStyles';
 
 interface Props {
   payload: SharePayload | null;
   onDismiss?: () => void;
+  onOpenSearch: () => void;
+  state: ShareSheetState;
 }
 
 const GRID_COLUMNS = 3;
 const SNAP_POINTS = ['72%', '92%'];
 
 export const ShareBottomSheet = forwardRef<BottomSheetModal, Props>(
-  ({ payload, onDismiss }, ref) => {
-    const userId = useAppSelector(s => s.auth.user?.id ?? null);
-    const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated && !s.auth.isGuest);
-    const isReelShare = payload?.contentType === 'reel';
-
-    const [visible, setVisible] = useState(false);
-    const [selectedMap, setSelectedMap] = useState<Record<string, ShareRecipient>>({});
-    const [message, setMessage] = useState('');
-    const [sending, setSending] = useState(false);
-
+  ({ payload, onDismiss, onOpenSearch, state }, ref) => {
     const {
-      followers,
+      isAuthenticated,
+      gridPeople,
       loading,
       error,
+      retry,
       query,
       setQuery,
-      retry,
-    } = useShareFollowers(userId, visible && isAuthenticated);
+      selectedMap,
+      selectedUsers,
+      selectedCount,
+      toggleUser,
+      message,
+      setMessage,
+      sending,
+      handleInternalSend,
+      handlePlatform: handlePlatformRaw,
+    } = state;
 
-    const selectedUsers = useMemo(() => Object.values(selectedMap), [selectedMap]);
-    const selectedCount = selectedUsers.length;
-    const hasFollowers = followers.length > 0;
-    const listData = loading && !hasFollowers ? [] : followers;
-
-    useEffect(() => {
-      if (!payload) {
-        setSelectedMap({});
-        setMessage('');
-        setQuery('');
-      }
-    }, [payload, setQuery]);
+    const isReelShare = payload?.contentType === 'reel';
+    const hasPeople = gridPeople.length > 0;
+    const listData = loading && !hasPeople ? [] : gridPeople;
 
     const handleSheetChange = useCallback(
       (index: number) => {
-        setVisible(index >= 0);
         if (index < 0) {
-          setSelectedMap({});
-          setMessage('');
-          setQuery('');
           onDismiss?.();
         }
       },
-      [onDismiss, setQuery],
+      [onDismiss],
     );
 
     const renderBackdrop = useCallback(
@@ -103,26 +83,6 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, Props>(
       [],
     );
 
-    const toggleUser = useCallback((user: ShareRecipient) => {
-      setSelectedMap(prev => {
-        const next = { ...prev };
-        if (next[user.id]) {
-          delete next[user.id];
-        } else {
-          next[user.id] = user;
-        }
-        return next;
-      });
-    }, []);
-
-    const removeUser = useCallback((id: string) => {
-      setSelectedMap(prev => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-    }, []);
-
     const dismissSheet = useCallback(() => {
       if (ref && typeof ref === 'object' && 'current' in ref) {
         ref.current?.dismiss();
@@ -136,61 +96,56 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, Props>(
       [dismissSheet],
     );
 
-    const handleInternalSend = useCallback(
-      async (mode: 'individual' | 'group') => {
-        if (!payload || !selectedCount) {
-          return;
-        }
-        setSending(true);
-        try {
-          const result = await shareService.sendToRecipients(
-            payload,
-            selectedUsers,
-            message,
-            mode,
-          );
-          if (result.successCount === 0) {
-            Alert.alert('Could not send', 'Please try again.');
-            return;
-          }
-          if (result.failedCount > 0) {
-            Alert.alert(
-              'Partially sent',
-              `Sent to ${result.successCount} user(s). ${result.failedCount} failed.`,
-            );
-          } else if (mode === 'group' && result.successCount > 1) {
-            showSuccess(`Shared with ${result.successCount} people as a group message.`);
-          } else if (result.successCount > 1) {
-            showSuccess(`Shared individually with ${result.successCount} people.`);
-          } else {
-            showSuccess(`Shared with ${selectedUsers[0]?.name ?? 'user'}.`);
-          }
-        } catch {
-          Alert.alert('Send failed', 'Unable to share right now.');
-        } finally {
-          setSending(false);
-        }
-      },
-      [message, payload, selectedCount, selectedUsers, showSuccess],
-    );
+    const onSendIndividual = useCallback(async () => {
+      const result = await handleInternalSend('individual');
+      if (!result) {
+        return;
+      }
+      if (result.successCount === 0) {
+        Alert.alert('Could not send', 'Please try again.');
+      } else if (result.failedCount > 0) {
+        Alert.alert(
+          'Partially sent',
+          `Sent to ${result.successCount} user(s). ${result.failedCount} failed.`,
+        );
+      } else if (result.successCount > 1) {
+        showSuccess(`Shared individually with ${result.successCount} people.`);
+      } else {
+        showSuccess(`Shared with ${selectedUsers[0]?.name ?? 'user'}.`);
+      }
+    }, [handleInternalSend, selectedUsers, showSuccess]);
+
+    const onSendGroup = useCallback(async () => {
+      const result = await handleInternalSend('group');
+      if (!result) {
+        return;
+      }
+      if (result.successCount === 0) {
+        Alert.alert('Could not send', 'Please try again.');
+      } else if (result.failedCount > 0) {
+        Alert.alert(
+          'Partially sent',
+          `Sent to ${result.successCount} user(s). ${result.failedCount} failed.`,
+        );
+      } else if (result.successCount > 1) {
+        showSuccess(`Shared with ${result.successCount} people as a group message.`);
+      } else {
+        showSuccess(`Shared with ${selectedUsers[0]?.name ?? 'user'}.`);
+      }
+    }, [handleInternalSend, selectedUsers, showSuccess]);
 
     const handlePlatform = useCallback(
       async (platform: SocialSharePlatform) => {
-        if (!payload) {
-          return;
-        }
         try {
+          await handlePlatformRaw(platform);
           if (platform === 'copy') {
-            await copyShareLink(payload);
             Alert.alert('Copied', 'Link copied to clipboard.');
-            return;
           }
-          await shareViaPlatform(platform, payload);
         } catch {
           Alert.alert('Share failed', 'Unable to open share option.');
         }
       },
-      [payload],
+      [handlePlatformRaw],
     );
 
     const renderFooter = useCallback(
@@ -215,8 +170,8 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, Props>(
                   <ShareSendActions
                     selectedUsers={selectedUsers}
                     sending={sending}
-                    onSendIndividual={() => handleInternalSend('individual')}
-                    onSendGroup={() => handleInternalSend('group')}
+                    onSendIndividual={onSendIndividual}
+                    onSendGroup={onSendGroup}
                   />
                 </View>
               </>
@@ -227,13 +182,15 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, Props>(
         </BottomSheetFooter>
       ),
       [
-        handleInternalSend,
         handlePlatform,
         isReelShare,
         message,
+        onSendGroup,
+        onSendIndividual,
         selectedCount,
         selectedUsers,
         sending,
+        setMessage,
       ],
     );
 
@@ -244,11 +201,15 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, Props>(
             <View style={shareSheetStyles.handle} />
           </View>
           <Text style={shareSheetStyles.headerTitle}>Share</Text>
-          <ShareSearchBar value={query} onChangeText={setQuery} />
-          <SelectedUsersList users={selectedUsers} onRemove={removeUser} />
+          <ShareSearchBar
+            value={query}
+            onChangeText={setQuery}
+            onPress={onOpenSearch}
+            onAddUser={onOpenSearch}
+          />
         </View>
       ),
-      [query, removeUser, selectedUsers, setQuery],
+      [onOpenSearch, query, setQuery],
     );
 
     const listEmpty = useMemo(() => {
@@ -285,17 +246,13 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, Props>(
       return (
         <View style={shareSheetStyles.emptyWrap}>
           <Icon name="account-group-outline" size={40} color={SHARE_UI.textMuted} />
-          <Text style={shareSheetStyles.emptyTitle}>
-            {query ? 'No results' : 'No followers yet'}
-          </Text>
+          <Text style={shareSheetStyles.emptyTitle}>No followers yet</Text>
           <Text style={shareSheetStyles.emptyBody}>
-            {query
-              ? 'Try a different name or username.'
-              : 'When people follow you, they will appear here.'}
+            When people follow you, they will appear here.
           </Text>
         </View>
       );
-    }, [error, isAuthenticated, isReelShare, loading, query, retry]);
+    }, [error, isAuthenticated, isReelShare, loading, retry]);
 
     const renderItem = useCallback(
       ({ item }: { item: ShareRecipient }) => (
@@ -317,6 +274,9 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, Props>(
         snapPoints={SNAP_POINTS}
         enablePanDownToClose
         enableDynamicSizing={false}
+        // See ShareUserSearchSheet for why: gorhom's default stackBehavior would auto-minimize
+        // this sheet the instant a sibling modal presents on top of it.
+        stackBehavior="push"
         backdropComponent={renderBackdrop}
         backgroundStyle={shareSheetStyles.sheetBackground}
         handleComponent={null}
@@ -334,9 +294,9 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, Props>(
           ListEmptyComponent={listEmpty}
           contentContainerStyle={[
             shareSheetStyles.listContent,
-            !hasFollowers && shareSheetStyles.listContentEmpty,
+            !hasPeople && shareSheetStyles.listContentEmpty,
           ]}
-          columnWrapperStyle={hasFollowers ? shareSheetStyles.gridRow : undefined}
+          columnWrapperStyle={hasPeople ? shareSheetStyles.gridRow : undefined}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           initialNumToRender={15}

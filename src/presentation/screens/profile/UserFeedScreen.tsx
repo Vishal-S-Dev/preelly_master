@@ -29,7 +29,7 @@ import { ReelCard } from '../../components/ReelCard';
 import { ReelPlaybackProvider } from '../../context/ReelPlaybackContext';
 import { useShareSheet } from '../../context/ShareSheetContext';
 import { productToSharePayload } from '../../../utils/shareLinks';
-import { useAppDispatch } from '../../hooks/useRedux';
+import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { useProductChatInit } from '../../hooks/useProductChatInit';
 import { useReelPlaybackGate } from '../../hooks/useReelPlaybackGate';
 import { useUserFeedData } from '../../hooks/useUserFeedData';
@@ -53,6 +53,7 @@ export const UserFeedScreen: React.FC = () => {
   const { openShare } = useShareSheet();
   const { openProductChatFromListing, openingChat } = useProductChatInit();
   const isPlaybackAllowed = useReelPlaybackGate();
+  const currentUserId = useAppSelector(state => state.auth.user?.id);
 
   const {
     userId,
@@ -60,8 +61,20 @@ export const UserFeedScreen: React.FC = () => {
     initialIndex,
     seedProducts,
     listingSource = 'posts',
-    ownerMode = false,
+    ownerMode: routeOwnerMode = false,
   } = route.params;
+
+  // `listingSource === 'posts'` is always this profile's own uploads. "Saved"/"Liked" can mix
+  // in other sellers' listings within the same scroll session, so the owner-only 3-dot menu
+  // (and edit/chat gating) must be re-checked per item against the actual logged-in user,
+  // rather than trusting a single screen-wide `ownerMode` flag.
+  const isOwnProduct = useCallback(
+    (product: Product) =>
+      listingSource === 'posts' ||
+      routeOwnerMode ||
+      Boolean(product.seller?.id && currentUserId && product.seller.id === currentUserId),
+    [currentUserId, listingSource, routeOwnerMode],
+  );
 
   const {
     products,
@@ -76,6 +89,7 @@ export const UserFeedScreen: React.FC = () => {
     applyLikeResult,
     applySaveResult,
     applyViewedResult,
+    applySoldResult,
     removeProduct,
   } = useUserFeedData({
     userId,
@@ -159,13 +173,13 @@ export const UserFeedScreen: React.FC = () => {
 
   const handleOpenDetail = useCallback(
     (product: Product) => {
-      if (ownerMode) {
+      if (isOwnProduct(product)) {
         navigation.navigate('EditProduct', { productId: product.id, product });
         return;
       }
       navigation.navigate('ProductDetail', { productId: product.id, product });
     },
-    [navigation, ownerMode],
+    [isOwnProduct, navigation],
   );
 
   const handleQuickViewChat = useCallback(
@@ -232,11 +246,29 @@ export const UserFeedScreen: React.FC = () => {
         return;
       }
 
+      if (action === 'sold') {
+        // Matches web (ProfilePostModal/DashboardListingsPage): fires immediately, no
+        // confirmation dialog, and isn't reversible from the owner's side — only admins can
+        // revert a listing out of 'sold' status, so there's no "unmark as sold" here either.
+        ProductApi.markAsSold(product.id)
+          .then(() => {
+            applySoldResult(product.id);
+            Alert.alert('Marked as Sold', 'This ad is now shown as sold.');
+          })
+          .catch(err => {
+            const message =
+              err && typeof err === 'object' && 'response' in err
+                ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+                : undefined;
+            Alert.alert('Unable to mark as sold', message || 'Failed to update this ad');
+          });
+        return;
+      }
+
       const labels: Record<string, string> = {
         warehouse: 'Move to Warehouse',
         insight: 'See Insight',
         boost: 'Boost this Ad',
-        sold: 'Mark as sold',
       };
 
       Alert.alert(
@@ -244,7 +276,7 @@ export const UserFeedScreen: React.FC = () => {
         'This action will be available in a future update.',
       );
     },
-    [navigation, removeProduct],
+    [applySoldResult, navigation, removeProduct],
   );
 
   const onScrollToIndexFailed = useCallback((info: { index: number }) => {
@@ -255,33 +287,39 @@ export const UserFeedScreen: React.FC = () => {
   }, []);
 
   const renderItem: ListRenderItem<Product> = useCallback(
-    ({ item, index }) => (
-      <View style={styles.page}>
-        <ReelCard
-          product={item}
-          isActive={index === activeIndex}
-          muted={muted}
-          fullscreenVideo
-          ownerMode={ownerMode}
-          onTogglePause={togglePause}
-          onLike={handleLike}
-          onSave={handleSave}
-          onQuickView={handleQuickView}
-          onComment={handleComment}
-          onOpenDetail={handleOpenDetail}
-          onShare={handleShare}
-          onProductViewed={applyViewedResult}
-          onOwnerMenu={ownerMode ? handleOwnerMenu : undefined}
-          onOpenProfile={profileUserId => {
-            if (profileUserId && profileUserId !== userId) {
-              navigation.navigate('OtherProfile', { userId: profileUserId });
-            }
-          }}
-        />
-      </View>
-    ),
+    ({ item, index }) => {
+      const ownItem = isOwnProduct(item);
+      return (
+        <View style={styles.page}>
+          <ReelCard
+            product={item}
+            isActive={index === activeIndex}
+            muted={muted}
+            fullscreenVideo
+            ownerMode={ownItem}
+            onTogglePause={togglePause}
+            onLike={handleLike}
+            onSave={handleSave}
+            onQuickView={handleQuickView}
+            onComment={handleComment}
+            onOpenDetail={handleOpenDetail}
+            onShare={handleShare}
+            onProductViewed={applyViewedResult}
+            onOwnerMenu={ownItem ? handleOwnerMenu : undefined}
+            onOpenProfile={profileUserId => {
+              // Compare against the actual logged-in user (not the route's screen-owner
+              // `userId`) so this stays correct per item in a mixed-ownership Saved/Liked list.
+              if (profileUserId && profileUserId !== currentUserId) {
+                navigation.navigate('OtherProfile', { userId: profileUserId });
+              }
+            }}
+          />
+        </View>
+      );
+    },
     [
       activeIndex,
+      currentUserId,
       handleComment,
       handleLike,
       handleOpenDetail,
@@ -290,11 +328,10 @@ export const UserFeedScreen: React.FC = () => {
       handleQuickView,
       handleSave,
       applyViewedResult,
+      isOwnProduct,
       muted,
       navigation,
-      ownerMode,
       togglePause,
-      userId,
     ],
   );
 
@@ -375,7 +412,9 @@ export const UserFeedScreen: React.FC = () => {
           onLike={handleLike}
           onSave={handleSave}
           onOpenDetail={handleOpenDetail}
-          onChat={ownerMode ? undefined : handleQuickViewChat}
+          onChat={
+            quickViewProduct && isOwnProduct(quickViewProduct) ? undefined : handleQuickViewChat
+          }
           chatLoading={openingChat}
         />
 
@@ -385,14 +424,12 @@ export const UserFeedScreen: React.FC = () => {
           onDismiss={handleCommentsDismiss}
         />
 
-        {ownerMode ? (
-          <OwnerListingMenuSheet
-            ref={ownerMenuRef}
-            product={ownerMenuProduct}
-            onDismiss={handleOwnerMenuDismiss}
-            onAction={handleOwnerMenuAction}
-          />
-        ) : null}
+        <OwnerListingMenuSheet
+          ref={ownerMenuRef}
+          product={ownerMenuProduct}
+          onDismiss={handleOwnerMenuDismiss}
+          onAction={handleOwnerMenuAction}
+        />
       </View>
     </ReelPlaybackProvider>
   );

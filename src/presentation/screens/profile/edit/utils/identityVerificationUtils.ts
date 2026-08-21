@@ -57,9 +57,11 @@ export const isIdentityVerificationActionable = (
   status: IdentityVerificationCardStatus,
 ): boolean => status === 'none';
 
+/** A rejected submission can be resubmitted from the same card as a fresh ('none') one — only an
+ * approved/pending submission is a dead end here (pending is mid-review; approved is done). */
 export const isIdentityVerificationCardClickable = (
   status: IdentityVerificationCardStatus,
-): boolean => status === 'none';
+): boolean => status === 'none' || status === 'rejected';
 
 export const getIdentityVerificationCardCopy = (
   status: IdentityVerificationCardStatus,

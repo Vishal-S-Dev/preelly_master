@@ -5,6 +5,8 @@ export const STORAGE_KEYS = {
   ONBOARDING_COMPLETED: 'preelly_onboarding_completed',
   THEME_MODE: 'preelly_theme_mode',
   RECENT_SEARCHES: 'preelly_recent_searches',
+  DEVICE_PUSH_TOKEN: 'preelly_device_push_token',
+  DEVICE_ID: 'preelly_device_id',
 } as const;
 
 export const API_ENDPOINTS = {
@@ -12,6 +14,8 @@ export const API_ENDPOINTS = {
   SEND_OTP: '/api/auth/send-otp',
   VERIFY_OTP: '/api/auth/verify-otp',
   REFRESH_TOKEN: '/api/auth/refresh-token',
+  GOOGLE_LOGIN: '/api/auth/google',
+  APPLE_LOGIN: '/api/auth/apple',
   FEED: '/api/videos/feed',
   PRODUCTS: '/api/products',
   SEARCH: 'api/v1/web/search',
@@ -34,6 +38,16 @@ export const API_ENDPOINTS = {
   EMIRATES: '/api/v1/web/emirates',
   WEB_FILTERS: '/api/v1/web/filters',
   NOTIFICATIONS: '/api/user/notifications',
+  /**
+   * Push-notification device token registry — NOT yet implemented on the backend (confirmed
+   * absent from the reference API repo). Proposed REST contract, following this app's existing
+   * `/api/user/*` convention:
+   *   POST   /api/user/device-tokens            { token, platform, deviceId }  → register/upsert
+   *   DELETE /api/user/device-tokens/:token                                    → unregister one token
+   * Multiple tokens per user are expected (one per installed device), so this must be a
+   * token-keyed collection server-side, not a single `user.fcmToken` field.
+   */
+  DEVICE_TOKENS: '/api/user/device-tokens',
   IDENTITY_VERIFICATION: '/api/user/identity-verification',
   PACKAGES: '/api/v1/web/packages',
   STORAGE_FACILITIES: '/api/v1/web/storage-facilities',

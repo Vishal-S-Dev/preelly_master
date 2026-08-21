@@ -3,6 +3,8 @@ import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { ENV } from './constants/env';
 import { AppNavigator } from './presentation/navigation/AppNavigator';
 import { store } from './presentation/redux/store';
 import { ErrorBoundary } from './presentation/components/common/ErrorBoundary';
@@ -18,6 +20,10 @@ import { CallProvider } from './presentation/call/CallContext';
 import { ShareSheetProvider } from './presentation/context/ShareSheetContext';
 import { ensureSocketReadyForUser } from './data/network/chatSocket';
 import { attachPresenceListeners } from './data/network/presenceSocket';
+import {
+  initializeNotificationListeners,
+  registerForPushNotifications,
+} from './services/notification/notificationService';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +36,19 @@ const Bootstrap: React.FC = () => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (ENV.GOOGLE_WEB_CLIENT_ID) {
+      GoogleSignin.configure({
+        webClientId: ENV.GOOGLE_WEB_CLIENT_ID,
+        iosClientId: ENV.GOOGLE_IOS_CLIENT_ID || undefined,
+        offlineAccess: false,
+      });
+    }
+
+    // Tap/foreground/refresh listeners must exist from the very first frame — a notification tap
+    // can be what launches the app from a killed state — so this runs unconditionally, not gated
+    // on auth state.
+    initializeNotificationListeners();
+
     const init = async () => {
       const onboarding = await storage.getString(STORAGE_KEYS.ONBOARDING_COMPLETED);
       const persistedTheme = await storage.getString(STORAGE_KEYS.THEME_MODE);
@@ -42,6 +61,7 @@ const Bootstrap: React.FC = () => {
       if (auth.isAuthenticated && !auth.isGuest && auth.user?.id) {
         await ensureSocketReadyForUser(auth.user.id);
         attachPresenceListeners(store.dispatch).catch(() => undefined);
+        registerForPushNotifications().catch(() => undefined);
       }
       setReady(true);
     };

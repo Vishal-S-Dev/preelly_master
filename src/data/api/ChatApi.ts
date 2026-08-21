@@ -58,6 +58,18 @@ export const ChatApi = {
     return data;
   },
 
+  /** Creates a brand-new group chat (requires >=2 other members server-side). */
+  async createGroup(
+    memberIds: string[],
+    options: { name?: string; productId?: string; text?: string } = {},
+  ): Promise<ChatWithMessagesDTO> {
+    const { data } = await httpClient.post<ChatWithMessagesDTO>(`${API_ENDPOINTS.CHATS}/group`, {
+      memberIds,
+      ...options,
+    });
+    return data;
+  },
+
   async sendMessage(
     chatId: string,
     text: string,

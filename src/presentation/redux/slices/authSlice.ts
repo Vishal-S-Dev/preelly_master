@@ -5,6 +5,8 @@ import { User } from '../../../domain/models/User';
 import { LoginUseCase } from '../../../domain/usecases/LoginUseCase';
 import {
   SendOtpUseCase,
+  SignInWithAppleUseCase,
+  SignInWithGoogleUseCase,
   VerifyOtpUseCase,
 } from '../../../domain/usecases/authUseCases';
 import { storage } from '../../../utils/storage';
@@ -12,14 +14,25 @@ import { clearChatState } from './chatSlice';
 import { resetPresenceState } from '../../../data/network/presenceSocket';
 import { ensureSocketReadyForUser } from '../../../data/network/chatSocket';
 import { attachPresenceListeners } from '../../../data/network/presenceSocket';
-import { SendOtpRequestDTO, VerifyOtpRequestDto } from '../../../data/dto/authDto';
+import {
+  getDeviceTokenSilently,
+  registerForPushNotifications,
+  unregisterPushNotifications,
+} from '../../../services/notification/notificationService';
+import { AppleSignInRequestDto, SendOtpRequestDTO, VerifyOtpRequestDto } from '../../../data/dto/authDto';
 import { AuthJourneyState } from '../../../types/authJourney.types';
-import { mergeAuthJourney, resolveNextAuthJourneyStep } from '../../../utils/authJourneyUtils';
+import {
+  mergeAuthJourney,
+  resolveNextAuthJourneyStep,
+  resolveNextAuthJourneyStepForOAuth,
+} from '../../../utils/authJourneyUtils';
 
 const repo = new AuthRepositoryImpl();
 const loginUseCase = new LoginUseCase(repo);
 const sendOtpUseCase = new SendOtpUseCase(repo);
 const verifyOtpUseCase = new VerifyOtpUseCase(repo);
+const signInWithGoogleUseCase = new SignInWithGoogleUseCase(repo);
+const signInWithAppleUseCase = new SignInWithAppleUseCase(repo);
 
 interface AuthState {
   user: User | null;
@@ -53,6 +66,7 @@ export const loginUser = createAsyncThunk(
     if (session.user?.id) {
       await ensureSocketReadyForUser(session.user.id);
       attachPresenceListeners(dispatch).catch(() => undefined);
+      registerForPushNotifications().catch(() => undefined);
     }
     return session;
   },
@@ -75,6 +89,7 @@ export const sendOtp = createAsyncThunk(
 );
 
 export const logoutUser = createAsyncThunk('auth/logoutUser', async (_, { dispatch }) => {
+  await unregisterPushNotifications();
   await repo.logout();
   resetPresenceState(dispatch);
   dispatch(clearChatState());
@@ -84,12 +99,16 @@ export const verifyOtp = createAsyncThunk(
   'auth/verifyOtp',
   async (request: VerifyOtpRequestDto, { dispatch, rejectWithValue }) => {
     try {
-      const result = await verifyOtpUseCase.execute(request);
+      const deviceToken = request.deviceToken ?? (await getDeviceTokenSilently().catch(() => null));
+      const result = await verifyOtpUseCase.execute(
+        deviceToken ? { ...request, deviceToken } : request,
+      );
       if (result.kind === 'authenticated') {
         await repo.storeSession(result.session);
         if (result.session.user?.id) {
           await ensureSocketReadyForUser(result.session.user.id);
           attachPresenceListeners(dispatch).catch(() => undefined);
+          registerForPushNotifications().catch(() => undefined);
         }
       }
       return result;
@@ -99,6 +118,54 @@ export const verifyOtp = createAsyncThunk(
         return rejectWithValue(apiError);
       }
       return rejectWithValue({ message: error?.message ?? 'OTP verification failed' });
+    }
+  },
+);
+
+export const signInWithGoogle = createAsyncThunk(
+  'auth/signInWithGoogle',
+  async (idToken: string, { dispatch, rejectWithValue }) => {
+    try {
+      const result = await signInWithGoogleUseCase.execute(idToken);
+      if (result.kind === 'authenticated') {
+        await repo.storeSession(result.session);
+        if (result.session.user?.id) {
+          await ensureSocketReadyForUser(result.session.user.id);
+          attachPresenceListeners(dispatch).catch(() => undefined);
+          registerForPushNotifications().catch(() => undefined);
+        }
+      }
+      return result;
+    } catch (error: any) {
+      const apiError = error?.response?.data;
+      if (apiError?.message) {
+        return rejectWithValue(apiError);
+      }
+      return rejectWithValue({ message: error?.message ?? 'Google sign-in failed' });
+    }
+  },
+);
+
+export const signInWithApple = createAsyncThunk(
+  'auth/signInWithApple',
+  async (request: AppleSignInRequestDto, { dispatch, rejectWithValue }) => {
+    try {
+      const result = await signInWithAppleUseCase.execute(request);
+      if (result.kind === 'authenticated') {
+        await repo.storeSession(result.session);
+        if (result.session.user?.id) {
+          await ensureSocketReadyForUser(result.session.user.id);
+          attachPresenceListeners(dispatch).catch(() => undefined);
+          registerForPushNotifications().catch(() => undefined);
+        }
+      }
+      return result;
+    } catch (error: any) {
+      const apiError = error?.response?.data;
+      if (apiError?.message) {
+        return rejectWithValue(apiError);
+      }
+      return rejectWithValue({ message: error?.message ?? 'Apple sign-in failed' });
     }
   },
 );
@@ -246,6 +313,108 @@ const authSlice = createSlice({
           (action.payload as { message?: string } | undefined)?.message ??
           action.error.message ??
           'OTP verification failed';
+      })
+      .addCase(signInWithGoogle.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(signInWithGoogle.fulfilled, (state, action) => {
+        state.loading = false;
+        state.otpSession = null;
+
+        if (action.payload.kind === 'authenticated') {
+          state.accessToken = action.payload.session.accessToken;
+          state.refreshToken = action.payload.session.refreshToken;
+          state.user = action.payload.session.user;
+          state.isAuthenticated = true;
+          state.isGuest = false;
+
+          // Google/Apple sign-in never blocks on mobile verification — only a missing
+          // verified email (which shouldn't happen for OAuth) can still gate here. Phone
+          // verification is instead enforced later, at the point of posting an ad.
+          const next = resolveNextAuthJourneyStepForOAuth(action.payload.session.user);
+          if (next) {
+            state.authJourney = mergeAuthJourney(state.authJourney, {
+              ...next,
+              email: action.payload.session.user.email,
+              phone: action.payload.session.user.phone,
+            });
+          } else {
+            state.authJourney = null;
+          }
+          return;
+        }
+
+        // Google accounts are pre-verified server-side, so this branch should not occur in
+        // practice — handled defensively since signInWithGoogle shares AuthVerifyOtpResult.
+        // Never force a phone-link step here either, for the same reason as above.
+        state.user = action.payload.user;
+        state.isAuthenticated = false;
+        state.isGuest = false;
+        state.authJourney = mergeAuthJourney(state.authJourney, {
+          step: 'link_email',
+          email: action.payload.user.email,
+          phone: action.payload.user.phone,
+          primaryChannel: state.authJourney?.primaryChannel ?? 'whatsapp',
+        });
+      })
+      .addCase(signInWithGoogle.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (action.payload as { message?: string } | undefined)?.message ??
+          action.error.message ??
+          'Google sign-in failed';
+      })
+      .addCase(signInWithApple.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(signInWithApple.fulfilled, (state, action) => {
+        state.loading = false;
+        state.otpSession = null;
+
+        if (action.payload.kind === 'authenticated') {
+          state.accessToken = action.payload.session.accessToken;
+          state.refreshToken = action.payload.session.refreshToken;
+          state.user = action.payload.session.user;
+          state.isAuthenticated = true;
+          state.isGuest = false;
+
+          // Google/Apple sign-in never blocks on mobile verification — only a missing
+          // verified email (which shouldn't happen for OAuth) can still gate here. Phone
+          // verification is instead enforced later, at the point of posting an ad.
+          const next = resolveNextAuthJourneyStepForOAuth(action.payload.session.user);
+          if (next) {
+            state.authJourney = mergeAuthJourney(state.authJourney, {
+              ...next,
+              email: action.payload.session.user.email,
+              phone: action.payload.session.user.phone,
+            });
+          } else {
+            state.authJourney = null;
+          }
+          return;
+        }
+
+        // Apple accounts are pre-verified server-side, so this branch should not occur in
+        // practice — handled defensively since signInWithApple shares AuthVerifyOtpResult.
+        // Never force a phone-link step here either, for the same reason as above.
+        state.user = action.payload.user;
+        state.isAuthenticated = false;
+        state.isGuest = false;
+        state.authJourney = mergeAuthJourney(state.authJourney, {
+          step: 'link_email',
+          email: action.payload.user.email,
+          phone: action.payload.user.phone,
+          primaryChannel: state.authJourney?.primaryChannel ?? 'whatsapp',
+        });
+      })
+      .addCase(signInWithApple.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (action.payload as { message?: string } | undefined)?.message ??
+          action.error.message ??
+          'Apple sign-in failed';
       })
       .addCase(loadStoredSession.fulfilled, (state, action) => {
         state.accessToken = action.payload.accessToken;

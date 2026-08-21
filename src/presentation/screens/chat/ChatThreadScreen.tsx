@@ -24,6 +24,8 @@ import { ChatAttachmentPreviewBar } from '../../components/chat/ChatAttachmentPr
 import { ChatImageAttachmentsGrid } from '../../components/chat/ChatImageAttachmentsGrid';
 import { ChatMediaActionSheet } from '../../components/chat/ChatMediaActionSheet';
 import { useChatImagePicker } from '../../hooks/useChatImagePicker';
+import { useContactPresence } from '../../hooks/useContactPresence';
+import { StatusDot } from '../../components/chat/ChatListAvatars';
 import {
   isImageAttachment,
   MAX_CHAT_ATTACHMENTS,
@@ -280,6 +282,12 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
     () => (user?.id && thread ? otherPartyFromThread(thread, user.id) : null),
     [thread, user?.id],
   );
+
+  // Real socket-driven presence (same source as the inbox row dots) — no "unread" concept here
+  // since the thread is already open, so the header always shows the contact's live status.
+  const { dot: otherDot, statusText: otherStatusText } = useContactPresence(other?.id, {
+    updatedAt: thread?.updatedAt,
+  });
 
   const grouped = useMemo(() => groupMessages(messages), [messages]);
 
@@ -958,7 +966,10 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
         {thread?.productImageUrl && !isReelShareDm ? (
           <Image source={{ uri: thread.productImageUrl }} style={styles.headerAvatar} />
         ) : (
-          <Image source={{ uri: otherAvatar }} style={styles.headerAvatar} />
+          <View style={styles.headerAvatarWrap}>
+            <Image source={{ uri: otherAvatar }} style={[styles.headerAvatar, styles.headerAvatarInWrap]} />
+            <StatusDot tone={otherDot} size={12} style={styles.headerAvatarDot} />
+          </View>
         )}
         <View style={styles.headerInfo}>
           <Text style={styles.headerName} numberOfLines={1}>
@@ -966,7 +977,7 @@ export const ChatThreadScreen: React.FC<Props> = ({ navigation, route }) => {
           </Text>
           <Text style={styles.postedText} numberOfLines={1}>
             {isReelShareDm
-              ? 'Direct message'
+              ? otherStatusText || 'Direct message'
               : formatPostedDate(listingProduct?.createdAt) || 'Posted recently'}
           </Text>
         </View>
@@ -1150,6 +1161,20 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     marginRight: 10,
     backgroundColor: THREAD_UI.incomingBubble,
+  },
+  headerAvatarWrap: {
+    position: 'relative',
+    overflow: 'visible',
+    marginRight: 10,
+  },
+  headerAvatarInWrap: {
+    marginRight: 0,
+  },
+  headerAvatarDot: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
   },
   headerInfo: {
     flex: 1,

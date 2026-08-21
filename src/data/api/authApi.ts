@@ -1,4 +1,5 @@
 import {
+  AppleSignInRequestDto,
   LoginRequestDTO,
   LoginResponseDTO,
   RefreshTokenRequestDto,
@@ -46,6 +47,19 @@ export const authApi = {
     const response = await httpClient.post<VerifyOtpResponseDto>(
       API_ENDPOINTS.VERIFY_OTP,
       toVerifyOtpApiPayload(payload),
+    );
+    return parseAuthVerifyResponse(response.data, headersToRecord(response.headers));
+  },
+  async signInWithGoogle(idToken: string): Promise<AuthVerifyOtpResult> {
+    const response = await httpClient.post<VerifyOtpResponseDto>(API_ENDPOINTS.GOOGLE_LOGIN, {
+      idToken,
+    });
+    return parseAuthVerifyResponse(response.data, headersToRecord(response.headers));
+  },
+  async signInWithApple(payload: AppleSignInRequestDto): Promise<AuthVerifyOtpResult> {
+    const response = await httpClient.post<VerifyOtpResponseDto>(
+      API_ENDPOINTS.APPLE_LOGIN,
+      payload,
     );
     return parseAuthVerifyResponse(response.data, headersToRecord(response.headers));
   },

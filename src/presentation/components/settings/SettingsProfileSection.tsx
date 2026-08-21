@@ -131,6 +131,17 @@ export const SettingsProfileSection = memo<Props>(
               {profile.rejectionReason}
             </Text>
           ) : null}
+
+          {profile.verificationStatus === 'rejected' ? (
+            <Pressable
+              style={styles.getVerifiedButton}
+              onPress={onGetVerified}
+              accessibilityRole="button"
+              accessibilityLabel="Get verified">
+              <Icon name="shield-check-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.getVerifiedButtonText}>Get Verified</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     );

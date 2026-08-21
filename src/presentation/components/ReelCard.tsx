@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -105,22 +105,48 @@ export const ReelCard: React.FC<Props> = React.memo(
       opacity: heartOpacity.value,
     }));
 
-    const doubleTap = Gesture.Tap()
-      .numberOfTaps(2)
-      .onEnd(() => {
-        runOnJS(onLike)(product.id);
-        heartScale.value = 0.2;
-        heartOpacity.value = 1;
-        heartScale.value = withSpring(1.1, undefined, () => {
-          heartScale.value = withTiming(0.85, { duration: 120 });
-          heartOpacity.value = withTiming(0, { duration: 280 });
-        });
-      });
+    // Latest callback/id snapshot, refreshed every render but never causing the gesture
+    // objects below to be rebuilt — keeps the native tap handlers alive across redux-driven
+    // re-renders (pause/like state, active index, etc.) instead of tearing them down and
+    // reinstalling them, which is what was dropping taps intermittently on both platforms.
+    const latestRef = useRef({ onLike, onTogglePause, productId: product.id });
+    latestRef.current = { onLike, onTogglePause, productId: product.id };
 
-    const singleTap = Gesture.Tap()
-      .numberOfTaps(1)
-      .maxDuration(250)
-      .onEnd(() => runOnJS(onTogglePause)(product.id));
+    const triggerLike = useCallback(() => {
+      latestRef.current.onLike(latestRef.current.productId);
+    }, []);
+
+    const triggerTogglePause = useCallback(() => {
+      latestRef.current.onTogglePause(latestRef.current.productId);
+    }, []);
+
+    const doubleTap = useMemo(
+      () =>
+        Gesture.Tap()
+          .numberOfTaps(2)
+          // Explicit, platform-identical window for the second tap (native defaults differ
+          // between Android and iOS) so single/double-tap disambiguation is consistent.
+          .maxDelay(250)
+          .onEnd(() => {
+            runOnJS(triggerLike)();
+            heartScale.value = 0.2;
+            heartOpacity.value = 1;
+            heartScale.value = withSpring(1.1, undefined, () => {
+              heartScale.value = withTiming(0.85, { duration: 120 });
+              heartOpacity.value = withTiming(0, { duration: 280 });
+            });
+          }),
+      [heartOpacity, heartScale, triggerLike],
+    );
+
+    const singleTap = useMemo(
+      () =>
+        Gesture.Tap()
+          .numberOfTaps(1)
+          .maxDuration(250)
+          .onEnd(() => runOnJS(triggerTogglePause)()),
+      [triggerTogglePause],
+    );
 
     const combinedGesture = useMemo(
       () => Gesture.Exclusive(doubleTap, singleTap),
@@ -184,9 +210,15 @@ export const ReelCard: React.FC<Props> = React.memo(
           />
           <View style={styles.bottom}>
             <View style={styles.row}>
-              <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
-                {product.title}
-              </Text>
+              <Pressable
+                style={styles.titlePressable}
+                onPress={() => onOpenDetail(product)}
+                accessibilityRole="button"
+                accessibilityLabel={`View details for ${product.title}`}>
+                <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+                  {product.title}
+                </Text>
+              </Pressable>
               <GradientPriceBadge
                 currency={product.currency}
                 price={product.price}
@@ -200,13 +232,18 @@ export const ReelCard: React.FC<Props> = React.memo(
                 <Text style={styles.description}>76,500 km</Text>
                 <Text style={styles.dot}>•</Text>
                 <Text style={styles.description}>American Specs</Text>*/}
-                <Text
-                  style={styles.description}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {product.location}
-                </Text>
+                <Pressable
+                  onPress={() => onOpenDetail(product)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View details for ${product.title}`}>
+                  <Text
+                    style={styles.description}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {product.location}
+                  </Text>
+                </Pressable>
               </View>
               <View
                 style={[
@@ -268,13 +305,15 @@ const styles = StyleSheet.create({
     fontSize: 80,
   },
   bottomInfo: { paddingHorizontal: 16, paddingBottom: 110, paddingRight: 90 },
+  titlePressable: {
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 10,
+  },
   title: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '800',
-    flex: 1,
-    flexShrink: 1,
-    marginRight: 10,
   },
   description: { color: '#E2E8F0', marginTop: 6, fontSize: 14, flexShrink: 1 },
   badgeRow: {

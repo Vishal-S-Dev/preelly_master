@@ -2,6 +2,7 @@ import { STORAGE_KEYS } from '../../constants/appConstants';
 import { AuthSession, LoginSession, SendOtpResult } from '../../domain/models/AuthModel';
 import { AuthRepository } from '../../domain/repository/AuthRepository';
 import {
+  AppleSignInRequestDto,
   SendOtpRequestDTO,
   VerifyOtpRequestDto,
 } from '../dto/authDto';
@@ -25,6 +26,14 @@ export class AuthRepositoryImpl implements AuthRepository {
 
   async verifyOtp(request: VerifyOtpRequestDto): Promise<AuthVerifyOtpResult> {
     return authApi.verifyOtp(request);
+  }
+
+  async signInWithGoogle(idToken: string): Promise<AuthVerifyOtpResult> {
+    return authApi.signInWithGoogle(idToken);
+  }
+
+  async signInWithApple(request: AppleSignInRequestDto): Promise<AuthVerifyOtpResult> {
+    return authApi.signInWithApple(request);
   }
 
   async refreshAccessToken(refreshToken: string): Promise<AuthSession> {

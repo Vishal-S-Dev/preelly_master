@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Product } from '../../domain/models/Product';
 import { profileService } from '../../services/profile.service';
 import { ProfileApiUserDTO } from '../../services/profile.service';
@@ -111,6 +112,19 @@ export const useOtherUserProfileData = (userId: string) => {
   const [followStatusLoading, setFollowStatusLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // `loadProfileMeta` reads this for its "keep the previous count on a failed refetch" fallback
+  // instead of depending on `profile` state directly — `loadProfileMeta` itself calls
+  // `setProfile`, so depending on `profile` would change its own identity every time it succeeds.
+  // That resulting new identity flows into `useFocusEffect`'s memoized callback below, and
+  // react-navigation's `useFocusEffect` re-invokes its callback immediately whenever that
+  // identity changes while the screen is focused (see its source) — so the old code re-ran
+  // `loadProfileMeta`/`loadFollowStatus` in an infinite loop for as long as this screen stayed
+  // focused, which is why the Follow button's loading spinner never settled.
+  const profileRef = useRef<ProfileUserView | null>(null);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
+
   const isOwnProfile = Boolean(viewerUserId && viewerUserId === userId);
 
   const loadFollowStatus = useCallback(async () => {
@@ -150,12 +164,26 @@ export const useOtherUserProfileData = (userId: string) => {
         profileService.getUserListings(userId, 1, PAGE_SIZE),
       ]);
       const followState = resolveInitialFollowState(profileDto, viewerUserId);
-      const followerCount = Array.isArray(profileDto.followers)
-        ? profileDto.followers.length
-        : await profileService.getFollowersCount(userId);
-      const followingCount = Array.isArray(profileDto.following)
-        ? profileDto.following.length
-        : await profileService.getFollowingCount(userId);
+      // `getFollowersCount`/`getFollowingCount` intentionally throw on failure rather than
+      // swallowing to 0 (see profile.service.ts) — settle them independently and fall back to
+      // whatever was already displayed, so a single flaky request on refocus can't regress an
+      // already-correct count down to zero, and can't take down the rest of the profile either.
+      // Always hit the dedicated endpoints — `profileDto.followers`/`.following` are raw id
+      // arrays on the user document that can drift out of sync with the real Follow
+      // relationships (confirmed: a profile can report `followers: []` while the dedicated
+      // endpoint for the same user correctly returns a non-zero count).
+      const [followersResult, followingResult] = await Promise.allSettled([
+        profileService.getFollowersCount(userId),
+        profileService.getFollowingCount(userId),
+      ]);
+      const followerCount =
+        followersResult.status === 'fulfilled'
+          ? followersResult.value
+          : profileRef.current?.stats.followers ?? 0;
+      const followingCount =
+        followingResult.status === 'fulfilled'
+          ? followingResult.value
+          : profileRef.current?.stats.following ?? 0;
 
       const identityVerificationStatus = profileDto.identityVerificationStatus ?? null;
       const identityVerifiedAt = profileDto.identityVerifiedAt ?? null;
@@ -225,17 +253,31 @@ export const useOtherUserProfileData = (userId: string) => {
   );
 
   useEffect(() => {
-    loadProfileMeta();
     loadPosts(1, true);
-  }, [loadProfileMeta, loadPosts]);
+  }, [loadPosts]);
 
-  useEffect(() => {
-    void loadFollowStatus();
-  }, [loadFollowStatus]);
+  // This screen is pushed onto the root stack (e.g. from the Followers/Following list, or from
+  // a reel/chat), which React Navigation keeps mounted underneath — popping back to it does NOT
+  // remount the component, so a mount-only effect would only ever fetch once and go stale the
+  // moment you follow/unfollow someone (from here or from the Followers/Following list) and come
+  // back. Refetching on every focus keeps counts and follow state current, matching how the web
+  // app effectively always "refetches" since every profile visit there is a fresh page load.
+  useFocusEffect(
+    useCallback(() => {
+      // `loadFollowStatus` writes into `profile` via `setProfile(current => ...)`, which no-ops
+      // while `profile` is still null — so it MUST run after `loadProfileMeta` has set the
+      // initial profile, not in parallel, or its authoritative result gets silently dropped.
+      void (async () => {
+        await loadProfileMeta();
+        await loadFollowStatus();
+      })();
+    }, [loadFollowStatus, loadProfileMeta]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([loadProfileMeta(), loadFollowStatus()]);
+    await loadProfileMeta();
+    await loadFollowStatus();
     await loadPosts(1, true);
   }, [loadFollowStatus, loadPosts, loadProfileMeta]);
 
@@ -295,14 +337,15 @@ export const useOtherUserProfileData = (userId: string) => {
           followState: nextFollowState,
           stats: {
             ...current.stats,
+            // `response.followingCount` is the VIEWER's own following count (how many people
+            // *the viewer* follows after this toggle) — irrelevant to this profile's own
+            // "Following" stat, which only changes when this profile follows/unfollows someone
+            // else, never as a side effect of someone else following *them*. Only `followerCount`
+            // (how many people follow this profile) is legitimately about this profile.
             followers:
               typeof response.followerCount === 'number'
                 ? response.followerCount
                 : current.stats.followers,
-            following:
-              typeof response.followingCount === 'number'
-                ? response.followingCount
-                : current.stats.following,
           },
         };
       });

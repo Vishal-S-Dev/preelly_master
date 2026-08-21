@@ -29,9 +29,12 @@ import { navigationRef } from './navigationRef';
 import { MainTabParamList, RootStackParamList } from './types';
 import { useAppSelector } from '../hooks/useRedux';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { Image, Platform } from 'react-native';
+import { Alert, Image, Platform } from 'react-native';
 import { getDisplayAvatarUri } from '../../utils/mediaUrl';
+import { isPhoneVerifiedUser } from '../../utils/authJourneyUtils';
+import { flushPendingNotificationNavigation } from '../../services/notification/notificationNavigation';
 import { UserProfileScreen } from '../screens/profile/UserProfileScreen.tsx';
+import { UserConnectionsScreen } from '../screens/profile/UserConnectionsScreen';
 import { UserFeedScreen } from '../screens/profile/UserFeedScreen';
 import { SearchScreen } from '../screens/search/SearchScreen';
 import { SearchResultScreen } from '../screens/search/SearchResultScreen.tsx';
@@ -121,13 +124,36 @@ const MainTabs: React.FC = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Bookmark" component={BookmarkScreen} />
+      <Tab.Screen
+        name="Bookmark"
+        component={BookmarkScreen}
+        listeners={({ navigation }) => ({
+          tabPress: e => {
+            e.preventDefault();
+            navigation.navigate('Profile', { initialTab: 'saved' });
+          },
+        })}
+      />
       <Tab.Screen
         name="Create"
         component={CreateScreen}
         listeners={({ navigation }) => ({
           tabPress: e => {
             e.preventDefault();
+            if (authUser && !isPhoneVerifiedUser(authUser)) {
+              Alert.alert(
+                'Verify Mobile Number',
+                'Please verify your mobile number before posting an ad.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Verify Now',
+                    onPress: () => navigation.getParent()?.navigate('SetNewMobile'),
+                  },
+                ],
+              );
+              return;
+            }
             navigation.getParent()?.navigate('CreatePost');
           },
         })}
@@ -159,6 +185,7 @@ export const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer
       ref={navigationRef}
+      onReady={flushPendingNotificationNavigation}
       theme={{
         dark: false,
         colors: {
@@ -256,6 +283,11 @@ export const AppNavigator: React.FC = () => {
             <Stack.Screen
               name="OtherProfile"
               component={UserProfileScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="UserConnections"
+              component={UserConnectionsScreen}
               options={{ animation: 'slide_from_right' }}
             />
             <Stack.Screen

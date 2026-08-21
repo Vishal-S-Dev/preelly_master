@@ -1,7 +1,11 @@
 import React, { memo } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, ImageBackground, Pressable, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { GV_COLORS, gvStyles } from '../getVerifiedStyles';
+
+/** Faded sample-card guide shown behind the upload prompt so users know what to capture — not
+ * a real document, just a generic reference photo bundled with the app. */
+const EMIRATES_ID_PLACEHOLDER = require('../../../../../../assets/images/emirates_id_placeholder.png');
 
 interface Props {
   label: string;
@@ -51,11 +55,18 @@ export const EmiratesIdUploadCard = memo<Props>(
             </View>
           </View>
         ) : (
-          <View style={gvStyles.uploadCardEmpty}>
-            <Icon name="tray-arrow-up" size={34} color={GV_COLORS.dashed} />
-            <Text style={gvStyles.uploadCardLabel}>{label}</Text>
-            <Text style={gvStyles.uploadCardHint}>Click here to upload or open camera</Text>
-          </View>
+          <ImageBackground
+            source={EMIRATES_ID_PLACEHOLDER}
+            style={gvStyles.uploadCardEmpty}
+            imageStyle={gvStyles.uploadCardPlaceholderImage}
+            resizeMode="cover"
+            accessibilityIgnoresInvertColors>
+            <View style={gvStyles.uploadCardScrim}>
+              <Icon name="tray-arrow-up" size={34} color={GV_COLORS.dashed} />
+              <Text style={gvStyles.uploadCardLabel}>{label}</Text>
+              <Text style={gvStyles.uploadCardHint}>Click here to upload or open camera</Text>
+            </View>
+          </ImageBackground>
         )}
       </Pressable>
     );

@@ -31,6 +31,21 @@ export function resolveNextAuthJourneyStep(
   return null;
 }
 
+/**
+ * Google/Apple sign-in should land straight on Home even if the user has no verified phone
+ * yet — mobile verification is only enforced later, at the point of posting an ad (see
+ * MainTabs' "Create" tab gate in AppNavigator.tsx), not as a login-blocking step like the
+ * email/phone-OTP journey requires.
+ */
+export function resolveNextAuthJourneyStepForOAuth(
+  user: User,
+): Pick<AuthJourneyState, 'step'> | null {
+  if (!isEmailVerifiedUser(user)) {
+    return { step: 'link_email' };
+  }
+  return null;
+}
+
 export function mergeAuthJourney(
   current: AuthJourneyState | null,
   patch: Partial<AuthJourneyState>,

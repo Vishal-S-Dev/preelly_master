@@ -119,6 +119,14 @@ export const UserProfileScreen: React.FC = () => {
     Alert.alert('Message', 'Chat will open here.');
   }, [followState.status]);
 
+  const openFollowers = useCallback(() => {
+    navigation.navigate('UserConnections', { userId, mode: 'followers', userName: profile.name });
+  }, [navigation, profile.name, userId]);
+
+  const openFollowing = useCallback(() => {
+    navigation.navigate('UserConnections', { userId, mode: 'following', userName: profile.name });
+  }, [navigation, profile.name, userId]);
+
   const openMoreMenu = useCallback(() => {
     void refreshMuteState();
     moreSheetRef.current?.present();
@@ -235,7 +243,11 @@ export const UserProfileScreen: React.FC = () => {
         {error ? <Text style={styles.visitorErrorText}>{error}</Text> : null}
         <ProfileHeader profile={profile} />
         <View style={{ paddingHorizontal: 20 }}>
-          <ProfileStats stats={profile.stats} />
+          <ProfileStats
+            stats={profile.stats}
+            onPressFollowers={openFollowers}
+            onPressFollowing={openFollowing}
+          />
           {!isOwnProfile ? (
             <UserProfileActionButtons
               followState={followState}
@@ -261,6 +273,8 @@ export const UserProfileScreen: React.FC = () => {
       navigation,
       onMessageUser,
       onShareProfile,
+      openFollowers,
+      openFollowing,
       openMoreMenu,
       profile,
       isOwnProfile,

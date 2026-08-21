@@ -135,6 +135,23 @@ export const getSettingsStyles = (theme: AppTheme) => {
       textAlign: 'center',
       paddingHorizontal: 12,
     },
+    getVerifiedButton: {
+      marginTop: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      alignSelf: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 999,
+      backgroundColor: c.primary,
+    },
+    getVerifiedButtonText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+      fontSize: 14,
+    },
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',

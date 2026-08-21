@@ -25,7 +25,7 @@ interface MenuItem {
   destructive?: boolean;
 }
 
-const MENU_ITEMS: MenuItem[] = [
+const ALL_MENU_ITEMS: MenuItem[] = [
   { key: 'edit', label: 'Edit this Ad', icon: 'pencil-outline' },
   { key: 'warehouse', label: 'Move to Warehouse', icon: 'home-outline' },
   { key: 'insight', label: 'See Insight', icon: 'chart-bar' },
@@ -34,6 +34,10 @@ const MENU_ITEMS: MenuItem[] = [
   { key: 'unpublish', label: 'Unpublish this', icon: 'eye-off-outline' },
   { key: 'delete', label: 'Delete this Ad', icon: 'trash-can-outline', destructive: true },
 ];
+
+/** "Mark as sold" isn't reversible from the owner side (matches web) — hide it once already sold. */
+const getMenuItems = (product: Product | null): MenuItem[] =>
+  product?.isSold ? ALL_MENU_ITEMS.filter(item => item.key !== 'sold') : ALL_MENU_ITEMS;
 
 interface Props {
   product: Product | null;
@@ -45,6 +49,7 @@ export const OwnerListingMenuSheet = forwardRef<BottomSheetModal, Props>(
   ({ product, onDismiss, onAction }, ref) => {
     const insets = useSafeAreaInsets();
     const snapPoints = useMemo(() => ['52%'], []);
+    const menuItems = useMemo(() => getMenuItems(product), [product]);
 
     const closeSheet = useCallback(() => {
       if (ref && typeof ref === 'object' && 'current' in ref) {
@@ -122,7 +127,7 @@ export const OwnerListingMenuSheet = forwardRef<BottomSheetModal, Props>(
             </Pressable>
           </View>
 
-          {MENU_ITEMS.map((item, index) => (
+          {menuItems.map((item, index) => (
             <View key={item.key}>
               <Pressable
                 style={styles.menuRow}
@@ -138,7 +143,7 @@ export const OwnerListingMenuSheet = forwardRef<BottomSheetModal, Props>(
                   {item.label}
                 </Text>
               </Pressable>
-              {index < MENU_ITEMS.length - 1 ? <View style={styles.divider} /> : null}
+              {index < menuItems.length - 1 ? <View style={styles.divider} /> : null}
             </View>
           ))}
         </View>

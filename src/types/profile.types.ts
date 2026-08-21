@@ -45,3 +45,15 @@ export interface ProfileProductsPage {
   page: number;
   hasMore: boolean;
 }
+
+/** A row in the Followers/Following list screen. */
+export interface UserConnectionListing {
+  id: string;
+  name: string;
+  avatarUri: string | null;
+  email?: string;
+  rating: number;
+  isVerified: boolean;
+  /** Whether the viewer follows this person — undefined when viewed as a guest. */
+  isFollowing?: boolean;
+}

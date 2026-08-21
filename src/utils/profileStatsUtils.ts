@@ -25,13 +25,14 @@ export const resolveProfileStatsFromDto = (
     followingCount?: number;
   },
 ): ProfileStats => {
-  const followers = Array.isArray(profileDto.followers)
-    ? profileDto.followers.length
-    : options?.followersCount ?? 0;
+  // `profileDto.followers`/`.following` are raw id arrays stored on the user document itself and
+  // observed to drift out of sync with the real Follow relationships (e.g. a profile returning
+  // `followers: []` while the dedicated `GET /api/user/:id/followers` endpoint for the same user
+  // correctly returns 3). The dedicated followers/following endpoints are the source of truth —
+  // always use the counts passed in via `options`, never the profile document's own arrays.
+  const followers = options?.followersCount ?? 0;
 
-  const following = Array.isArray(profileDto.following)
-    ? profileDto.following.length
-    : options?.followingCount ?? 0;
+  const following = options?.followingCount ?? 0;
 
   const adsPosted =
     profileDto.stats?.totalProducts ?? options?.listingsCount ?? 0;

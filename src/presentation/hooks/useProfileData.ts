@@ -1,3 +1,4 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Product } from '../../domain/models/Product';
 import { User } from '../../domain/models/User';
@@ -97,16 +98,41 @@ export const useProfileData = (initialTab: ProfileTabKey = 'liked') => {
     }
 
     try {
-      const profileDto = await profileService.getCurrentUserProfile();
-      const [listings, followersCount, followingCount] = await Promise.all([
+      // `GET /api/user/profile` (no id) never computes `stats` server-side, so `adsPosted` below
+      // would silently fall back to the current page's listings length — capped at PAGE_SIZE and
+      // never the true total once someone has more ads than that. `GET /api/user/:id/profile`
+      // does run the real aggregation, and it's exactly what the web app calls even for your own
+      // profile (`selfMode` still hits the id-based route) — so mirror that here.
+      const profileDto = await profileService.getUserProfile(userId);
+      // `Promise.all` fails atomically — an unrelated hiccup in the listings fetch would reject
+      // the whole batch and, via the catch block below, reset followers/following to 0 even
+      // though they were fetched successfully. `allSettled` keeps each count independent so one
+      // flaky call can't wipe out the other two.
+      // Always hit the dedicated followers/following endpoints — `profileDto.followers`/
+      // `.following` are raw id arrays on the user document that can drift out of sync with the
+      // real Follow relationships (confirmed: a profile can report `followers: []` while the
+      // dedicated endpoint for the same user correctly returns a non-zero count).
+      const [listingsResult, followersResult, followingResult] = await Promise.allSettled([
         profileService.getUserListings(userId, 1, PAGE_SIZE),
-        Array.isArray(profileDto.followers)
-          ? Promise.resolve(profileDto.followers.length)
-          : profileService.getFollowersCount(userId),
-        Array.isArray(profileDto.following)
-          ? Promise.resolve(profileDto.following.length)
-          : profileService.getFollowingCount(userId),
+        profileService.getFollowersCount(userId),
+        profileService.getFollowingCount(userId),
       ]);
+
+      // On a rejection, keep whatever was already displayed rather than hardcoding 0 — this
+      // refetches on every screen focus, so a single flaky request on a live/shared backend must
+      // never visibly regress an already-correct count down to zero.
+      const listingsCount =
+        listingsResult.status === 'fulfilled'
+          ? listingsResult.value.items.length
+          : profile?.stats.adsPosted ?? 0;
+      const followersCount =
+        followersResult.status === 'fulfilled'
+          ? followersResult.value
+          : profile?.stats.followers ?? 0;
+      const followingCount =
+        followingResult.status === 'fulfilled'
+          ? followingResult.value
+          : profile?.stats.following ?? 0;
 
       const bio = profileDto.bio;
       const identityVerificationStatus = profileDto.identityVerificationStatus ?? null;
@@ -115,7 +141,7 @@ export const useProfileData = (initialTab: ProfileTabKey = 'liked') => {
         profileDto.isVerified ?? profileDto.verified ?? authUser?.isVerified,
       );
       const stats = resolveProfileStatsFromDto(profileDto, {
-        listingsCount: listings.items.length,
+        listingsCount,
         followersCount,
         followingCount,
       });
@@ -146,7 +172,7 @@ export const useProfileData = (initialTab: ProfileTabKey = 'liked') => {
     } catch {
       setProfile(mapAuthToProfile(authUser));
     }
-  }, [authUser, userId]);
+  }, [authUser, profile, userId]);
 
   const fetchTabItems = useCallback(
     async (tab: ProfileTabKey, nextPage: number, replace: boolean) => {
@@ -232,9 +258,17 @@ export const useProfileData = (initialTab: ProfileTabKey = 'liked') => {
     [fetchTabItems],
   );
 
-  useEffect(() => {
-    loadProfileMeta();
-  }, [loadProfileMeta]);
+  // `Profile` is a bottom-tab screen React Navigation keeps mounted across tab switches, so a
+  // plain mount effect would only ever fetch this once for the tab's entire lifetime — any
+  // follower/following change made elsewhere (someone follows you while you're on another tab)
+  // would never show up without a manual pull-to-refresh. Refetching on every focus keeps the
+  // counts (and avatar/bio/verification) current without disturbing the separately-cached grid
+  // items below, which intentionally keep their own per-tab cache.
+  useFocusEffect(
+    useCallback(() => {
+      loadProfileMeta();
+    }, [loadProfileMeta]),
+  );
 
   useEffect(() => {
     const hasCachedTab = applyTabCache(activeTab);

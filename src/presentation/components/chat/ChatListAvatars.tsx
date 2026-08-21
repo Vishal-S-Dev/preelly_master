@@ -15,7 +15,7 @@ const DOT_DIRECT = 14;
 const DOT_OVERLAP = 12;
 const DOT_STROKE = 2.5;
 
-type DotTone = 'green' | 'red' | 'none';
+export type DotTone = 'green' | 'red' | 'none';
 
 interface DotProps {
   tone: DotTone;
@@ -23,7 +23,7 @@ interface DotProps {
   style?: object;
 }
 
-const StatusDot = memo<DotProps>(({ tone, size = DOT_DIRECT, style }) => {
+export const StatusDot = memo<DotProps>(({ tone, size = DOT_DIRECT, style }) => {
   if (tone === 'none') {
     return null;
   }

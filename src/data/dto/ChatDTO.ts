@@ -36,6 +36,11 @@ export interface ChatDocumentDTO {
   muted?: boolean;
   /** Users who muted this chat (may be present on list responses). */
   mutedBy?: Array<string | { _id?: string; toString(): string }>;
+  /** Group chats only (type === 'group'). */
+  name?: string;
+  groupAvatar?: string | null;
+  participants?: Array<ChatUserRefDTO | string>;
+  createdBy?: ChatUserRefDTO | string;
 }
 
 export interface ChatMessageDTO {

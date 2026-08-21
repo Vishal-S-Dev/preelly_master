@@ -65,6 +65,18 @@ export interface VerifyOtpRequestDto {
   phone?: string;
   phoneCountryCode?: string;
   phoneCountryIso?: string;
+  /** FCM device token, attached best-effort so the backend can register it at login time. */
+  deviceToken?: string;
+}
+
+export interface AppleSignInRequestDto {
+  identityToken: string;
+  authorizationCode: string;
+  /** Apple only returns name/email on the FIRST authorization for a given app — omit fields it withholds. */
+  user?: {
+    name?: string;
+    email?: string;
+  };
 }
 
 export interface RefreshTokenRequestDto {
@@ -100,7 +112,7 @@ export function toVerifyOtpApiPayload(request: VerifyOtpRequestDto): Record<stri
   const channel = request.channel ?? 'email';
 
   if (channel === 'whatsapp') {
-    return {
+    const whatsappPayload: Record<string, string> = {
       otp: request.otp,
       phone: request.phone ?? '',
       phoneCountryCode: request.phoneCountryCode ?? '',
@@ -108,6 +120,10 @@ export function toVerifyOtpApiPayload(request: VerifyOtpRequestDto): Record<stri
       mode: request.mode,
       channel: 'whatsapp',
     };
+    if (request.deviceToken) {
+      whatsappPayload.deviceToken = request.deviceToken;
+    }
+    return whatsappPayload;
   }
 
   const payload: Record<string, string> = {
@@ -125,6 +141,9 @@ export function toVerifyOtpApiPayload(request: VerifyOtpRequestDto): Record<stri
   }
   if (request.phoneCountryIso) {
     payload.phoneCountryIso = request.phoneCountryIso;
+  }
+  if (request.deviceToken) {
+    payload.deviceToken = request.deviceToken;
   }
 
   return payload;

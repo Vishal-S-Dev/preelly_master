@@ -71,7 +71,11 @@ export const useMySettingsData = () => {
 
     try {
       const [profileDto, listings, saved, savedSearches, draftExists, cartItems, archives] = await Promise.all([
-        userId ? profileService.getCurrentUserProfile().catch(() => null) : Promise.resolve(null),
+        // `GET /api/user/profile` (no id) never computes `stats.totalProducts` server-side, so
+        // the "My Ads" count below would silently fall back to `listings.items.length` — capped
+        // at this call's own limit (18) and never the true total. The id-based route does run
+        // that aggregation, and matches what the web app calls even for your own profile.
+        userId ? profileService.getUserProfile(userId).catch(() => null) : Promise.resolve(null),
         userId ? profileService.getUserListings(userId, 1, 18).catch(() => null) : Promise.resolve(null),
         profileService.getSavedProducts(1, 18).catch(() => null),
         userId

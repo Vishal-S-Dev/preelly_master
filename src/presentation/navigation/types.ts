@@ -43,6 +43,7 @@ export type RootStackParamList = {
   LoginWithPassword: undefined;
   VerifyOtp: undefined;
   OtherProfile: { userId: string };
+  UserConnections: { userId: string; mode: 'followers' | 'following'; userName?: string };
   Search: { initialQuery?: string } | undefined;
   SearchFilter: {
     keyword?: string;

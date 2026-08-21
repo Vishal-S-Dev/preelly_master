@@ -14,7 +14,13 @@ export const PaymentFailedScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [navigation]);
 
   const viewTx = useCallback(() => {
-    navigation.replace('PaymentHistory');
+    // `replace` used to leave whatever screen led into this payment flow (e.g. Cart) directly
+    // beneath PaymentHistory, so backing out of Transactions landed back on Cart instead of Home.
+    // Resetting the stack to Home -> PaymentHistory makes Home the correct back destination.
+    navigation.reset({
+      index: 1,
+      routes: [{ name: 'MainTabs' }, { name: 'PaymentHistory' }],
+    });
   }, [navigation]);
 
   const onRetry = useCallback(() => {

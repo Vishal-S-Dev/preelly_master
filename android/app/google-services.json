@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "747710796207",
+    "project_id": "preellyapp-c63f4",
+    "storage_bucket": "preellyapp-c63f4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:747710796207:android:2feefc5fb35b85b8cc1f5a",
+        "android_client_info": {
+          "package_name": "com.preelly.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6LYkbh9xWh184yJq5kryi09IHW39qTOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

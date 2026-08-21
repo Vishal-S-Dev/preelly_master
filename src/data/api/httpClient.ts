@@ -39,6 +39,8 @@ const AUTH_PUBLIC_PATHS = [
   API_ENDPOINTS.SEND_OTP,
   API_ENDPOINTS.VERIFY_OTP,
   API_ENDPOINTS.LOGIN,
+  API_ENDPOINTS.GOOGLE_LOGIN,
+  API_ENDPOINTS.APPLE_LOGIN,
 ] as const;
 
 function isPublicAuthRequest(url?: string): boolean {

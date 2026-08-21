@@ -123,3 +123,7 @@ dependencies {
 }
 
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+
+// Requires android/app/google-services.json (MANUAL STEP — see docs/PUSH_NOTIFICATIONS.md).
+// This MUST stay the last line in this file per Google's own Gradle plugin requirements.
+apply plugin: "com.google.gms.google-services"

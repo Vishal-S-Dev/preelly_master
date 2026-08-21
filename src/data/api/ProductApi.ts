@@ -206,6 +206,20 @@ export const ProductApi = {
     );
   },
 
+  /**
+   * Backend: PUT /api/products/:id { status: 'sold' } — same endpoint/body web's
+   * ProfilePostModal/DashboardListingsPage use (there is no dedicated `/sold` sub-route).
+   * Owner-only; not reversible by the owner on web either (only admins can revert), so no
+   * "unmark as sold" is implemented here to match.
+   */
+  async markAsSold(productId: string): Promise<void> {
+    await httpClient.put(
+      `${API_ENDPOINTS.PRODUCTS}/${productId}`,
+      { status: 'sold' },
+      { baseURL: PRODUCTS_BASE_URL },
+    );
+  },
+
   /** Backend: DELETE /api/products/:id — permanently delete an ad. */
   async deleteProduct(productId: string): Promise<void> {
     await httpClient.delete(`${API_ENDPOINTS.PRODUCTS}/${productId}`, {

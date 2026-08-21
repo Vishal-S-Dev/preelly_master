@@ -92,3 +92,23 @@ export interface UserFollowStatusResponseDTO {
   /** True when this user has blocked the current viewer. */
   blockedMe?: boolean;
 }
+
+/** A single entry from GET /api/user/:id/followers or /following. */
+export interface UserConnectionDTO {
+  _id?: string;
+  id?: string;
+  name?: string;
+  avatar?: string | null;
+  email?: string;
+  rating?: number;
+  isVerified?: boolean;
+  followedAt?: string;
+  /** Whether the requesting (viewer) user follows this person — omitted for anonymous requests. */
+  isFollowing?: boolean;
+}
+
+export interface UserConnectionListResponseDTO {
+  followers?: UserConnectionDTO[];
+  following?: UserConnectionDTO[];
+  count?: number;
+}

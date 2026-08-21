@@ -2,6 +2,7 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import FirebaseCore
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -14,6 +15,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    // @react-native-firebase/app's automatic Objective-C `+load` configuration doesn't reliably
+    // fire with this RN template's Swift `@main` / RCTReactNativeFactory app delegate — Firebase
+    // itself logs "The default Firebase app has not yet been configured" without this explicit
+    // call, which then makes every JS-side getMessaging()/getApp() call throw.
+    FirebaseApp.configure()
+
     // Initialize Google Maps SDK before any MapView mounts (required for provider=google on iOS).
     PreellyConfigureGoogleMaps()
 

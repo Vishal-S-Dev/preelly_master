@@ -3,6 +3,7 @@ import { FollowersApi } from '../../data/api/FollowersApi';
 import { ShareRecipient } from '../../types/share.types';
 
 const normalize = (value: string) => value.trim().toLowerCase();
+const MIN_QUERY_LENGTH = 3;
 
 const mergeRecipients = (
   followers: ShareRecipient[],
@@ -68,7 +69,10 @@ export const useShareFollowers = (userId: string | null, enabled: boolean) => {
 
   const filteredFollowers = useMemo(() => {
     const q = normalize(debouncedQuery);
-    if (!q) {
+    // Instagram-style: below the 3-char threshold just show the full list (browsing view) rather
+    // than partially filtering on 1-2 characters — matches the remote any-user search's own
+    // minimum, so the whole sheet's search behavior feels consistent as you type.
+    if (q.length < MIN_QUERY_LENGTH) {
       return followers;
     }
     return followers.filter(item => {

@@ -144,6 +144,14 @@ export const useUserFeedData = ({
     );
   }, []);
 
+  const applySoldResult = useCallback((productId: string) => {
+    setProducts(prev =>
+      prev.map(product =>
+        product.id === productId ? { ...product, isSold: true } : product,
+      ),
+    );
+  }, []);
+
   const removeProduct = useCallback((productId: string) => {
     setProducts(prev => {
       const next = prev.filter(product => product.id !== productId);
@@ -171,6 +179,7 @@ export const useUserFeedData = ({
     applyLikeResult,
     applySaveResult,
     applyViewedResult,
+    applySoldResult,
     removeProduct,
   };
 };

@@ -9,8 +9,19 @@ end
 node_require('react-native/scripts/react_native_pods.rb')
 node_require('react-native-permissions/scripts/setup.rb')
 
+# @react-native-firebase/* resolves Firebase via Swift Package Manager by default, which
+# collides at link time under this project's static pod linkage (no use_frameworks! is set).
+# Opt out of SPM so Firebase resolves through classic CocoaPods instead — avoids switching the
+# whole project to dynamic frameworks just for this.
+$RNFirebaseDisableSPM = true
+
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
+
+# Required for Firebase's Swift pods (FirebaseCoreInternal -> GoogleUtilities) to build as static
+# libraries — standard requirement for any CocoaPods-based Firebase iOS integration that doesn't
+# use `use_frameworks!`.
+use_modular_headers!
 
 setup_permissions([
   'Camera',
@@ -48,5 +59,16 @@ target 'Preelly' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # `use_modular_headers!` (added above for Firebase's Swift pods) makes several
+    # Firebase/GoogleSignIn targets modular; those targets include some non-modular headers
+    # internally, which Xcode otherwise treats as a hard build error
+    # (CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES defaults to NO). Standard fix for
+    # this well-documented Firebase+CocoaPods conflict.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      end
+    end
   end
 end

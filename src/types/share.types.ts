@@ -17,6 +17,11 @@ export interface ShareRecipient {
   username: string;
   avatarUrl?: string;
   isOnline?: boolean;
+  /** 'group' = an existing group chat (share posts directly into it); default 'user'. */
+  kind?: 'user' | 'group';
+  memberCount?: number;
+  /** Group only: up to 2 other members' avatars, for the Instagram-style overlapping-circles icon. */
+  groupAvatarUrls?: string[];
 }
 
 export interface FollowersListResponse {
