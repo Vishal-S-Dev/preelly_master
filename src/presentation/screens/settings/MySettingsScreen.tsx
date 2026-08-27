@@ -45,7 +45,7 @@ export const MySettingsScreen: React.FC<Props> = ({ navigation }) => {
           navigation.navigate('PaymentHistory');
           break;
         case 'cart':
-          navigation.navigate('CartCheckout');
+          navigation.navigate('MainTabs', { screen: 'Chat', params: { initialFilter: 'Cart' } });
           break;
         case 'drafts':
           navigation.navigate('MyDrafts');

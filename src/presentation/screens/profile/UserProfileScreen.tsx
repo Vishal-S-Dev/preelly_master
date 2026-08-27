@@ -25,6 +25,7 @@ import { ProfileMoreBottomSheet } from '../../components/profile/ProfileMoreBott
 import { ReportUserBottomSheet } from '../../components/profile/ReportUserBottomSheet';
 import { useProfileStyles } from '../../hooks/useProfileStyles';
 import { useOtherUserProfileData } from '../../hooks/useOtherUserProfileData';
+import { useProductChatInit } from '../../hooks/useProductChatInit';
 import { useAppSelector } from '../../hooks/useRedux';
 import { userSafetyService } from '../../../services/userSafety.service';
 import { ProfileProductGridItem } from '../../../types/profile.types';
@@ -77,6 +78,8 @@ export const UserProfileScreen: React.FC = () => {
     isOwnProfile,
   } = useOtherUserProfileData(userId);
 
+  const { openChat, openingChat } = useProductChatInit();
+
   const moreSheetRef = useRef<BottomSheetModal>(null);
   const reportSheetRef = useRef<BottomSheetModal>(null);
 
@@ -116,8 +119,9 @@ export const UserProfileScreen: React.FC = () => {
       Alert.alert('Unavailable', 'Unblock this user to send them a message.');
       return;
     }
-    Alert.alert('Message', 'Chat will open here.');
-  }, [followState.status]);
+    const productId = items[0]?.id ?? reelProducts[0]?.id;
+    void openChat(productId, userId);
+  }, [followState.status, items, openChat, reelProducts, userId]);
 
   const openFollowers = useCallback(() => {
     navigation.navigate('UserConnections', { userId, mode: 'followers', userName: profile.name });
@@ -253,6 +257,7 @@ export const UserProfileScreen: React.FC = () => {
               followState={followState}
               followLoading={followLoading}
               followStatusLoading={followStatusLoading}
+              messageLoading={openingChat}
               onFollow={toggleFollow}
               onMessage={onMessageUser}
               onMore={openMoreMenu}
@@ -272,6 +277,7 @@ export const UserProfileScreen: React.FC = () => {
       loading,
       navigation,
       onMessageUser,
+      openingChat,
       onShareProfile,
       openFollowers,
       openFollowing,

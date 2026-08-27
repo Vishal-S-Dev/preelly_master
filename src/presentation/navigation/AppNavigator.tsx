@@ -1,5 +1,5 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -14,6 +14,7 @@ import {
   CreateScreen,
   ProfileScreen,
 } from '../screens/main/PlaceholderScreens';
+import { ExpandableCapsuleTabBar } from '../components/navigation/ExpandableCapsuleTabBar';
 import { ChatNavigator } from './ChatNavigator';
 import { ChatThreadScreen } from '../screens/chat/ChatThreadScreen';
 import { ProductDetailScreen } from '../screens/product/ProductDetailScreen';
@@ -81,6 +82,8 @@ const getTabIcon =
     />
   );
 
+const renderCapsuleTabBar = (props: BottomTabBarProps) => <ExpandableCapsuleTabBar {...props} />;
+
 const MainTabs: React.FC = () => {
   const theme = useAppTheme();
   const authUser = useAppSelector(state => state.auth.user);
@@ -90,6 +93,12 @@ const MainTabs: React.FC = () => {
 
   return (
     <Tab.Navigator
+      // ExpandableCapsuleTabBar fully replaces the default bar's rendering (floating overlay
+      // instead of a permanent full-width bar), so it reads `tabBarIcon` off each route's
+      // `screenOptions` below but ignores `tabBarStyle`/`tabBarActiveTintColor`/etc. — those are
+      // left in place as the config the default bar would use if the custom `tabBar` prop were
+      // ever removed.
+      tabBar={renderCapsuleTabBar}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: true,

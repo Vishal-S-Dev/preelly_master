@@ -79,6 +79,52 @@ export interface PickDropInfo {
   fixCost: number;
   deliveryCost: number;
   total: number;
+  zoneName?: string;
+  zoneCode?: string;
+  distanceKm?: number;
+}
+
+export interface DeliveryPriceRequest {
+  productId: string;
+  dropLatitude: number;
+  dropLongitude: number;
+  dropAddress: string;
+  placeId?: string;
+}
+
+export interface DeliveryPriceZone {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface DeliveryPriceDistance {
+  meters: number;
+  kilometers: number;
+  durationSeconds: number;
+  provider: string;
+}
+
+export interface DeliveryPricePricing {
+  pricingType: string;
+  currency: string;
+  baseFare: number;
+  basePrice: number;
+  extraKm: number;
+  extraKmPrice: number;
+  minPrice: number;
+  maxPrice: number;
+  totalPrice: number;
+  appliedSlab: unknown;
+}
+
+export interface DeliveryPriceCalculation {
+  zone: DeliveryPriceZone;
+  pickup: { latitude: number; longitude: number; address: string; source: string };
+  drop: { latitude: number; longitude: number; address: string; placeId?: string };
+  distance: DeliveryPriceDistance;
+  pricing: DeliveryPricePricing;
+  calculatedAt: string;
 }
 
 export interface PreellyPayInfo {

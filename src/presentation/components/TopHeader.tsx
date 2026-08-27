@@ -1,9 +1,13 @@
 import React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { FeedType } from '../../data/api/feedApi';
 import BGIcon from '../../../assets/icons/glass_circle_bg.svg';
+
+/** Clearance above the status bar / notch / Dynamic Island, on top of the safe-area inset. */
+const HEADER_TOP_GAP = 10;
 
 interface Props {
   muted: boolean;
@@ -21,10 +25,11 @@ export const TopHeader: React.FC<Props> = ({
   onPressSearch,
 }) => {
   const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
   const isTrending = selectedFeedType === 'trending';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { top: insets.top + HEADER_TOP_GAP }]}>
       <Pressable style={styles.circleButton} onPress={onToggleMute}>
         <Icon
           name={muted ? 'volume-off' : 'volume-high'}
@@ -69,7 +74,6 @@ export const TopHeader: React.FC<Props> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 50,
     left: 16,
     right: 16,
     flexDirection: 'row',

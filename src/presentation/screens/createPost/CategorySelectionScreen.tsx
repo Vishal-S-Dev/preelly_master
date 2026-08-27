@@ -5,6 +5,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useCreatePostStore } from '../../../store/createPostStore';
 import { Category } from '../../../types/category.types';
 import { CreatePostStackParamList } from '../../../types/createPost.types';
+import { categoryHasChildren } from '../../../utils/categoryHasChildren';
 import { CategoryGridCard } from '../../components/createPost/CategoryGridCard';
 import { CreatePostHeader } from '../../components/createPost/StepIndicator';
 import { useCategories } from '../../hooks/useCategories';
@@ -43,9 +44,13 @@ export const CategorySelectionScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const onSelect = useCallback(
-    (id: string, name: string) => {
-      setCategory(id, name);
-      navigation.navigate('CreatePostSubcategory', { parentId: id, title: name });
+    (item: Category) => {
+      setCategory(item._id, item.name);
+      if (!categoryHasChildren(item)) {
+        navigation.navigate('CreatePostMediaStep');
+        return;
+      }
+      navigation.navigate('CreatePostSubcategory', { parentId: item._id, title: item.name });
     },
     [navigation, setCategory],
   );
@@ -90,7 +95,7 @@ export const CategorySelectionScreen: React.FC<Props> = ({ navigation }) => {
                   category={item}
                   index={index}
                   selected={categoryId === item._id}
-                  onPress={() => onSelect(item._id, item.name)}
+                  onPress={() => onSelect(item)}
                   styles={styles}
                 />
               </Animated.View>

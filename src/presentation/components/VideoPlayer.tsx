@@ -1,7 +1,6 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, StyleSheet, View } from 'react-native';
 import Video, { VideoRef } from 'react-native-video';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useIsReelPlaybackAllowed } from '../context/ReelPlaybackContext';
 import { REEL_IOS_VIDEO_AUDIO_PROPS } from '../utils/reelVideoAudioProps';
@@ -13,7 +12,6 @@ interface Props {
   isActive: boolean;
   muted: boolean;
   isPaused: boolean;
-  bottomInset?: number;
   /** Fired once when watched progress reaches the threshold (default 70%). */
   onWatchThresholdReached?: () => void;
   /** Disable threshold callback (e.g. already viewed). */
@@ -27,7 +25,6 @@ const VideoPlayerComponent: React.FC<Props> = ({
   isActive,
   muted,
   isPaused,
-  bottomInset = 0,
   onWatchThresholdReached,
   watchTrackingEnabled = false,
   watchThreshold = PRODUCT_VIEW_WATCH_THRESHOLD,
@@ -176,7 +173,7 @@ const VideoPlayerComponent: React.FC<Props> = ({
   }
 
   return (
-    <View style={[styles.media, { marginBottom: bottomInset }]}>
+    <View style={styles.media}>
       <Video
         ref={videoRef}
         source={{ uri: videoUrl }}
@@ -213,21 +210,17 @@ const arePropsEqual = (prev: Props, next: Props): boolean =>
   prev.isActive === next.isActive &&
   prev.muted === next.muted &&
   prev.isPaused === next.isPaused &&
-  prev.bottomInset === next.bottomInset &&
   prev.watchTrackingEnabled === next.watchTrackingEnabled &&
   prev.watchThreshold === next.watchThreshold &&
   prev.onWatchThresholdReached === next.onWatchThresholdReached;
 
-export const VideoPlayer = memo((props: Omit<Props, 'bottomInset'>) => {
-  const tabBarHeight = useBottomTabBarHeight();
-  return <VideoPlayerComponent {...props} bottomInset={tabBarHeight} />;
-}, arePropsEqual);
+// The bottom nav is a floating overlay (ExpandableCapsuleTabBar) that reserves no layout space,
+// so the video is always full-bleed — VideoPlayer and VideoPlayerFullscreen are equivalent.
+export const VideoPlayer = memo(VideoPlayerComponent, arePropsEqual);
 
 VideoPlayer.displayName = 'VideoPlayer';
 
-export const VideoPlayerFullscreen = memo((props: Omit<Props, 'bottomInset'>) => {
-  return <VideoPlayerComponent {...props} bottomInset={0} />;
-}, arePropsEqual);
+export const VideoPlayerFullscreen = memo(VideoPlayerComponent, arePropsEqual);
 
 VideoPlayerFullscreen.displayName = 'VideoPlayerFullscreen';
 

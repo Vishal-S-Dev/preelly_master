@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -35,6 +36,24 @@ interface Props {
   ownerMode?: boolean;
   onOwnerMenu?: (product: Product) => void;
 }
+
+// Max gap between two taps for them to count as a double tap. Disambiguation is done in JS
+// (see `handleTapEnd` below) rather than via `Gesture.Exclusive`'s native require-to-fail
+// relationship: on-device testing showed a lone tap's `singleTap` gesture never resolves at
+// all when composed that way — `doubleTap`'s native recognizer does not reliably transition
+// to FAILED after `maxDelay` elapses with no second tap, so `singleTap` (which depends on
+// that failure) just hangs and its `onEnd` never fires. A plain JS counter/timer sidesteps
+// that native reliability gap entirely.
+const DOUBLE_TAP_WINDOW_MS = 250;
+
+// Once a double tap has fired, ignore a trailing third tap's solo-tap timeout so a rapid
+// triple tap can't sneak in an unwanted play/pause toggle right after the like.
+const DOUBLE_TAP_GUARD_MS = 400;
+
+// Base clearance for the product-info block above the floating capsule nav (collapsed circle
+// ~56pt + its own bottom margin) — the device's bottom safe-area inset (home indicator /
+// gesture-nav bar) is added on top of this per-device, not baked into the constant itself.
+const FLOATING_NAV_CLEARANCE = 70;
 
 const areReelCardPropsEqual = (prev: Props, next: Props): boolean =>
   prev.product.id === next.product.id &&
@@ -72,6 +91,7 @@ export const ReelCard: React.FC<Props> = React.memo(
     onOwnerMenu,
   }) => {
     const dispatch = useAppDispatch();
+    const insets = useSafeAreaInsets();
     const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
     const isGuest = useAppSelector(state => state.auth.isGuest);
     const heartScale = useSharedValue(0);
@@ -109,54 +129,97 @@ export const ReelCard: React.FC<Props> = React.memo(
     // objects below to be rebuilt — keeps the native tap handlers alive across redux-driven
     // re-renders (pause/like state, active index, etc.) instead of tearing them down and
     // reinstalling them, which is what was dropping taps intermittently on both platforms.
-    const latestRef = useRef({ onLike, onTogglePause, productId: product.id });
-    latestRef.current = { onLike, onTogglePause, productId: product.id };
+    const latestRef = useRef({ onLike, onTogglePause, productId: product.id, liked: product.liked });
+    latestRef.current = { onLike, onTogglePause, productId: product.id, liked: product.liked };
+
+    // Timestamp of the last recognized double tap, used only by the solo-tap timeout's
+    // stray-tap guard below — not a debounce for the like action itself.
+    const lastDoubleTapAtRef = useRef(0);
+
+    // JS-side single/double tap disambiguation state (see `DOUBLE_TAP_WINDOW_MS` above for why
+    // this isn't done via native gesture composition). `pendingTapTimerRef` holds the timer
+    // started after the first tap of a possible pair; a second tap arriving before it fires
+    // cancels it and counts as a double tap, otherwise it fires as a single tap.
+    const pendingTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(
+      () => () => {
+        if (pendingTapTimerRef.current) {
+          clearTimeout(pendingTapTimerRef.current);
+        }
+      },
+      [],
+    );
 
     const triggerLike = useCallback(() => {
-      latestRef.current.onLike(latestRef.current.productId);
-    }, []);
+      lastDoubleTapAtRef.current = Date.now();
+
+      // Instagram-style double tap: always likes, never unlikes. Unliking stays the
+      // dedicated Like button's job (`ActionButtons`). Checking (and immediately flipping)
+      // the ref — rather than waiting for the next render's `product.liked` prop — is what
+      // stops a rapid second/third double tap from re-dispatching the like request before
+      // the optimistic Redux update has flowed back down as a new prop.
+      if (!latestRef.current.liked) {
+        latestRef.current.liked = true;
+        latestRef.current.onLike(latestRef.current.productId);
+      }
+
+      heartScale.value = 0.2;
+      heartOpacity.value = 1;
+      heartScale.value = withSpring(1.1, undefined, () => {
+        heartScale.value = withTiming(0.85, { duration: 120 });
+        heartOpacity.value = withTiming(0, { duration: 280 });
+      });
+    }, [heartOpacity, heartScale]);
 
     const triggerTogglePause = useCallback(() => {
+      if (Date.now() - lastDoubleTapAtRef.current < DOUBLE_TAP_GUARD_MS) {
+        return;
+      }
       latestRef.current.onTogglePause(latestRef.current.productId);
     }, []);
 
-    const doubleTap = useMemo(
-      () =>
-        Gesture.Tap()
-          .numberOfTaps(2)
-          // Explicit, platform-identical window for the second tap (native defaults differ
-          // between Android and iOS) so single/double-tap disambiguation is consistent.
-          .maxDelay(250)
-          .onEnd(() => {
-            runOnJS(triggerLike)();
-            heartScale.value = 0.2;
-            heartOpacity.value = 1;
-            heartScale.value = withSpring(1.1, undefined, () => {
-              heartScale.value = withTiming(0.85, { duration: 120 });
-              heartOpacity.value = withTiming(0, { duration: 280 });
-            });
-          }),
-      [heartOpacity, heartScale, triggerLike],
-    );
+    // Dev-only gesture instrumentation for manual on-device QA. Guarded by `__DEV__` so it
+    // never runs (or costs anything) in production builds.
+    const logTapDetected = useCallback((kind: 'single' | 'double') => {
+      if (__DEV__) {
+        console.log(`[Gesture][${kind}Tap] detected productId=${latestRef.current.productId}`);
+      }
+    }, []);
 
-    const singleTap = useMemo(
+    const handleTapEnd = useCallback(() => {
+      if (pendingTapTimerRef.current) {
+        // Second tap arrived inside the window — it's a double tap.
+        clearTimeout(pendingTapTimerRef.current);
+        pendingTapTimerRef.current = null;
+        logTapDetected('double');
+        triggerLike();
+        return;
+      }
+
+      pendingTapTimerRef.current = setTimeout(() => {
+        pendingTapTimerRef.current = null;
+        logTapDetected('single');
+        triggerTogglePause();
+      }, DOUBLE_TAP_WINDOW_MS);
+    }, [logTapDetected, triggerLike, triggerTogglePause]);
+
+    const tapGesture = useMemo(
       () =>
         Gesture.Tap()
-          .numberOfTaps(1)
           .maxDuration(250)
-          .onEnd(() => runOnJS(triggerTogglePause)()),
-      [triggerTogglePause],
-    );
-
-    const combinedGesture = useMemo(
-      () => Gesture.Exclusive(doubleTap, singleTap),
-      [doubleTap, singleTap],
+          .onEnd((_event, success) => {
+            if (success) {
+              runOnJS(handleTapEnd)();
+            }
+          }),
+      [handleTapEnd],
     );
 
     const Player = fullscreenVideo ? VideoPlayerFullscreen : VideoPlayer;
 
     return (
-      <GestureDetector gesture={combinedGesture}>
+      <GestureDetector gesture={tapGesture}>
         <View style={styles.container}>
           <Player
             videoUrl={product.videoUrl}
@@ -208,7 +271,7 @@ export const ReelCard: React.FC<Props> = React.memo(
             end={{ x: 0.5, y: 0 }}
             style={styles.bottomShadow}
           />
-          <View style={styles.bottom}>
+          <View style={[styles.bottom, { paddingBottom: FLOATING_NAV_CLEARANCE + insets.bottom }]}>
             <View style={styles.row}>
               <Pressable
                 style={styles.titlePressable}
@@ -233,6 +296,7 @@ export const ReelCard: React.FC<Props> = React.memo(
                 <Text style={styles.dot}>•</Text>
                 <Text style={styles.description}>American Specs</Text>*/}
                 <Pressable
+                  style={styles.locationPressable}
                   onPress={() => onOpenDetail(product)}
                   accessibilityRole="button"
                   accessibilityLabel={`View details for ${product.title}`}>
@@ -374,7 +438,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   bottom: {
-    paddingBottom: 85,
+    // paddingBottom is supplied inline (FLOATING_NAV_CLEARANCE + insets.bottom above).
     paddingHorizontal: 16,
   },
   bottomShadow: {
@@ -442,5 +506,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  // `Pressable` defaults to flexShrink: 0, so without this it refused to shrink below the
+  // location text's natural (unwrapped) width — pushing the Available/Sold badge off-row
+  // instead of letting `numberOfLines`/`ellipsizeMode` on the Text below actually truncate it.
+  locationPressable: {
+    flexShrink: 1,
   },
 });

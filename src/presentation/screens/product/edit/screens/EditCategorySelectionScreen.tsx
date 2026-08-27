@@ -3,7 +3,9 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useEditProductStore } from '../../../../../store/editProductStore';
+import { Category } from '../../../../../types/category.types';
 import { EditProductStackParamList } from '../../../../../types/editProduct.types';
+import { categoryHasChildren } from '../../../../../utils/categoryHasChildren';
 import { CategoryGridCard } from '../../../../components/createPost/CategoryGridCard';
 import { CreatePostHeader } from '../../../../components/createPost/StepIndicator';
 import { useCategories } from '../../../../hooks/useCategories';
@@ -17,8 +19,12 @@ export const EditCategorySelectionScreen: React.FC<Props> = ({ navigation }) => 
   const { data: categories = [], isLoading, isError, refetch, isFetching } = useCategories();
 
   const onSelect = useCallback(
-    (id: string, name: string) => {
-      setCategory(id, name);
+    (item: Category) => {
+      setCategory(item._id, item.name);
+      if (!categoryHasChildren(item)) {
+        navigation.navigate('EditProductMediaStep');
+        return;
+      }
       navigation.navigate('EditProductSubcategory');
     },
     [navigation, setCategory],
@@ -64,7 +70,7 @@ export const EditCategorySelectionScreen: React.FC<Props> = ({ navigation }) => 
                   category={item}
                   index={index}
                   selected={categoryId === item._id}
-                  onPress={() => onSelect(item._id, item.name)}
+                  onPress={() => onSelect(item)}
                   styles={styles}
                 />
               </Animated.View>

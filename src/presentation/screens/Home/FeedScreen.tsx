@@ -180,7 +180,11 @@ const FeedPage: React.FC<FeedPageProps> = ({
         windowSize={3}
         initialNumToRender={3}
         maxToRenderPerBatch={2}
-        removeClippedSubviews
+        // NOT removeClippedSubviews: detaching an off-screen reel from the native view tree
+        // (pre-mounted here since it's within `windowSize`) and reattaching it once scrolled
+        // into view orphans react-native-gesture-handler's native tap recognizer on that view —
+        // taps on the reel you just swiped to silently stop registering. windowSize is small
+        // enough that the memory tradeoff isn't worth the broken gesture.
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
         onEndReached={onEndReached}
@@ -239,6 +243,16 @@ export const FeedScreen: React.FC = () => {
 
   const gestureStartX = useSharedValue(0);
 
+  // Dev-only gesture instrumentation for manual on-device QA. Guarded by `__DEV__` so it
+  // never runs (or costs anything) in production builds.
+  const logSwipeGestureDetected = useCallback((velocityX: number, nextType: FeedType) => {
+    if (__DEV__) {
+      console.log(
+        `[Gesture][swipe] end velocityX=${velocityX.toFixed(0)} nextFeedType=${nextType}`,
+      );
+    }
+  }, []);
+
   const feedSwipeGesture = useMemo(
     () =>
       Gesture.Pan()
@@ -265,9 +279,10 @@ export const FeedScreen: React.FC = () => {
           }
           translateX.value = withTiming(target, { duration: SLIDE_DURATION, easing: SLIDE_EASING });
           const nextType: FeedType = target === 0 ? 'following' : 'trending';
+          runOnJS(logSwipeGestureDetected)(velocityX, nextType);
           runOnJS(applySelectedFeedType)(nextType);
         }),
-    [applySelectedFeedType, gestureStartX, translateX],
+    [applySelectedFeedType, gestureStartX, translateX, logSwipeGestureDetected],
   );
 
   useEffect(() => {
@@ -363,9 +378,12 @@ export const FeedScreen: React.FC = () => {
           onDismiss={handleQuickViewDismiss}
           onLike={id => dispatch(likeProduct(id))}
           onSave={id => dispatch(saveProduct(id))}
+          onComment={handleComment}
+          onShare={handleShare}
           onOpenDetail={handleOpenDetail}
           onChat={handleQuickViewChat}
           chatLoading={openingChat}
+          navigation={navigation}
         />
 
         <CommentsBottomSheet

@@ -75,7 +75,8 @@ export const validateCardForm = (options: {
     }
   }
 
-  if (!isEditing || cvv) {
+  // CVV is optional in both add and edit flows — only validated when the user provides one.
+  if (cvv) {
     const amex = brand === 'American Express' || /^3[47]/.test(digits);
     const cvvInvalid = !/^\d{3,4}$/.test(cvv) || (amex ? cvv.length !== 4 : cvv.length !== 3);
     if (cvvInvalid) {

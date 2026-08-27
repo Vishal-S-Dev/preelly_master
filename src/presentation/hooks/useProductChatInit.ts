@@ -76,5 +76,5 @@ export const useProductChatInit = () => {
     [openChat],
   );
 
-  return { openProductChat, openProductChatFromListing, openingChat };
+  return { openChat, openProductChat, openProductChatFromListing, openingChat };
 };

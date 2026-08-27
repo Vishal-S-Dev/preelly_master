@@ -35,6 +35,24 @@ const maskAuth = (value: unknown) => {
   return `${value.slice(0, 10)}...${value.slice(-6)}`;
 };
 
+// Payment-card fields must never reach the console in plaintext (e.g. the saved-card add/edit
+// request body carries the raw card number and expiry). Redacted case-insensitively since
+// request payloads across endpoints don't share one casing convention.
+const CARD_SENSITIVE_KEYS = new Set(['cardnumber', 'card_number', 'pan', 'cvv', 'cvc', 'cvv2']);
+
+const redactCardFields = (data: unknown): unknown => {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+  const clone = { ...(data as Record<string, unknown>) };
+  Object.keys(clone).forEach(key => {
+    if (CARD_SENSITIVE_KEYS.has(key.toLowerCase()) && typeof clone[key] === 'string') {
+      clone[key] = '***REDACTED***';
+    }
+  });
+  return clone;
+};
+
 const AUTH_PUBLIC_PATHS = [
   API_ENDPOINTS.SEND_OTP,
   API_ENDPOINTS.VERIFY_OTP,
@@ -73,7 +91,7 @@ httpClient.interceptors.request.use(
       `[HTTP:REQUEST] ${String(config.method).toUpperCase()} ${config.baseURL ?? ''}${config.url ?? ''}`,
       `\nheaders=${safeSerialize({ ...config.headers, Authorization: authHeader })}`,
       `\nparams=${safeSerialize(config.params)}`,
-      `\ndata=${safeSerialize(redactCcavenueFields(config.data))}`,
+      `\ndata=${safeSerialize(redactCardFields(redactCcavenueFields(config.data)))}`,
     );
     return config;
   },
@@ -114,7 +132,7 @@ httpClient.interceptors.response.use(
       `[HTTP:ERROR] ${status ?? 'NO_STATUS'} ${String(originalRequest?.method).toUpperCase()} ${originalRequest?.baseURL ?? ''}${originalRequest?.url ?? ''}`,
       `\nerror=${error.message}`,
       `\nresponse=${safeSerialize(error.response?.data)}`,
-      `\nrequest-data=${safeSerialize(redactCcavenueFields(originalRequest?.data))}`,
+      `\nrequest-data=${safeSerialize(redactCardFields(redactCcavenueFields(originalRequest?.data)))}`,
     );
 
     if (

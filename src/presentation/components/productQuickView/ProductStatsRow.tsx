@@ -29,6 +29,8 @@ interface Props {
   isSaved: boolean;
   onLike: () => void;
   onSave: () => void;
+  onComment?: () => void;
+  onShare?: () => void;
 }
 
 const StatPill: React.FC<{
@@ -75,8 +77,9 @@ export const ProductStatsRow: React.FC<Props> = ({
   isSaved,
   onLike,
   onSave,
+  onComment,
+  onShare,
 }) => {
-
   const iconColor = QV_COLORS.statText; // '#374151'
   const bookmarkScale = useSharedValue(1);
   const bookmarkStyle = useAnimatedStyle(() => ({
@@ -99,10 +102,12 @@ export const ProductStatsRow: React.FC<Props> = ({
       <StatPill
         icon={<CommentIcon width={20} height={20} />}
         label={String(commentsCount)}
+        onPress={onComment}
       />
       <StatPill
         icon={<SendIcon width={20} height={20} />}
         label={String(sharesCount)}
+        onPress={onShare}
       />
       <StatPill
         icon={<ViewIcon width={20} height={20} />}

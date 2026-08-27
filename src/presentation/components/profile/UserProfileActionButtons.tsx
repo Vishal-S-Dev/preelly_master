@@ -13,6 +13,7 @@ interface Props {
   followState: ProfileFollowState;
   followLoading?: boolean;
   followStatusLoading?: boolean;
+  messageLoading?: boolean;
   onFollow: () => void;
   onMessage: () => void;
   onMore: () => void;
@@ -76,7 +77,7 @@ const PillButton: React.FC<{
 };
 
 export const UserProfileActionButtons = memo<Props>(
-  ({ followState, followLoading, followStatusLoading, onFollow, onMessage, onMore }) => {
+  ({ followState, followLoading, followStatusLoading, messageLoading, onFollow, onMessage, onMore }) => {
     const { styles, colors } = useProfileStyles();
     const followLabel = getFollowLabel(followState);
     const isFollowing = followState.following || followState.pending;
@@ -94,7 +95,13 @@ export const UserProfileActionButtons = memo<Props>(
           styles={styles}
           colors={colors}
         />
-        <PillButton label="Message" onPress={onMessage} styles={styles} colors={colors} />
+        <PillButton
+          label="Message"
+          onPress={onMessage}
+          loading={messageLoading}
+          styles={styles}
+          colors={colors}
+        />
         <Pressable onPress={onMore} style={styles.moreBtn} hitSlop={10}>
           <Icon name="dots-vertical" size={20} color={colors.actionText} />
         </Pressable>

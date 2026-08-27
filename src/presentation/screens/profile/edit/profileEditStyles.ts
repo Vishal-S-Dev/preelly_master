@@ -18,6 +18,12 @@ export const PE_COLORS = {
 
 export const peStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: PE_COLORS.bg },
+  flex1: { flex: 1 },
+  cardFormScroll: {
+    paddingHorizontal: wp('4.5%'),
+    paddingTop: hp('2%'),
+    paddingBottom: hp('14%'),
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -27,7 +33,7 @@ export const peStyles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: PE_COLORS.border,
   },
-  headerTitle: { fontSize: wp('4.8%'), fontWeight: '800', color: PE_COLORS.text },
+  headerTitle: { fontSize: wp('4.8%'), fontWeight: '800', color: PE_COLORS.text,marginTop: Platform.OS === 'ios' ? hp('1%') : 0 },
   headerBtn: { width: wp('10%'), height: wp('10%'), alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingHorizontal: wp('4.5%'), paddingBottom: hp('14%') },
   verifiedCard: {
@@ -77,7 +83,7 @@ export const peStyles = StyleSheet.create({
   },
   inputShellFocused: { borderColor: PE_COLORS.primary, backgroundColor: '#fff' },
   input: { flex: 1, fontSize: wp('3.8%'), color: PE_COLORS.text, paddingVertical: Platform.OS === 'ios' ? 14 : 10 },
-  errorText: { color: PE_COLORS.error, fontSize: wp('3.2%'), marginTop: 4 },
+  errorText: { color: PE_COLORS.error, fontSize: wp('3.2%'), marginTop: 0, marginBottom: hp('2%') },
   radioRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: hp('1.2%'), gap: 12 },
   radioOuter: {
     width: 22,

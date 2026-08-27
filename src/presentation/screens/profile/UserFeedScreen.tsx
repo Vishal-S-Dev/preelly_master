@@ -395,7 +395,8 @@ export const UserFeedScreen: React.FC = () => {
           windowSize={3}
           initialNumToRender={3}
           maxToRenderPerBatch={2}
-          removeClippedSubviews
+          // NOT removeClippedSubviews: see FeedScreen.tsx — orphans RNGH's tap recognizer on
+          // the reel you just swiped to.
           viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
           onEndReached={onLoadMore}
           onEndReachedThreshold={0.7}
@@ -411,11 +412,14 @@ export const UserFeedScreen: React.FC = () => {
           onDismiss={handleQuickViewDismiss}
           onLike={handleLike}
           onSave={handleSave}
+          onComment={handleComment}
+          onShare={handleShare}
           onOpenDetail={handleOpenDetail}
           onChat={
             quickViewProduct && isOwnProduct(quickViewProduct) ? undefined : handleQuickViewChat
           }
           chatLoading={openingChat}
+          navigation={navigation}
         />
 
         <CommentsBottomSheet

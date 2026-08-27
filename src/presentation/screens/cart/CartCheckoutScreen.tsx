@@ -221,6 +221,7 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
     });
   }, [item?.preellyInspection, preellyDeclinedParam]);
 
+  const cartProductId = useMemo(() => resolveCartProductId(item), [item]);
   const product = useMemo(() => resolveCartProduct(item?.productId ?? null), [item?.productId]);
   const listingPrice = useMemo(
     () => resolveListingPrice(item, product),
@@ -736,6 +737,7 @@ export const CartCheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
       <PickDropModal
         visible={pickDropModalOpen}
         fixCost={pickDropFixCost}
+        productId={cartProductId}
         initialValue={pickDropInfo}
         onClose={() => setPickDropModalOpen(false)}
         onConfirm={info => {

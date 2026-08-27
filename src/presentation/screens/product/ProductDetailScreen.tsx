@@ -257,6 +257,9 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
               onViewAll={() =>
                 Alert.alert('Seller', 'Seller listings will open here.')
               }
+              onPressSeller={(sellerId) =>
+                navigation.navigate('OtherProfile', { userId: sellerId })
+              }
             />
           </View>
 

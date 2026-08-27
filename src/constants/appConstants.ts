@@ -66,6 +66,7 @@ export const API_ENDPOINTS = {
   CART_PREELLY_NOT_INTERESTED: '/api/cart/preelly-not-interested',
   CHECKOUT_SERVICES: '/api/v1/web/checkout-services',
   BUYER_COUPON_VALIDATE: '/api/buyer-coupon/validate',
+  DELIVERY_CALCULATE_PRICE: '/api/v1/web/delivery/calculate-price',
 } as const;
 
 export const PAGINATION = {

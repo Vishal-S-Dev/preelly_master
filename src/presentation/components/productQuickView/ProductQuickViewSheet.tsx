@@ -3,20 +3,19 @@ import { Platform, StyleSheet, View } from 'react-native';
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
-  BottomSheetScrollView,
   type BottomSheetBackdropProps,
   BottomSheetFooterProps,
   BottomSheetFooter,
 } from '@gorhom/bottom-sheet';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { Product } from '../../../domain/models/Product';
+import { RootStackParamList } from '../../navigation/types';
 import { mapProductToQuickView } from './mapProductToQuickView';
 // import { ProductBottomActions } from './ProductBottomActions';
 import { ChatWithSellerButton } from './ChatWithSellerButton';
-import { ProductImageCarousel } from './ProductImageCarousel';
-import { ProductMetaInfo } from './ProductMetaInfo';
-import { ProductSpecificationGrid } from './ProductSpecificationGrid';
-import { ProductStatsRow } from './ProductStatsRow';
+import { ProductQuickViewBody } from './ProductQuickViewBody';
 import { QV_COLORS, qvStyles } from './productQuickViewStyles';
 
 export interface ProductQuickViewSheetRef {
@@ -29,15 +28,35 @@ interface Props {
   onDismiss?: () => void;
   onLike: (productId: string) => void;
   onSave: (productId: string) => void;
+  onComment?: (product: Product) => void;
+  onShare?: (product: Product) => void;
   onOpenDetail?: (product: Product) => void;
   onChat?: (product: Product) => void;
   chatLoading?: boolean;
+  /** Used by the expanded detail-like layer to open a seller's profile or a similar ad. */
+  navigation?: NativeStackNavigationProp<RootStackParamList>;
 }
 
 export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
-  ({ product, onDismiss, onLike, onSave, onOpenDetail, onChat, chatLoading }, ref) => {
-    //const snapPoints = useMemo(() => ['70%', '94%'], []);
-    const snapPoints = useMemo(() => ['70%'], []);
+  (
+    {
+      product,
+      onDismiss,
+      onLike,
+      onSave,
+      onComment,
+      onShare,
+      onOpenDetail,
+      onChat,
+      chatLoading,
+      navigation,
+    },
+    ref,
+  ) => {
+    const insets = useSafeAreaInsets();
+    // Dragging the handle from the 70% snap point up to the second, full-height snap point is
+    // what drives the quick-view → detail-like cross-fade in ProductQuickViewBody.
+    const snapPoints = useMemo(() => ['70%', '100%'], []);
     const quickViewData = useMemo(
       () => (product ? mapProductToQuickView(product) : null),
       [product],
@@ -120,6 +139,7 @@ export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
           ref={ref}
           index={0}
           snapPoints={snapPoints}
+          topInset={insets.top}
           enablePanDownToClose
           activeOffsetY={[-12, 12]}
           activeOffsetX={[-9999, 9999]}
@@ -132,13 +152,12 @@ export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
       );
     }
 
-    const { product: activeProduct } = quickViewData;
-
     return (
       <BottomSheetModal
         ref={ref}
         index={0}
         snapPoints={snapPoints}
+        topInset={insets.top}
         enablePanDownToClose
         enableDynamicSizing={false}
         activeOffsetY={[-12, 12]}
@@ -155,33 +174,15 @@ export const ProductQuickViewSheet = forwardRef<BottomSheetModal, Props>(
             <View style={qvStyles.handle} />
           </View>
 
-          <ProductImageCarousel images={quickViewData.images} />
-
-          <BottomSheetScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={qvStyles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled={Platform.OS === 'android'}
-          >
-            <ProductStatsRow
-              likesCount={activeProduct.likesCount}
-              commentsCount={activeProduct.commentCount ?? 0}
-              sharesCount={activeProduct.commentCount ?? 0}
-              viewsCount={activeProduct.views ?? 0}
-              isLiked={activeProduct.liked}
-              isSaved={activeProduct.isSaved}
-              onLike={() => onLike(activeProduct.id)}
-              onSave={() => onSave(activeProduct.id)}
-            />
-
-            <ProductMetaInfo
-              data={quickViewData}
-              onTitlePress={onOpenDetail ? handleTitlePress : undefined}
-            />
-            <ProductSpecificationGrid data={quickViewData} />
-          </BottomSheetScrollView>
-
-          {/*<ProductBottomActions />*/}
+          <ProductQuickViewBody
+            quickViewData={quickViewData}
+            onLike={onLike}
+            onSave={onSave}
+            onComment={onComment}
+            onShare={onShare}
+            onTitlePress={onOpenDetail ? handleTitlePress : undefined}
+            navigation={navigation}
+          />
         </View>
       </BottomSheetModal>
     );

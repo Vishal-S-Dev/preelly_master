@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -33,7 +33,7 @@ import {
   getChatScreenStyles,
   ChatScreenStyles,
 } from './chatScreenStyles';
-import { RootStackParamList } from '../../navigation/types';
+import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import {
   ChatFilter,
   ChatRow,
@@ -191,6 +191,8 @@ export const ChatScreen: React.FC = () => {
   const theme = useAppTheme();
   const styles = useMemo(() => getChatScreenStyles(theme), [theme]);
   const navigation = useNavigation<ChatNav>();
+  const route = useRoute<RouteProp<MainTabParamList, 'Chat'>>();
+  const initialFilter = route.params?.initialFilter;
   const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const user = useAppSelector(s => s.auth.user);
@@ -202,9 +204,15 @@ export const ChatScreen: React.FC = () => {
   const error = useAppSelector(s => s.chat.error);
   const totalUnread = useAppSelector(s => s.chat.totalUnread);
 
-  const [activeFilter, setActiveFilter] = useState<ChatFilter>('All');
+  const [activeFilter, setActiveFilter] = useState<ChatFilter>(initialFilter ?? 'All');
   const [searchQuery, setSearchQuery] = useState('');
   const [cartProductIds, setCartProductIds] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    if (initialFilter) {
+      setActiveFilter(initialFilter);
+    }
+  }, [initialFilter]);
 
   useEffect(() => {
     if (activeFilter !== 'Cart') {

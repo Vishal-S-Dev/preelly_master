@@ -3,6 +3,7 @@ import { Product } from '../../domain/models/Product';
 import { CreatePostStackParamList } from '../../types/createPost.types';
 import { EditProductDetailSeed, EditProductStackParamList } from '../../types/editProduct.types';
 import { ProfileTabKey } from '../../types/profile.types';
+import { ChatFilter } from '../screens/chat/chatTypes';
 import {
   PaymentInitiateResponse,
   PaymentFlowKind,
@@ -125,6 +126,6 @@ export type MainTabParamList = {
   Home: undefined;
   Bookmark: undefined;
   Create: undefined;
-  Chat: undefined;
+  Chat: { initialFilter?: ChatFilter } | undefined;
   Profile: { initialTab?: ProfileTabKey } | undefined;
 };
