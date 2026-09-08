@@ -120,6 +120,7 @@ export type RootStackParamList = {
   PaymentPending: PaymentResultParams;
   PaymentCancelled: PaymentResultParams;
   PaymentHistory: undefined;
+  BookmarkGroupListing: { groupId: string; groupName?: string };
 };
 
 export type MainTabParamList = {

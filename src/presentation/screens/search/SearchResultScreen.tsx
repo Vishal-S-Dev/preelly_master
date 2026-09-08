@@ -3,12 +3,15 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  LayoutChangeEvent,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   TextInput,
   View,
+  ViewToken,
+  useWindowDimensions,
 } from 'react-native';
 import {
   BottomSheetBackdrop,
@@ -42,6 +45,7 @@ import { FilterChip } from '../../components/search/FilterChip';
 import { PriceRangeSlider } from '../../components/filter/PriceRangeSlider';
 import { SearchHeaderPill } from '../../components/search/SearchHeaderPill';
 import {
+  SEARCH_RESULT_CARD_ASPECT_RATIO,
   SEARCH_RESULT_GRID_GAP,
   SEARCH_RESULT_GRID_PADDING,
   SearchResultCard,
@@ -49,6 +53,7 @@ import {
 import { SearchFilterSkeleton } from '../../components/search/SearchFilterSkeleton';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useCategories } from '../../hooks/useCategories';
+import { useReelPlaybackGate } from '../../hooks/useReelPlaybackGate';
 import {
   flattenSearchPages,
   getSearchTotal,
@@ -63,6 +68,22 @@ import { buildSavedSearchPayload } from '../../../utils/savedSearchPayload';
 import { isMotorsCategory } from './categoryFilterUtils';
 
 type PanelMode = 'none' | 'filter' | 'sort';
+
+// Two-column grid, ~1.58:1 card aspect ratio — a typical viewport shows roughly 2-3 rows at
+// once, so 30% catches a row as soon as a meaningful part of it scrolls in without waiting for
+// it to be half-visible (which `itemVisiblePercentThreshold: 50` would require, feeling laggy
+// on a grid this dense). `minimumViewTime` debounces rapid/fast-scroll flicker so a card that's
+// only glimpsed for an instant never triggers a preview start.
+const VIDEO_PREVIEW_VIEWABILITY_CONFIG = {
+  itemVisiblePercentThreshold: 30,
+  minimumViewTime: 200,
+};
+
+// Soft cap on simultaneous video decoders — a fast scroll can transiently make many rows
+// "visible" at once; capping keeps worst-case CPU/memory bounded on lower-end devices without
+// meaningfully changing the Instagram-style "everything visible plays" experience in the common
+// case (a couple of rows on screen).
+const MAX_CONCURRENT_VIDEO_PREVIEWS = 4;
 
 const SEARCH_CHIP_CONFIG = [
   { id: 'filter', label: 'Filter' },
@@ -141,6 +162,51 @@ export const SearchResultScreen: React.FC = () => {
   const filterSheetRef = useRef<BottomSheetModal>(null);
   const panelProgress = useSharedValue(0);
 
+  // Screen must be focused AND the app foregrounded for previews to play — reuses the same
+  // gate the reel feed uses (`useReelPlaybackGate`), so navigating away, opening another screen,
+  // or backgrounding the app pauses every visible preview in one shot (all cards read the same
+  // boolean), and returning to the screen resumes previews only for cards still in view.
+  const isPlaybackAllowed = useReelPlaybackGate();
+  const [visibleVideoIds, setVisibleVideoIds] = useState<ReadonlySet<string>>(() => new Set());
+  // Sorted-id snapshot of the last emitted set, purely to skip a redundant setState when
+  // `onViewableItemsChanged` fires with a viewport that resolves to the same visible ids (it can
+  // fire on layout/measurement events even when nothing actually changed).
+  const lastVisibleIdsKeyRef = useRef('');
+
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const ids = viewableItems
+        .filter(v => v.isViewable && (v.item as SearchListingItem | undefined)?.hasVideo)
+        .map(v => (v.item as SearchListingItem).id)
+        .slice(0, MAX_CONCURRENT_VIDEO_PREVIEWS);
+
+      const key = ids.slice().sort().join(',');
+      if (key === lastVisibleIdsKeyRef.current) {
+        return;
+      }
+      lastVisibleIdsKeyRef.current = key;
+      setVisibleVideoIds(new Set(ids));
+    },
+    [],
+  );
+
+  // Stable across renders (FlatList requires this for onViewableItemsChanged/viewabilityConfig)
+  // — same pattern FeedScreen.tsx uses for the reel feed's own viewability tracking.
+  const viewabilityConfigCallbackPairs = useMemo(
+    () => [{ viewabilityConfig: VIDEO_PREVIEW_VIEWABILITY_CONFIG, onViewableItemsChanged }],
+    [onViewableItemsChanged],
+  );
+
+  // Instagram-style grid behavior: previews only start decoding once a scroll gesture has
+  // actually settled, not on every intermediate frame of a fast fling. Without this, a quick
+  // flick through the grid mounts and tears down several native video players per second (each a
+  // real bridge/native-module round trip), which is the single biggest source of dropped frames
+  // during scroll — far more than the (already cheap, decode-only) `onViewableItemsChanged` JS
+  // work itself.
+  const [isScrollSettled, setIsScrollSettled] = useState(true);
+  const handleScrollBeginDrag = useCallback(() => setIsScrollSettled(false), []);
+  const handleScrollSettled = useCallback(() => setIsScrollSettled(true), []);
+
   const [filters, setFilters] = useState<SearchFilterParams>(() => mapRouteToFilters(route.params));
   const [sort, setSort] = useState<SearchSortOption>('newest');
   const [savedOverrides, setSavedOverrides] = useState<Record<string, boolean>>({});
@@ -196,10 +262,17 @@ export const SearchResultScreen: React.FC = () => {
   const { data: rootCategories = [] } = useCategories();
   const products = useMemo(() => {
     const flat = flattenSearchPages(searchQuery.data?.pages);
-    return flat.map(item => ({
-      ...item,
-      isSaved: savedOverrides[item.id] ?? item.isSaved,
-    }));
+    // Keep the same item reference when its override doesn't actually change its `isSaved`
+    // value — `SearchResultCard` is memoized, so favoriting one card would otherwise force every
+    // other mounted card to re-render too (a fresh `.map()` gives every item a new object
+    // identity, even ones nothing changed about).
+    return flat.map(item => {
+      const override = savedOverrides[item.id];
+      if (override === undefined || override === item.isSaved) {
+        return item;
+      }
+      return { ...item, isSaved: override };
+    });
   }, [savedOverrides, searchQuery.data?.pages]);
 
   const total = getSearchTotal(searchQuery.data?.pages);
@@ -395,9 +468,14 @@ export const SearchResultScreen: React.FC = () => {
 
   const renderItem = useCallback(
     ({ item }: { item: SearchListingItem }) => (
-      <SearchResultCard item={item} onPress={handleOpenProduct} onFavorite={handleFavorite} />
+      <SearchResultCard
+        item={item}
+        onPress={handleOpenProduct}
+        onFavorite={handleFavorite}
+        isVisible={isPlaybackAllowed && isScrollSettled && visibleVideoIds.has(item.id)}
+      />
     ),
-    [handleFavorite, handleOpenProduct],
+    [handleFavorite, handleOpenProduct, isPlaybackAllowed, isScrollSettled, visibleVideoIds],
   );
 
   const keyExtractor = useCallback((item: SearchListingItem) => item.id, []);
@@ -475,9 +553,17 @@ export const SearchResultScreen: React.FC = () => {
     [handleSortSelect, sort],
   );
 
+  // Measured so `getItemLayout` below can report exact row offsets — `ListHeaderComponent`'s own
+  // height isn't something FlatList accounts for automatically, and this header's height can
+  // vary slightly with the search keyword's length.
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
+    setHeaderHeight(event.nativeEvent.layout.height);
+  }, []);
+
   const listHeader = useMemo(
     () => (
-      <View style={styles.resultHeader}>
+      <View style={styles.resultHeader} onLayout={handleHeaderLayout}>
         <Text style={[styles.resultTitle, { color: theme.text }]}>
           Search result for "{resultLabel}"
         </Text>
@@ -486,7 +572,30 @@ export const SearchResultScreen: React.FC = () => {
         </Text>
       </View>
     ),
-    [resultLabel, theme.subText, theme.text, total],
+    [handleHeaderLayout, resultLabel, theme.subText, theme.text, total],
+  );
+
+  // Grid cells have a deterministic, fixed height (cardWidth is derived from screen width, and
+  // cardHeight is a fixed multiple of it) — this is exactly the case `getItemLayout` exists for.
+  // Without it, FlatList must wait for each cell to actually mount and measure itself before it
+  // knows where anything is, which is the main reason a grid like this stutters and can flash
+  // blank rows on a fast scroll or a `scrollToOffset`/jump-to-item — it should never need to
+  // "guess and correct" for content this regular.
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = useMemo(
+    () => (windowWidth - SEARCH_RESULT_GRID_PADDING * 2 - SEARCH_RESULT_GRID_GAP) / 2,
+    [windowWidth],
+  );
+  const rowHeight = useMemo(
+    () => cardWidth * SEARCH_RESULT_CARD_ASPECT_RATIO + SEARCH_RESULT_GRID_GAP,
+    [cardWidth],
+  );
+  const getItemLayout = useCallback(
+    (_data: ArrayLike<SearchListingItem> | null | undefined, index: number) => {
+      const row = Math.floor(index / 2);
+      return { length: rowHeight, offset: headerHeight + row * rowHeight, index };
+    },
+    [headerHeight, rowHeight],
   );
 
   const listEmpty = useMemo(() => {
@@ -606,16 +715,22 @@ export const SearchResultScreen: React.FC = () => {
         ListHeaderComponent={listHeader}
         ListEmptyComponent={listEmpty}
         ListFooterComponent={listFooter}
+        getItemLayout={getItemLayout}
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={theme.primary} />
         }
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.35}
+        onScrollBeginDrag={handleScrollBeginDrag}
+        onScrollEndDrag={handleScrollSettled}
+        onMomentumScrollEnd={handleScrollSettled}
         showsVerticalScrollIndicator={false}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={50}
         windowSize={7}
         removeClippedSubviews
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
       />
 
       <BottomSheetModal

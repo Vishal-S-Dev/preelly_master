@@ -10,10 +10,11 @@ import { LoginWithPasswordScreen } from '../screens/auth/LoginWithPasswordScreen
 import { VerifyOtpScreen } from '../screens/auth/VerifyOtpScreen';
 import { HomeScreen } from '../screens/main/HomeScreen';
 import {
-  BookmarkScreen,
   CreateScreen,
   ProfileScreen,
 } from '../screens/main/PlaceholderScreens';
+import { BookmarkScreen } from '../screens/bookmark/BookmarkScreen';
+import { BookmarkGroupListingScreen } from '../screens/bookmark/BookmarkGroupListingScreen';
 import { ExpandableCapsuleTabBar } from '../components/navigation/ExpandableCapsuleTabBar';
 import { TabBarExpansionProvider } from '../context/TabBarExpansionContext';
 import { ChatNavigator } from './ChatNavigator';
@@ -135,16 +136,7 @@ const MainTabs: React.FC = () => {
         })}
       >
         <Tab.Screen name="Home" component={HomeScreen} />
-        <Tab.Screen
-          name="Bookmark"
-          component={BookmarkScreen}
-          listeners={({ navigation }) => ({
-            tabPress: e => {
-              e.preventDefault();
-              navigation.navigate('Profile', { initialTab: 'saved' });
-            },
-          })}
-        />
+        <Tab.Screen name="Bookmark" component={BookmarkScreen} />
         <Tab.Screen
           name="Create"
           component={CreateScreen}
@@ -440,6 +432,11 @@ export const AppNavigator: React.FC = () => {
               name="PaymentHistory"
               component={PaymentHistoryScreen}
               options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="BookmarkGroupListing"
+              component={BookmarkGroupListingScreen}
+              options={{ animation: 'slide_from_right', gestureEnabled: true }}
             />
           </>
         ) : null}
