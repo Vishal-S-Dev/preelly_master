@@ -28,6 +28,7 @@ import { ProductQuickViewSheet } from '../../components/productQuickView/Product
 import { ReelCard } from '../../components/ReelCard';
 import { TopHeader } from '../../components/TopHeader';
 import { ReelPlaybackProvider } from '../../context/ReelPlaybackContext';
+import { useTabBarExpansion } from '../../context/TabBarExpansionContext';
 import { useShareSheet } from '../../context/ShareSheetContext';
 import { productToSharePayload } from '../../../utils/shareLinks';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
@@ -83,6 +84,7 @@ const FeedPage: React.FC<FeedPageProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const flatListRef = useRef<FlatList<Product>>(null);
+  const { collapse: collapseTabBar } = useTabBarExpansion();
   const { products, page, hasMore, loading, refreshing, activeIndex } = useAppSelector(
     state => state.product.feeds[feedType],
   );
@@ -189,6 +191,10 @@ const FeedPage: React.FC<FeedPageProps> = ({
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.7}
+        // Instagram/TikTok-style chrome collapse: starting a scroll on the video feed closes the
+        // floating nav capsule if the user had it expanded, rather than leaving it open over
+        // the reel underneath.
+        onScrollBeginDrag={collapseTabBar}
         ListFooterComponent={loading && products.length > 0 ? <Loader /> : null}
       />
     </View>

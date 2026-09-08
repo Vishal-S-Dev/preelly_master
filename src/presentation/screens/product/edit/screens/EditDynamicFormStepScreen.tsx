@@ -4,7 +4,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FormField } from '../../../../../types/dynamicForm.types';
 import { EditProductStackParamList } from '../../../../../types/editProduct.types';
 import { useEditProductStore } from '../../../../../store/editProductStore';
-import { validatePrice, validateUaePhone, validateYear } from '../../../../../utils/formValidation';
+import { validatePrice, validateYear } from '../../../../../utils/formValidation';
+// import { validateUaePhone } from '../../../../../utils/formValidation';
 import { FormCheckboxGroup } from '../../../../components/forms/FormCheckboxGroup';
 import { FormDropdown } from '../../../../components/forms/FormDropdown';
 import { FormProgressBar } from '../../../../components/forms/FormProgressBar';
@@ -19,7 +20,7 @@ type Props = NativeStackScreenProps<EditProductStackParamList, 'EditProductFormS
 
 export const EditDynamicFormStepScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useCreatePostStyles();
-  const { categoryName, phone, price, dynamicFields } = useEditProductStore();
+  const { categoryName, price, dynamicFields } = useEditProductStore();
   const {
     isLoading,
     isError,
@@ -34,10 +35,11 @@ export const EditDynamicFormStepScreen: React.FC<Props> = ({ navigation }) => {
   } = useEditDynamicFormStep('3');
 
   const onNext = useCallback(() => {
-    if (phone && !validateUaePhone(phone)) {
-      Alert.alert('Invalid phone', 'Enter a valid UAE mobile number.');
-      return;
-    }
+    // UAE mobile format validation disabled for now.
+    // if (phone && !validateUaePhone(phone)) {
+    //   Alert.alert('Invalid phone', 'Enter a valid UAE mobile number.');
+    //   return;
+    // }
     if (price && !validatePrice(price)) {
       Alert.alert('Invalid price', 'Enter a valid price.');
       return;
@@ -54,7 +56,7 @@ export const EditDynamicFormStepScreen: React.FC<Props> = ({ navigation }) => {
       }
     }
     navigation.navigate('EditProductAdvancedFormStep');
-  }, [dynamicFields, navigation, phone, price, stepFields]);
+  }, [dynamicFields, navigation, price, stepFields]);
 
   const renderField = useCallback(
     (field: FormField) => {

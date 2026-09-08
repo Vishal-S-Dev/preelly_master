@@ -32,6 +32,14 @@ function pickUser(raw: Record<string, unknown>): AuthUserResponseDto | null {
     if (nestedUser) {
       return nestedUser as unknown as AuthUserResponseDto;
     }
+
+    // Some responses flatten the user record directly under `data` (e.g.
+    // `{ message, token, data: { _id, name, phone, ... } }`) instead of nesting it under
+    // `data.user`. Without this, a verify-otp response shaped this way is misread as having
+    // no user at all, even though the profile is right there.
+    if (nested._id || nested.id) {
+      return nested as unknown as AuthUserResponseDto;
+    }
   }
 
   if (!isAuthEnvelope(raw) && (raw._id || raw.id)) {
@@ -208,8 +216,40 @@ export function parseAuthVerifyResponse(
     throw new Error('Invalid authentication response from server.');
   }
 
+  const verificationRequired = Boolean(body.verificationRequired);
+  const nextStepRaw = body.nextStep;
+  const nextStep =
+    nextStepRaw === 'email' || nextStepRaw === 'phone' ? nextStepRaw : undefined;
+
   const userDto = pickUser(body);
   if (!userDto) {
+    // A WhatsApp/phone login for a user with no linked email yet (including a brand-new
+    // phone number) responds `{ verificationRequired: true, nextStep: 'email', phone }` —
+    // no `user`/`token` at all, by design (mirrors `front/`'s handling of this same shape).
+    // This is the email/phone-linking step, not a malformed response — only genuinely
+    // unrecognized shapes (no user AND no verification signal) are a real error.
+    if (verificationRequired || nextStep) {
+      const message =
+        (typeof body.message === 'string' && body.message) ||
+        'Additional verification is required to continue.';
+      const phone = typeof body.phone === 'string' ? body.phone : '';
+      const email = typeof body.email === 'string' ? body.email : '';
+      return {
+        kind: 'verification_required',
+        message,
+        nextStep,
+        user: {
+          id: '',
+          name: 'User',
+          email,
+          phone,
+          role: 'user',
+          isVerified: false,
+          isProfileComplete: false,
+          bio: '',
+        },
+      };
+    }
     throw new Error('User profile missing in server response. Please try again.');
   }
 
@@ -218,11 +258,6 @@ export function parseAuthVerifyResponse(
   if (!token) {
     token = extractTokenFromResponseHeaders(headers);
   }
-
-  const verificationRequired = Boolean(body.verificationRequired);
-  const nextStepRaw = body.nextStep;
-  const nextStep =
-    nextStepRaw === 'email' || nextStepRaw === 'phone' ? nextStepRaw : undefined;
 
   if (!token && (verificationRequired || nextStep)) {
     const message =

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import UploadIcon from '../../../../assets/icons/icn_upload.svg';
@@ -20,7 +20,7 @@ type Props = NativeStackScreenProps<CreatePostStackParamList, 'CreatePostMediaSt
 export const MediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useCreatePostStyles();
   const { categoryName, setVideo } = useCreatePostStore();
-  const { video, pickVideoFromGallery, captureVideo } = useMediaPicker();
+  const { video, isProcessingVideo, pickVideoFromGallery, captureVideo } = useMediaPicker();
   const [matchedCardHeight, setMatchedCardHeight] = useState<number | null>(null);
   const [isEditingVideo, setIsEditingVideo] = useState(false);
 
@@ -70,7 +70,7 @@ export const MediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
               title="Upload Video"
               subtitle="Max video duration 2 mins"
               iconElement={<UploadIcon width={54} height={38} />}
-              onPress={pickVideoFromGallery}
+              onPress={isProcessingVideo ? () => undefined : pickVideoFromGallery}
               style={equalCardStyle}
               onLayout={e => {
                 if (matchedCardHeight == null) {
@@ -87,7 +87,7 @@ export const MediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
               title="Capture Video"
               subtitle="Max video duration 2 mins"
               iconElement={<CameraIcon width={48} height={43} />}
-              onPress={captureVideo}
+              onPress={isProcessingVideo ? () => undefined : captureVideo}
               style={equalCardStyle}
             />
           </>
@@ -117,6 +117,14 @@ export const MediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
           </>
         )}
       </ScrollView>
+      {isProcessingVideo ? (
+        <View style={localStyles.processingOverlay} pointerEvents="auto">
+          <View style={localStyles.processingCard}>
+            <ActivityIndicator size="large" color="#2563EB" />
+            <Text style={localStyles.processingText}>Loading video…</Text>
+          </View>
+        </View>
+      ) : null}
       {!isEditingVideo ? (
         <CreatePostFooter
           backgroundColor={styles.screen.backgroundColor}
@@ -131,6 +139,25 @@ export const MediaUploadStepScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const localStyles = StyleSheet.create({
+  processingOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  processingCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingHorizontal: 28,
+    paddingVertical: 24,
+    alignItems: 'center',
+    gap: 12,
+  },
+  processingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
   editVideoBtn: {
     flex: 0,
     alignSelf: 'center',

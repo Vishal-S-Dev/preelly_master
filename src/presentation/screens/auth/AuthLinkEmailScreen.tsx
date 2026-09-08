@@ -21,7 +21,7 @@ export const AuthLinkEmailScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [focused, setFocused] = useState(false);
   const dispatch = useAppDispatch();
-  const { loading, error } = useAppSelector(state => state.auth);
+  const { loading, error, authJourney } = useAppSelector(state => state.auth);
   const submitScale = useSharedValue(1);
   const submitAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: submitScale.value }],
@@ -35,10 +35,22 @@ export const AuthLinkEmailScreen: React.FC<Props> = ({ navigation }) => {
           return;
         }
 
+        if (!authJourney?.phone) {
+          Alert.alert(
+            'Something went wrong',
+            'Your phone number could not be found. Please verify your mobile number again.',
+          );
+          return;
+        }
+
         const otpRequest: SendOtpRequestDTO = {
           email: email.trim(),
           mode: 'login',
           channel: 'email',
+          linkMode: 'attach_email',
+          phone: authJourney.phone,
+          phoneCountryCode: authJourney.phoneCountryCode,
+          phoneCountryIso: authJourney.phoneCountryIso,
         };
 
         dispatch(sendOtp(otpRequest))
@@ -48,7 +60,7 @@ export const AuthLinkEmailScreen: React.FC<Props> = ({ navigation }) => {
             Alert.alert('Error', apiError?.message || 'Failed to send verification code');
           });
       }, 250),
-    [dispatch, email, navigation],
+    [authJourney, dispatch, email, navigation],
   );
 
   const onSkip = () => {

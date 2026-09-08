@@ -3,6 +3,11 @@ import { AuthSession, LoginSession, SendOtpResult } from '../../domain/models/Au
 import { AuthRepository } from '../../domain/repository/AuthRepository';
 import {
   AppleSignInRequestDto,
+  AttachChannelResponseDto,
+  AttachEmailRequestDto,
+  AttachPhoneRequestDto,
+  CompleteVerifyEmailRequestDto,
+  CompleteVerifyPhoneRequestDto,
   SendOtpRequestDTO,
   VerifyOtpRequestDto,
 } from '../dto/authDto';
@@ -26,6 +31,22 @@ export class AuthRepositoryImpl implements AuthRepository {
 
   async verifyOtp(request: VerifyOtpRequestDto): Promise<AuthVerifyOtpResult> {
     return authApi.verifyOtp(request);
+  }
+
+  async attachEmail(request: AttachEmailRequestDto): Promise<AttachChannelResponseDto> {
+    return authApi.attachEmail(request);
+  }
+
+  async attachPhone(request: AttachPhoneRequestDto): Promise<AttachChannelResponseDto> {
+    return authApi.attachPhone(request);
+  }
+
+  async completeVerifyEmail(request: CompleteVerifyEmailRequestDto): Promise<AuthVerifyOtpResult> {
+    return authApi.completeVerifyEmail(request);
+  }
+
+  async completeVerifyPhone(request: CompleteVerifyPhoneRequestDto): Promise<AuthVerifyOtpResult> {
+    return authApi.completeVerifyPhone(request);
   }
 
   async signInWithGoogle(idToken: string): Promise<AuthVerifyOtpResult> {

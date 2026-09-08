@@ -4,11 +4,16 @@ import { AuthRepositoryImpl } from '../../../data/repository/AuthRepositoryImpl'
 import { User } from '../../../domain/models/User';
 import { LoginUseCase } from '../../../domain/usecases/LoginUseCase';
 import {
+  AttachEmailUseCase,
+  AttachPhoneUseCase,
+  CompleteVerifyEmailUseCase,
+  CompleteVerifyPhoneUseCase,
   SendOtpUseCase,
   SignInWithAppleUseCase,
   SignInWithGoogleUseCase,
   VerifyOtpUseCase,
 } from '../../../domain/usecases/authUseCases';
+import { AuthVerifyOtpResult } from '../../../utils/authResponseUtils';
 import { storage } from '../../../utils/storage';
 import { clearChatState } from './chatSlice';
 import { resetPresenceState } from '../../../data/network/presenceSocket';
@@ -31,6 +36,10 @@ const repo = new AuthRepositoryImpl();
 const loginUseCase = new LoginUseCase(repo);
 const sendOtpUseCase = new SendOtpUseCase(repo);
 const verifyOtpUseCase = new VerifyOtpUseCase(repo);
+const attachEmailUseCase = new AttachEmailUseCase(repo);
+const attachPhoneUseCase = new AttachPhoneUseCase(repo);
+const completeVerifyEmailUseCase = new CompleteVerifyEmailUseCase(repo);
+const completeVerifyPhoneUseCase = new CompleteVerifyPhoneUseCase(repo);
 const signInWithGoogleUseCase = new SignInWithGoogleUseCase(repo);
 const signInWithAppleUseCase = new SignInWithAppleUseCase(repo);
 
@@ -76,7 +85,28 @@ export const sendOtp = createAsyncThunk(
   'auth/sendOtp',
   async (request: SendOtpRequestDTO, { rejectWithValue }) => {
     try {
-      await sendOtpUseCase.execute(request);
+      // Linking a second channel onto an already-verified account (registration's
+      // phone→email or email→phone step) must go through the dedicated attach
+      // endpoints, which correlate by the already-verified channel — the generic
+      // send-otp endpoint has no such correlation and would create a disconnected
+      // duplicate account instead of completing the current one.
+      if (request.linkMode === 'attach_email') {
+        await attachEmailUseCase.execute({
+          phone: request.phone ?? '',
+          phoneCountryCode: request.phoneCountryCode,
+          phoneCountryIso: request.phoneCountryIso,
+          email: request.email ?? '',
+        });
+      } else if (request.linkMode === 'attach_phone') {
+        await attachPhoneUseCase.execute({
+          email: request.email ?? '',
+          phone: request.phone ?? '',
+          phoneCountryCode: request.phoneCountryCode,
+          phoneCountryIso: request.phoneCountryIso,
+        });
+      } else {
+        await sendOtpUseCase.execute(request);
+      }
       return request;
     } catch (error: any) {
       const apiError = error?.response?.data;
@@ -99,10 +129,25 @@ export const verifyOtp = createAsyncThunk(
   'auth/verifyOtp',
   async (request: VerifyOtpRequestDto, { dispatch, rejectWithValue }) => {
     try {
-      const deviceToken = request.deviceToken ?? (await getDeviceTokenSilently().catch(() => null));
-      const result = await verifyOtpUseCase.execute(
-        deviceToken ? { ...request, deviceToken } : request,
-      );
+      let result: AuthVerifyOtpResult;
+      if (request.linkMode === 'attach_email') {
+        result = await completeVerifyEmailUseCase.execute({
+          email: request.email ?? '',
+          otp: request.otp,
+        });
+      } else if (request.linkMode === 'attach_phone') {
+        result = await completeVerifyPhoneUseCase.execute({
+          phone: request.phone ?? '',
+          otp: request.otp,
+          phoneCountryCode: request.phoneCountryCode,
+          phoneCountryIso: request.phoneCountryIso,
+        });
+      } else {
+        const deviceToken = request.deviceToken ?? (await getDeviceTokenSilently().catch(() => null));
+        result = await verifyOtpUseCase.execute(
+          deviceToken ? { ...request, deviceToken } : request,
+        );
+      }
       if (result.kind === 'authenticated') {
         await repo.storeSession(result.session);
         if (result.session.user?.id) {

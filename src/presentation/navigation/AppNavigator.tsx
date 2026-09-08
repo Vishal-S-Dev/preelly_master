@@ -15,6 +15,7 @@ import {
   ProfileScreen,
 } from '../screens/main/PlaceholderScreens';
 import { ExpandableCapsuleTabBar } from '../components/navigation/ExpandableCapsuleTabBar';
+import { TabBarExpansionProvider } from '../context/TabBarExpansionContext';
 import { ChatNavigator } from './ChatNavigator';
 import { ChatThreadScreen } from '../screens/chat/ChatThreadScreen';
 import { ProductDetailScreen } from '../screens/product/ProductDetailScreen';
@@ -92,84 +93,86 @@ const MainTabs: React.FC = () => {
     : null;
 
   return (
-    <Tab.Navigator
-      // ExpandableCapsuleTabBar fully replaces the default bar's rendering (floating overlay
-      // instead of a permanent full-width bar), so it reads `tabBarIcon` off each route's
-      // `screenOptions` below but ignores `tabBarStyle`/`tabBarActiveTintColor`/etc. — those are
-      // left in place as the config the default bar would use if the custom `tabBar` prop were
-      // ever removed.
-      tabBar={renderCapsuleTabBar}
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarShowLabel: true,
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.subText,
-        tabBarStyle: {
-          backgroundColor: theme.card,
-          borderTopColor: 'transparent',
-          height: Platform.OS === 'ios' ? 74 : 64,
-          paddingTop: 6,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-        },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
-        tabBarIcon: ({ color, size, focused }) => {
-          if (route.name === 'Profile' && profileAvatarUri) {
-            return (
-              <Image
-                key={profileAvatarUri}
-                source={{ uri: profileAvatarUri }}
-                style={{
-                  width: size + 4,
-                  height: size + 4,
-                  borderRadius: (size + 4) / 2,
-                  borderWidth: focused ? 2 : 1,
-                  borderColor: focused ? theme.primary : theme.subText,
-                }}
-              />
-            );
-          }
-          return getTabIcon(route.name)({ color, size, focused });
-        },
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen
-        name="Bookmark"
-        component={BookmarkScreen}
-        listeners={({ navigation }) => ({
-          tabPress: e => {
-            e.preventDefault();
-            navigation.navigate('Profile', { initialTab: 'saved' });
+    <TabBarExpansionProvider>
+      <Tab.Navigator
+        // ExpandableCapsuleTabBar fully replaces the default bar's rendering (floating overlay
+        // instead of a permanent full-width bar), so it reads `tabBarIcon` off each route's
+        // `screenOptions` below but ignores `tabBarStyle`/`tabBarActiveTintColor`/etc. — those are
+        // left in place as the config the default bar would use if the custom `tabBar` prop were
+        // ever removed.
+        tabBar={renderCapsuleTabBar}
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarShowLabel: true,
+          tabBarActiveTintColor: theme.primary,
+          tabBarInactiveTintColor: theme.subText,
+          tabBarStyle: {
+            backgroundColor: theme.card,
+            borderTopColor: 'transparent',
+            height: Platform.OS === 'ios' ? 74 : 64,
+            paddingTop: 6,
+            paddingBottom: Platform.OS === 'ios' ? 20 : 8,
           },
-        })}
-      />
-      <Tab.Screen
-        name="Create"
-        component={CreateScreen}
-        listeners={({ navigation }) => ({
-          tabPress: e => {
-            e.preventDefault();
-            if (authUser && !isPhoneVerifiedUser(authUser)) {
-              Alert.alert(
-                'Verify Mobile Number',
-                'Please verify your mobile number before posting an ad.',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Verify Now',
-                    onPress: () => navigation.getParent()?.navigate('SetNewMobile'),
-                  },
-                ],
+          tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+          tabBarIcon: ({ color, size, focused }) => {
+            if (route.name === 'Profile' && profileAvatarUri) {
+              return (
+                <Image
+                  key={profileAvatarUri}
+                  source={{ uri: profileAvatarUri }}
+                  style={{
+                    width: size + 4,
+                    height: size + 4,
+                    borderRadius: (size + 4) / 2,
+                    borderWidth: focused ? 2 : 1,
+                    borderColor: focused ? theme.primary : theme.subText,
+                  }}
+                />
               );
-              return;
             }
-            navigation.getParent()?.navigate('CreatePost');
+            return getTabIcon(route.name)({ color, size, focused });
           },
         })}
-      />
-      <Tab.Screen name="Chat" component={ChatNavigator} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-    </Tab.Navigator>
+      >
+        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen
+          name="Bookmark"
+          component={BookmarkScreen}
+          listeners={({ navigation }) => ({
+            tabPress: e => {
+              e.preventDefault();
+              navigation.navigate('Profile', { initialTab: 'saved' });
+            },
+          })}
+        />
+        <Tab.Screen
+          name="Create"
+          component={CreateScreen}
+          listeners={({ navigation }) => ({
+            tabPress: e => {
+              e.preventDefault();
+              if (authUser && !isPhoneVerifiedUser(authUser)) {
+                Alert.alert(
+                  'Verify Mobile Number',
+                  'Please verify your mobile number before posting an ad.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Verify Now',
+                      onPress: () => navigation.getParent()?.navigate('SetNewMobile'),
+                    },
+                  ],
+                );
+                return;
+              }
+              navigation.getParent()?.navigate('CreatePost');
+            },
+          })}
+        />
+        <Tab.Screen name="Chat" component={ChatNavigator} />
+        <Tab.Screen name="Profile" component={ProfileScreen} />
+      </Tab.Navigator>
+    </TabBarExpansionProvider>
   );
 };
 

@@ -3,6 +3,7 @@ import { STORAGE_KEYS } from '../constants/appConstants';
 import { CreatePostDraft } from '../types/createPost.types';
 import { FormField } from '../types/dynamicForm.types';
 import { buildProductFormData } from '../utils/buildProductFormData';
+import { compressVideoForUpload } from '../utils/videoCompression';
 import { storage } from '../utils/storage';
 
 const resolveContactName = async (): Promise<string | undefined> => {
@@ -24,7 +25,12 @@ export const createPostService = {
     options?: { formFields?: FormField[] },
   ): Promise<{ id?: string }> {
     const contactName = await resolveContactName();
-    const formData = buildProductFormData(draft, {
+    // Compressed only at the point of upload — preview/trim keep working against the original
+    // file untouched, this just shrinks what actually goes over the wire.
+    const uploadDraft = draft.video
+      ? { ...draft, video: await compressVideoForUpload(draft.video) }
+      : draft;
+    const formData = buildProductFormData(uploadDraft, {
       contactName,
       formFields: options?.formFields,
     });

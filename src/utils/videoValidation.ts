@@ -14,15 +14,20 @@ export const validateVideoFile = (file: CreatePostMediaFile): VideoValidationRes
   }
 
   if (file.size > VIDEO_CONSTRAINTS.maxSizeBytes) {
-    return { valid: false, error: 'Video must be 20MB or smaller.' };
+    const maxSizeMb = Math.round(VIDEO_CONSTRAINTS.maxSizeBytes / (1024 * 1024));
+    return { valid: false, error: `Video must be ${maxSizeMb}MB or smaller.` };
   }
 
   if (file.duration && file.duration > VIDEO_CONSTRAINTS.maxDurationSec) {
-    return { valid: false, error: 'Video must be 2 minutes or shorter.' };
+    const maxMinutes = Math.round(VIDEO_CONSTRAINTS.maxDurationSec / 60);
+    return { valid: false, error: `Video must be ${maxMinutes} minute${maxMinutes === 1 ? '' : 's'} or shorter.` };
   }
 
   if (file.duration && file.duration < VIDEO_CONSTRAINTS.minDurationSec) {
-    return { valid: false, error: 'Video is too short. Please upload at least 3 seconds.' };
+    return {
+      valid: false,
+      error: `Video is too short. Please upload at least ${VIDEO_CONSTRAINTS.minDurationSec} seconds.`,
+    };
   }
 
   // 16:9 aspect ratio validation — disabled for now

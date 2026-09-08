@@ -1,5 +1,5 @@
-import React, { memo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Video from 'react-native-video';
 import { CreatePostMediaFile } from '../../../types/createPost.types';
@@ -13,6 +13,15 @@ interface Props {
 export const VideoPreview = memo<Props>(({ video, onDelete, onReplace }) => {
   const [paused, setPaused] = useState(true);
   const [muted, setMuted] = useState(true);
+  // Large picked/trimmed videos can take a moment to buffer their first frame — show a spinner
+  // until then instead of a blank black box.
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+  }, [video.uri]);
+
+  const handleLoad = useCallback(() => setLoading(false), []);
 
   return (
     <View style={styles.wrap}>
@@ -23,7 +32,13 @@ export const VideoPreview = memo<Props>(({ video, onDelete, onReplace }) => {
         muted={muted}
         resizeMode="cover"
         repeat
+        onLoad={handleLoad}
       />
+      {loading ? (
+        <View style={styles.loaderWrap} pointerEvents="none">
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      ) : null}
       <View style={styles.meta}>
         <Text style={styles.metaText}>
           {video.duration ? `${Math.round(video.duration)}s` : ''}
@@ -53,6 +68,11 @@ VideoPreview.displayName = 'VideoPreview';
 const styles = StyleSheet.create({
   wrap: { borderRadius: 14, overflow: 'hidden', backgroundColor: '#000', marginBottom: 16 },
   video: { width: '100%', aspectRatio: 16 / 9 },
+  loaderWrap: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   meta: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   metaText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   controls: {

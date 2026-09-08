@@ -112,6 +112,7 @@ export const VerifyOtpScreen: React.FC = () => {
       otp,
       mode: otpSession.mode,
       channel: otpSession.channel ?? 'email',
+      linkMode: otpSession.linkMode,
     };
 
     if (isPhoneChannel) {

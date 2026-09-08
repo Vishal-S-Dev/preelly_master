@@ -27,6 +27,7 @@ import {
 } from '../../components/reel/OwnerListingMenuSheet';
 import { ReelCard } from '../../components/ReelCard';
 import { ReelPlaybackProvider } from '../../context/ReelPlaybackContext';
+import { useTabBarExpansion } from '../../context/TabBarExpansionContext';
 import { useShareSheet } from '../../context/ShareSheetContext';
 import { productToSharePayload } from '../../../utils/shareLinks';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
@@ -64,16 +65,18 @@ export const UserFeedScreen: React.FC = () => {
     ownerMode: routeOwnerMode = false,
   } = route.params;
 
-  // `listingSource === 'posts'` is always this profile's own uploads. "Saved"/"Liked" can mix
-  // in other sellers' listings within the same scroll session, so the owner-only 3-dot menu
-  // (and edit/chat gating) must be re-checked per item against the actual logged-in user,
-  // rather than trusting a single screen-wide `ownerMode` flag.
+  // `listingSource === 'posts'` does NOT by itself mean "own uploads" — this same route is used
+  // both for the logged-in user's own posts tab (ProfileScreen, which also passes
+  // `ownerMode: true`) and for another user's posts tab (UserProfileScreen, which does not).
+  // "Saved"/"Liked" can additionally mix in other sellers' listings within the same scroll
+  // session. So ownership must always be checked against the actual logged-in user, per item —
+  // falling back to the route's profile `userId` only when an item is missing seller info (it
+  // still belongs to whichever profile this listing came from).
   const isOwnProduct = useCallback(
     (product: Product) =>
-      listingSource === 'posts' ||
       routeOwnerMode ||
-      Boolean(product.seller?.id && currentUserId && product.seller.id === currentUserId),
-    [currentUserId, listingSource, routeOwnerMode],
+      Boolean(currentUserId && (product.seller?.id ?? userId) === currentUserId),
+    [currentUserId, routeOwnerMode, userId],
   );
 
   const {
@@ -100,6 +103,7 @@ export const UserFeedScreen: React.FC = () => {
   });
 
   const flatListRef = useRef<FlatList<Product>>(null);
+  const { collapse: collapseTabBar } = useTabBarExpansion();
   const quickViewRef = useRef<BottomSheetModal>(null);
   const commentsRef = useRef<BottomSheetModal>(null);
   const ownerMenuRef = useRef<BottomSheetModal>(null);
@@ -401,6 +405,9 @@ export const UserFeedScreen: React.FC = () => {
           onEndReached={onLoadMore}
           onEndReachedThreshold={0.7}
           onScrollToIndexFailed={onScrollToIndexFailed}
+          // Instagram/TikTok-style chrome collapse: starting a scroll on the video feed closes
+          // the floating nav capsule if the user had it expanded.
+          onScrollBeginDrag={collapseTabBar}
           ListEmptyComponent={listEmpty}
           ListFooterComponent={loadingMore && products.length > 0 ? <Loader /> : null}
           showsVerticalScrollIndicator={false}

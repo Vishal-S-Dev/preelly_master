@@ -26,7 +26,7 @@ export const AuthLinkPhoneScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedCountry, setSelectedCountry] =
     useState<CountryDialCode>(DEFAULT_COUNTRY_DIAL_CODE);
   const dispatch = useAppDispatch();
-  const { loading, error } = useAppSelector(state => state.auth);
+  const { loading, error, authJourney } = useAppSelector(state => state.auth);
   const submitScale = useSharedValue(1);
   const submitAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: submitScale.value }],
@@ -42,13 +42,23 @@ export const AuthLinkPhoneScreen: React.FC<Props> = ({ navigation }) => {
         }
         setPhoneError('');
 
+        if (!authJourney?.email) {
+          Alert.alert(
+            'Something went wrong',
+            'Your email could not be found. Please verify your email again.',
+          );
+          return;
+        }
+
         const formattedPhone = formatAuthPhone(selectedCountry, phone);
         const otpRequest: SendOtpRequestDTO = {
           mode: 'login',
           channel: 'whatsapp',
+          linkMode: 'attach_phone',
           phone: formattedPhone.phone,
           phoneCountryCode: formattedPhone.phoneCountryCode,
           phoneCountryIso: formattedPhone.phoneCountryIso,
+          email: authJourney.email,
         };
 
         dispatch(sendOtp(otpRequest))
@@ -58,7 +68,7 @@ export const AuthLinkPhoneScreen: React.FC<Props> = ({ navigation }) => {
             Alert.alert('Error', apiError?.message || 'Failed to send OTP');
           });
       }, 250),
-    [dispatch, navigation, phone, selectedCountry],
+    [authJourney, dispatch, navigation, phone, selectedCountry],
   );
 
   const onSkip = () => {

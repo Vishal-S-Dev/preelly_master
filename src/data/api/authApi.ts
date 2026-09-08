@@ -1,5 +1,10 @@
 import {
   AppleSignInRequestDto,
+  AttachChannelResponseDto,
+  AttachEmailRequestDto,
+  AttachPhoneRequestDto,
+  CompleteVerifyEmailRequestDto,
+  CompleteVerifyPhoneRequestDto,
   LoginRequestDTO,
   LoginResponseDTO,
   RefreshTokenRequestDto,
@@ -59,6 +64,36 @@ export const authApi = {
   async signInWithApple(payload: AppleSignInRequestDto): Promise<AuthVerifyOtpResult> {
     const response = await httpClient.post<VerifyOtpResponseDto>(
       API_ENDPOINTS.APPLE_LOGIN,
+      payload,
+    );
+    return parseAuthVerifyResponse(response.data, headersToRecord(response.headers));
+  },
+  /** Attach an email to the already phone-verified account (phone→email completion). */
+  async attachEmail(payload: AttachEmailRequestDto): Promise<AttachChannelResponseDto> {
+    const { data } = await httpClient.post<AttachChannelResponseDto>(
+      API_ENDPOINTS.EMAIL_ATTACH,
+      payload,
+    );
+    return data;
+  },
+  /** Attach a phone to the already email-verified account (email→phone completion). */
+  async attachPhone(payload: AttachPhoneRequestDto): Promise<AttachChannelResponseDto> {
+    const { data } = await httpClient.post<AttachChannelResponseDto>(
+      API_ENDPOINTS.MOBILE_ATTACH,
+      payload,
+    );
+    return data;
+  },
+  async completeVerifyEmail(payload: CompleteVerifyEmailRequestDto): Promise<AuthVerifyOtpResult> {
+    const response = await httpClient.post<VerifyOtpResponseDto>(
+      API_ENDPOINTS.COMPLETE_VERIFY_EMAIL,
+      payload,
+    );
+    return parseAuthVerifyResponse(response.data, headersToRecord(response.headers));
+  },
+  async completeVerifyPhone(payload: CompleteVerifyPhoneRequestDto): Promise<AuthVerifyOtpResult> {
+    const response = await httpClient.post<VerifyOtpResponseDto>(
+      API_ENDPOINTS.COMPLETE_VERIFY_PHONE,
       payload,
     );
     return parseAuthVerifyResponse(response.data, headersToRecord(response.headers));

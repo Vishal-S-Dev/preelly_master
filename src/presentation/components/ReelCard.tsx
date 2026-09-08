@@ -1,11 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
+  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -97,6 +100,41 @@ export const ReelCard: React.FC<Props> = React.memo(
     const heartScale = useSharedValue(0);
     const heartOpacity = useSharedValue(0);
 
+    // Instagram-style center play/pause glyph: flashes briefly on every tap-toggle, then
+    // fades out on its own regardless of the resulting play/pause state.
+    const [centerIcon, setCenterIcon] = useState<'play' | 'pause' | null>(null);
+    const centerIconOpacity = useSharedValue(0);
+    const centerIconScale = useSharedValue(0.8);
+
+    const centerIconStyle = useAnimatedStyle(() => ({
+      opacity: centerIconOpacity.value,
+      transform: [{ scale: centerIconScale.value }],
+    }));
+
+    const clearCenterIcon = useCallback(() => {
+      setCenterIcon(null);
+    }, []);
+
+    const flashCenterIcon = useCallback(
+      (nextPaused: boolean) => {
+        setCenterIcon(nextPaused ? 'pause' : 'play');
+        centerIconScale.value = 0.8;
+        centerIconScale.value = withTiming(1, { duration: 180 });
+        centerIconOpacity.value = withSequence(
+          withTiming(1, { duration: 120 }),
+          withDelay(
+            350,
+            withTiming(0, { duration: 220 }, finished => {
+              if (finished) {
+                runOnJS(clearCenterIcon)();
+              }
+            }),
+          ),
+        );
+      },
+      [centerIconOpacity, centerIconScale, clearCenterIcon],
+    );
+
     const hasVideo = product.videoUrl.trim().length > 0;
     const isSold = Boolean(product.isSold);
     const availabilityLabel = isSold ? 'Sold' : 'Available';
@@ -129,8 +167,20 @@ export const ReelCard: React.FC<Props> = React.memo(
     // objects below to be rebuilt — keeps the native tap handlers alive across redux-driven
     // re-renders (pause/like state, active index, etc.) instead of tearing them down and
     // reinstalling them, which is what was dropping taps intermittently on both platforms.
-    const latestRef = useRef({ onLike, onTogglePause, productId: product.id, liked: product.liked });
-    latestRef.current = { onLike, onTogglePause, productId: product.id, liked: product.liked };
+    const latestRef = useRef({
+      onLike,
+      onTogglePause,
+      productId: product.id,
+      liked: product.liked,
+      isPaused: product.isPaused,
+    });
+    latestRef.current = {
+      onLike,
+      onTogglePause,
+      productId: product.id,
+      liked: product.liked,
+      isPaused: product.isPaused,
+    };
 
     // Timestamp of the last recognized double tap, used only by the solo-tap timeout's
     // stray-tap guard below — not a debounce for the like action itself.
@@ -176,8 +226,10 @@ export const ReelCard: React.FC<Props> = React.memo(
       if (Date.now() - lastDoubleTapAtRef.current < DOUBLE_TAP_GUARD_MS) {
         return;
       }
+      const nextPaused = !latestRef.current.isPaused;
       latestRef.current.onTogglePause(latestRef.current.productId);
-    }, []);
+      flashCenterIcon(nextPaused);
+    }, [flashCenterIcon]);
 
     // Dev-only gesture instrumentation for manual on-device QA. Guarded by `__DEV__` so it
     // never runs (or costs anything) in production builds.
@@ -219,130 +271,152 @@ export const ReelCard: React.FC<Props> = React.memo(
     const Player = fullscreenVideo ? VideoPlayerFullscreen : VideoPlayer;
 
     return (
-      <GestureDetector gesture={tapGesture}>
-        <View style={styles.container}>
-          <Player
-            videoUrl={product.videoUrl}
-            imageUrl={product.imageUrl}
-            isActive={isActive}
-            muted={muted}
-            isPaused={product.isPaused}
-            watchTrackingEnabled={watchTrackingEnabled}
-            onWatchThresholdReached={
-              watchTrackingEnabled ? handleWatchThresholdReached : undefined
-            }
-          />
-
-          <View style={styles.topOverlay} />
-          <View style={styles.bottomOverlay} />
-
-          <Animated.Text style={[styles.heart, heartStyle]}>❤️</Animated.Text>
-
-          <ActionButtons
-            likesCount={product.likesCount}
-            commentsCount={product.commentCount ?? 0}
-            sharesCount={0}
-            isLiked={product.liked}
-            isSaved={product.isSaved}
-            avatar={product.seller?.avatar}
-            ownerMode={ownerMode}
-            onLike={() => onLike(product.id)}
-            onSave={() => onSave(product.id)}
-            onQuickView={() => onQuickView(product)}
-            onComment={() => onComment(product)}
-            onShare={onShare ? () => onShare(product) : undefined}
-            onOwnerMenu={
-              ownerMode && onOwnerMenu ? () => onOwnerMenu(product) : undefined
-            }
-            onProfileView={() => {
-              const sellerId = product.seller?.id;
-              if (sellerId) {
-                onOpenProfile(sellerId);
+      <View style={styles.container}>
+        {/* Only the video itself is wrapped by the tap gesture — ActionButtons and the bottom
+            title/location Pressables below are rendered as siblings, not descendants, of this
+            GestureDetector. Gesture-handler recognizers fire for a touch's whole ancestor chain,
+            so nesting those buttons inside here made every button tap also register as a
+            single/double tap on the video (pausing it or firing a phantom like) alongside its
+            own onPress. Keeping them as siblings removes the video's Tap gesture from that
+            ancestor chain, so a button tap only ever fires the button's own handler. */}
+        <GestureDetector gesture={tapGesture}>
+          <View style={styles.videoGestureArea}>
+            <Player
+              videoUrl={product.videoUrl}
+              imageUrl={product.imageUrl}
+              isActive={isActive}
+              muted={muted}
+              isPaused={product.isPaused}
+              watchTrackingEnabled={watchTrackingEnabled}
+              onWatchThresholdReached={
+                watchTrackingEnabled ? handleWatchThresholdReached : undefined
               }
-            }}
-          />
-          {/* Bottom Content Section */}
-          <LinearGradient
-            colors={[
-              'rgba(2,2,2,0.89)',
-              'rgba(17,24,39,0)',
-            ]}
-            start={{ x: 0.5, y: 1 }}
-            end={{ x: 0.5, y: 0 }}
-            style={styles.bottomShadow}
-          />
-          <View style={[styles.bottom, { paddingBottom: FLOATING_NAV_CLEARANCE + insets.bottom }]}>
-            <View style={styles.row}>
+            />
+          </View>
+        </GestureDetector>
+
+        <View style={styles.topOverlay} />
+        <View style={styles.bottomOverlay} />
+
+        <Animated.Text style={[styles.heart, heartStyle]}>❤️</Animated.Text>
+
+        {centerIcon ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.centerIconBubble, centerIconStyle]}>
+            <Ionicons
+              name={centerIcon === 'pause' ? 'pause' : 'play'}
+              size={40}
+              color="#fff"
+              style={centerIcon === 'play' ? styles.centerIconPlayGlyph : undefined}
+            />
+          </Animated.View>
+        ) : null}
+
+        <ActionButtons
+          likesCount={product.likesCount}
+          commentsCount={product.commentCount ?? 0}
+          sharesCount={0}
+          isLiked={product.liked}
+          isSaved={product.isSaved}
+          avatar={product.seller?.avatar}
+          ownerMode={ownerMode}
+          onLike={() => onLike(product.id)}
+          onSave={() => onSave(product.id)}
+          onQuickView={() => onQuickView(product)}
+          onComment={() => onComment(product)}
+          onShare={onShare ? () => onShare(product) : undefined}
+          onOwnerMenu={
+            ownerMode && onOwnerMenu ? () => onOwnerMenu(product) : undefined
+          }
+          onProfileView={() => {
+            const sellerId = product.seller?.id;
+            if (sellerId) {
+              onOpenProfile(sellerId);
+            }
+          }}
+        />
+        {/* Bottom Content Section */}
+        <LinearGradient
+          colors={[
+            'rgba(2, 2, 2, 0.62)',
+            'rgba(17,24,39,0)',
+          ]}
+          start={{ x: 0.5, y: 1 }}
+          end={{ x: 0.5, y: 0 }}
+          style={styles.bottomShadow}
+        />
+        <View style={[styles.bottom, { paddingBottom: FLOATING_NAV_CLEARANCE + insets.bottom }]}>
+          <View style={styles.row}>
+            <Pressable
+              style={styles.titlePressable}
+              onPress={() => onOpenDetail(product)}
+              accessibilityRole="button"
+              accessibilityLabel={`View details for ${product.title}`}>
+              <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+                {product.title}
+              </Text>
+            </Pressable>
+            <GradientPriceBadge
+              currency={product.currency}
+              price={product.price}
+              size="compact"
+            />
+          </View>
+          <View style={styles.descRow}>
+            <View style={styles.specsRow}>
+              {/*<Text style={styles.description}>2022</Text>
+              <Text style={styles.dot}>•</Text>
+              <Text style={styles.description}>76,500 km</Text>
+              <Text style={styles.dot}>•</Text>
+              <Text style={styles.description}>American Specs</Text>*/}
               <Pressable
-                style={styles.titlePressable}
+                style={styles.locationPressable}
                 onPress={() => onOpenDetail(product)}
                 accessibilityRole="button"
                 accessibilityLabel={`View details for ${product.title}`}>
-                <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
-                  {product.title}
+                <Text
+                  style={styles.description}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {product.location}
                 </Text>
               </Pressable>
-              <GradientPriceBadge
-                currency={product.currency}
-                price={product.price}
-                size="compact"
-              />
             </View>
-            <View style={styles.descRow}>
-              <View style={styles.specsRow}>
-                {/*<Text style={styles.description}>2022</Text>
-                <Text style={styles.dot}>•</Text>
-                <Text style={styles.description}>76,500 km</Text>
-                <Text style={styles.dot}>•</Text>
-                <Text style={styles.description}>American Specs</Text>*/}
-                <Pressable
-                  style={styles.locationPressable}
-                  onPress={() => onOpenDetail(product)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`View details for ${product.title}`}>
-                  <Text
-                    style={styles.description}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {product.location}
-                  </Text>
-                </Pressable>
-              </View>
-              <View
-                style={[
-                  styles.locationBadge,
-                  isSold ? styles.soldBadge : styles.availableBadge,
-                ]}
-              >
-                <Text style={styles.locationText}>{availabilityLabel}</Text>
-              </View>
+            <View
+              style={[
+                styles.locationBadge,
+                isSold ? styles.soldBadge : styles.availableBadge,
+              ]}
+            >
+              <Text style={styles.locationText}>{availabilityLabel}</Text>
             </View>
           </View>
-
-          {/*<Pressable
-            style={styles.bottomInfo}
-            onPress={() => onOpenDetail(product)}
-          >
-            <Text style={styles.title} numberOfLines={1}>
-              {product.title}
-            </Text>
-            <Text style={styles.description} numberOfLines={2}>
-              {product.description}
-            </Text>
-            <View style={styles.badgeRow}>
-              <View style={styles.priceBadge}>
-                <Text style={styles.priceText}>
-                  {product.currency} {product.price.toLocaleString()}
-                </Text>
-              </View>
-              <View style={styles.locationBadge}>
-                <Text style={styles.locationText}>{product.location}</Text>
-              </View>
-            </View>
-          </Pressable>*/}
         </View>
-      </GestureDetector>
+
+        {/*<Pressable
+          style={styles.bottomInfo}
+          onPress={() => onOpenDetail(product)}
+        >
+          <Text style={styles.title} numberOfLines={1}>
+            {product.title}
+          </Text>
+          <Text style={styles.description} numberOfLines={2}>
+            {product.description}
+          </Text>
+          <View style={styles.badgeRow}>
+            <View style={styles.priceBadge}>
+              <Text style={styles.priceText}>
+                {product.currency} {product.price.toLocaleString()}
+              </Text>
+            </View>
+            <View style={styles.locationBadge}>
+              <Text style={styles.locationText}>{product.location}</Text>
+            </View>
+          </View>
+        </Pressable>*/}
+      </View>
     );
   },
   areReelCardPropsEqual,
@@ -352,6 +426,7 @@ ReelCard.displayName = 'ReelCard';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000', justifyContent: 'flex-end' },
+  videoGestureArea: { ...StyleSheet.absoluteFill },
   topOverlay: {
     ...StyleSheet.absoluteFill,
     bottom: '60%',
@@ -367,6 +442,23 @@ const styles = StyleSheet.create({
     top: '45%',
     alignSelf: 'center',
     fontSize: 80,
+  },
+  centerIconBubble: {
+    position: 'absolute',
+    top: '45%',
+    alignSelf: 'center',
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    marginTop: -42,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // The play glyph's triangle isn't visually centered within its own bounding box —
+  // nudge it right so it reads as centered inside the circular bubble.
+  centerIconPlayGlyph: {
+    marginLeft: 4,
   },
   bottomInfo: { paddingHorizontal: 16, paddingBottom: 110, paddingRight: 90 },
   titlePressable: {

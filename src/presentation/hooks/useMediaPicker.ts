@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { launchCamera, launchImageLibrary, Asset } from 'react-native-image-picker';
 import { VIDEO_CONSTRAINTS } from '../../constants/createPostConstants';
@@ -20,6 +20,11 @@ const mapImageAssets = (assets: Asset[]) =>
 
 export const useMediaPicker = () => {
   const { video, images, setVideo, addImages, replaceImage } = useCreatePostStore();
+  // Covers the whole pick→validate span, including the OS picker's own iCloud/on-demand-
+  // resource download for large gallery videos — that wait happens inside the
+  // launchImageLibrary/launchCamera promise, not after it, so the screen needs its own loading
+  // state rather than relying on the (instant) synchronous validation step alone.
+  const [isProcessingVideo, setIsProcessingVideo] = useState(false);
 
   const pickVideoFromGallery = useCallback(async () => {
     const status = await requestMediaPermission('gallery');
@@ -35,25 +40,30 @@ export const useMediaPicker = () => {
       return;
     }
 
-    const result = await launchImageLibrary({
-      mediaType: 'video',
-      selectionLimit: 1,
-      videoQuality: 'high',
-    });
-    if (result.didCancel || !result.assets?.[0]) {
-      return;
-    }
+    setIsProcessingVideo(true);
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'video',
+        selectionLimit: 1,
+        videoQuality: 'high',
+      });
+      if (result.didCancel || !result.assets?.[0]) {
+        return;
+      }
 
-    const mapped = mapPickerAssetToVideo(result.assets[0]);
-    if (!mapped) {
-      return;
+      const mapped = mapPickerAssetToVideo(result.assets[0]);
+      if (!mapped) {
+        return;
+      }
+      const validation = validateVideoFile(mapped);
+      if (!validation.valid) {
+        Alert.alert('Invalid video', validation.error);
+        return;
+      }
+      setVideo(mapped);
+    } finally {
+      setIsProcessingVideo(false);
     }
-    const validation = validateVideoFile(mapped);
-    if (!validation.valid) {
-      Alert.alert('Invalid video', validation.error);
-      return;
-    }
-    setVideo(mapped);
   }, [setVideo]);
 
   const captureVideo = useCallback(async () => {
@@ -70,25 +80,30 @@ export const useMediaPicker = () => {
       return;
     }
 
-    const result = await launchCamera({
-      mediaType: 'video',
-      videoQuality: 'high',
-      durationLimit: VIDEO_CONSTRAINTS.maxDurationSec,
-    });
-    if (result.didCancel || !result.assets?.[0]) {
-      return;
-    }
+    setIsProcessingVideo(true);
+    try {
+      const result = await launchCamera({
+        mediaType: 'video',
+        videoQuality: 'high',
+        durationLimit: VIDEO_CONSTRAINTS.maxDurationSec,
+      });
+      if (result.didCancel || !result.assets?.[0]) {
+        return;
+      }
 
-    const mapped = mapPickerAssetToVideo(result.assets[0]);
-    if (!mapped) {
-      return;
+      const mapped = mapPickerAssetToVideo(result.assets[0]);
+      if (!mapped) {
+        return;
+      }
+      const validation = validateVideoFile(mapped);
+      if (!validation.valid) {
+        Alert.alert('Invalid video', validation.error);
+        return;
+      }
+      setVideo(mapped);
+    } finally {
+      setIsProcessingVideo(false);
     }
-    const validation = validateVideoFile(mapped);
-    if (!validation.valid) {
-      Alert.alert('Invalid video', validation.error);
-      return;
-    }
-    setVideo(mapped);
   }, [setVideo]);
 
   const pickImages = useCallback(async () => {
@@ -151,6 +166,7 @@ export const useMediaPicker = () => {
 
   return {
     video,
+    isProcessingVideo,
     pickVideoFromGallery,
     captureVideo,
     pickImages,

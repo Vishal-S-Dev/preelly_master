@@ -15,6 +15,10 @@ dependencyResolutionManagement {
     // mode (above) ignores the equivalent `allprojects{}` repo notifee's own build.gradle adds,
     // so it must be declared centrally here instead.
     maven { url("$rootDir/../node_modules/@notifee/react-native/android/libs") }
+    // Required by react-native-compressor — its Audio-compression path (TAndroidLame) is only
+    // published on JitPack, not Maven Central/Google. Same PREFER_SETTINGS reason as above: the
+    // library's own build.gradle declares this repo itself, but that declaration is ignored.
+    maven { url("https://jitpack.io") }
   }
 }
 

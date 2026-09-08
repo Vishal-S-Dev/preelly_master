@@ -4,7 +4,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FormField } from '../../../types/dynamicForm.types';
 import { CreatePostStackParamList } from '../../../types/createPost.types';
 import { useCreatePostStore } from '../../../store/createPostStore';
-import { validatePrice, validateUaePhone, validateYear } from '../../../utils/formValidation';
+import { validatePrice, validateYear } from '../../../utils/formValidation';
+// import { validateUaePhone } from '../../../utils/formValidation';
 import { FormCheckboxGroup } from '../../components/forms/FormCheckboxGroup';
 import { FormDropdown } from '../../components/forms/FormDropdown';
 import { FormRadioGroup } from '../../components/forms/FormRadioGroup';
@@ -19,7 +20,7 @@ type Props = NativeStackScreenProps<CreatePostStackParamList, 'CreatePostFormSte
 
 export const DynamicFormStepScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useCreatePostStyles();
-  const { categoryName, phone, price, dynamicFields } = useCreatePostStore();
+  const { categoryName, price, dynamicFields } = useCreatePostStore();
   const {
     isLoading,
     isError,
@@ -33,10 +34,11 @@ export const DynamicFormStepScreen: React.FC<Props> = ({ navigation }) => {
   } = useDynamicFormStep('3');
 
   const onNext = useCallback(() => {
-    if (phone && !validateUaePhone(phone)) {
-      Alert.alert('Invalid phone', 'Enter a valid UAE mobile number.');
-      return;
-    }
+    // UAE mobile format validation disabled for now.
+    // if (phone && !validateUaePhone(phone)) {
+    //   Alert.alert('Invalid phone', 'Enter a valid UAE mobile number.');
+    //   return;
+    // }
     if (price && !validatePrice(price)) {
       Alert.alert('Invalid price', 'Enter a valid price.');
       return;
@@ -53,7 +55,7 @@ export const DynamicFormStepScreen: React.FC<Props> = ({ navigation }) => {
       }
     }
     navigation.navigate('CreatePostAdvancedFormStep');
-  }, [dynamicFields, navigation, phone, price, stepFields]);
+  }, [dynamicFields, navigation, price, stepFields]);
 
   const renderField = useCallback(
     (field: FormField) => {

@@ -1,10 +1,11 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { CommonActions } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { useTabBarExpansion } from '../../context/TabBarExpansionContext';
 
 const CAPSULE_BG = '#FFFFFF';
 const INACTIVE_ICON_COLOR = '#8E8E93';
@@ -35,17 +36,15 @@ export const ExpandableCapsuleTabBar: React.FC<BottomTabBarProps> = ({
   insets,
 }) => {
   const theme = useAppTheme();
-  const [expanded, setExpanded] = useState(false);
+  const { expanded, setExpanded } = useTabBarExpansion();
 
   const toggleExpanded = useCallback(() => {
-    setExpanded(prev => {
-      const next = !prev;
-      AccessibilityInfo.announceForAccessibility(
-        next ? 'Navigation expanded' : 'Navigation collapsed',
-      );
-      return next;
-    });
-  }, []);
+    const next = !expanded;
+    AccessibilityInfo.announceForAccessibility(
+      next ? 'Navigation expanded' : 'Navigation collapsed',
+    );
+    setExpanded(next);
+  }, [expanded, setExpanded]);
 
   return (
     <View

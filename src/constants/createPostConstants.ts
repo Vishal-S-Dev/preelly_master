@@ -73,9 +73,9 @@ export const MOTORS_DYNAMIC_FIELDS = [
 ];
 
 export const VIDEO_CONSTRAINTS = {
-  maxSizeBytes: 40 * 1024 * 1024,
+  maxSizeBytes: 250 * 1024 * 1024,
   maxDurationSec: 120,
-  minDurationSec: 3,
+  minDurationSec: 15,
   aspectRatio: 16 / 9,
   aspectTolerance: 0.08,
   maxImages: 10,

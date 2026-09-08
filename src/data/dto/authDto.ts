@@ -6,6 +6,14 @@ export interface LoginRequestDTO {
   password: string;
 }
 
+/** Set when an OTP send/verify is attaching a second channel to an already-verified
+ * account (phone→email or email→phone linking during registration) rather than a plain
+ * login/signup OTP. Routes the request to the backend's dedicated attach/complete
+ * endpoints, which correlate by the already-verified channel — the generic send-otp/
+ * verify-otp pair only correlates by the channel being verified right now, so it can't
+ * merge onto the existing account and would silently create a disconnected duplicate. */
+export type AuthLinkMode = 'attach_email' | 'attach_phone';
+
 /** Client OTP session — phone context stored for verify on signup. */
 export interface SendOtpRequestDTO {
   mode: AuthMode;
@@ -14,6 +22,7 @@ export interface SendOtpRequestDTO {
   phone?: string;
   phoneCountryCode?: string;
   phoneCountryIso?: string;
+  linkMode?: AuthLinkMode;
 }
 
 export interface AuthUserResponseDto {
@@ -67,6 +76,39 @@ export interface VerifyOtpRequestDto {
   phoneCountryIso?: string;
   /** FCM device token, attached best-effort so the backend can register it at login time. */
   deviceToken?: string;
+  linkMode?: AuthLinkMode;
+}
+
+export interface AttachEmailRequestDto {
+  phone: string;
+  phoneCountryCode?: string;
+  phoneCountryIso?: string;
+  email: string;
+}
+
+export interface AttachPhoneRequestDto {
+  email: string;
+  phone: string;
+  phoneCountryCode?: string;
+  phoneCountryIso?: string;
+}
+
+export interface AttachChannelResponseDto {
+  message?: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface CompleteVerifyEmailRequestDto {
+  email: string;
+  otp: string;
+}
+
+export interface CompleteVerifyPhoneRequestDto {
+  phone: string;
+  otp: string;
+  phoneCountryCode?: string;
+  phoneCountryIso?: string;
 }
 
 export interface AppleSignInRequestDto {

@@ -1,6 +1,10 @@
 import { AuthRepository } from '../repository/AuthRepository';
 import {
   AppleSignInRequestDto,
+  AttachEmailRequestDto,
+  AttachPhoneRequestDto,
+  CompleteVerifyEmailRequestDto,
+  CompleteVerifyPhoneRequestDto,
   SendOtpRequestDTO,
   VerifyOtpRequestDto,
 } from '../../data/dto/authDto';
@@ -20,6 +24,38 @@ export class VerifyOtpUseCase {
       otp: request.otp.trim(),
       email: request.email?.trim().toLowerCase(),
     });
+  }
+}
+
+export class AttachEmailUseCase {
+  constructor(private readonly repo: AuthRepository) {}
+  execute(request: AttachEmailRequestDto) {
+    return this.repo.attachEmail({ ...request, email: request.email.trim().toLowerCase() });
+  }
+}
+
+export class AttachPhoneUseCase {
+  constructor(private readonly repo: AuthRepository) {}
+  execute(request: AttachPhoneRequestDto) {
+    return this.repo.attachPhone(request);
+  }
+}
+
+export class CompleteVerifyEmailUseCase {
+  constructor(private readonly repo: AuthRepository) {}
+  execute(request: CompleteVerifyEmailRequestDto) {
+    return this.repo.completeVerifyEmail({
+      ...request,
+      otp: request.otp.trim(),
+      email: request.email.trim().toLowerCase(),
+    });
+  }
+}
+
+export class CompleteVerifyPhoneUseCase {
+  constructor(private readonly repo: AuthRepository) {}
+  execute(request: CompleteVerifyPhoneRequestDto) {
+    return this.repo.completeVerifyPhone({ ...request, otp: request.otp.trim() });
   }
 }
 
