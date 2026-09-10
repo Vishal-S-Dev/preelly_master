@@ -45,7 +45,7 @@ const STORAGE_BENEFITS = [
 
 export const BuyPackageScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useStableSafeAreaInsets();
-  const { listing, adPackage, productId } = route.params;
+  const { listing, adPackage, productId, paymentFlow = 'post-ad' } = route.params;
   const [storageEnabled, setStorageEnabled] = useState(false);
   const payingLock = useRef(false);
 
@@ -111,7 +111,7 @@ export const BuyPackageScreen: React.FC<Props> = ({ navigation, route }) => {
       openCcavenuePaymentWebView(navigation, {
         session,
         closeCreatePost: true,
-        paymentFlow: 'post-ad',
+        paymentFlow,
       });
     } catch (error) {
       Alert.alert(
@@ -127,6 +127,7 @@ export const BuyPackageScreen: React.FC<Props> = ({ navigation, route }) => {
     listing.productId,
     navigation,
     paying,
+    paymentFlow,
     productId,
     selectedFacility,
     setError,

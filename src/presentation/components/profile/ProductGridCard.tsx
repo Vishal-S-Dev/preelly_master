@@ -7,6 +7,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { ProfileProductGridItem } from '../../../types/profile.types';
+import { LISTING_STATUS_TONE_STYLES, resolveListingStatusBadge } from '../../../utils/listingStatusBadge';
 import { useProfileStyles } from '../../hooks/useProfileStyles';
 
 interface Props {
@@ -32,6 +33,7 @@ export const ProductGridCard = memo<Props>(({ item, onPress }) => {
   }));
 
   const priceLabel = `${item.currency} ${item.price.toLocaleString()}`;
+  const statusBadge = resolveListingStatusBadge(item);
 
   return (
     <AnimatedPressable
@@ -55,6 +57,16 @@ export const ProductGridCard = memo<Props>(({ item, onPress }) => {
         </Text>
       </View>
       <View style={cardStyles.bottomTextWrap}>
+        {statusBadge ? (
+          <View
+            style={[cardStyles.statusBadge, { backgroundColor: LISTING_STATUS_TONE_STYLES[statusBadge.tone].backgroundColor }]}>
+            <Text style={[cardStyles.statusText, { color: LISTING_STATUS_TONE_STYLES[statusBadge.tone].color }]}>
+              {statusBadge.label}
+            </Text>
+          </View>
+        ) : (
+          <View />
+        )}
         <Text style={cardStyles.price}>{priceLabel}</Text>
       </View>
     </AnimatedPressable>
@@ -89,11 +101,22 @@ const cardStyles = StyleSheet.create({
     right: 8,
     bottom: 8,
     left: 8,
+    flexDirection: 'row',
     alignItems: 'flex-end',
+    justifyContent: 'space-between',
   },
   price: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
+  },
+  statusBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  statusText: {
+    fontSize: 8,
+    fontWeight: '700',
   },
 });

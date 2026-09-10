@@ -2,14 +2,12 @@ import React, { useCallback } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { CommonActions } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useTabBarExpansion } from '../../context/TabBarExpansionContext';
+import MenuOpenIcon from '../../../../assets/icons/menu_open.svg';
 
 const CAPSULE_BG = '#FFFFFF';
-const INACTIVE_ICON_COLOR = '#8E8E93';
-const COLLAPSED_ICON_COLOR = '#1F2937';
 /** Breathing room below the safe-area inset — kept small so the bar sits low, close to the
  * screen edge, clear of the product-info overlay (title/price/captions) sitting above it. */
 const MIN_BOTTOM_MARGIN = 2;
@@ -101,11 +99,14 @@ export const ExpandableCapsuleTabBar: React.FC<BottomTabBarProps> = ({
                   >
                     {options.tabBarIcon?.({
                       focused,
-                      color: focused ? theme.primary : INACTIVE_ICON_COLOR,
+                      color: focused ? theme.primary : theme.text,
                       size: 22,
                     })}
                     <Text
-                      style={[styles.itemLabel, focused && { color: theme.primary }]}
+                      style={[
+                        styles.itemLabel,
+                        { color: focused ? theme.primary : theme.text },
+                      ]}
                       numberOfLines={1}
                     >
                       {label}
@@ -126,7 +127,7 @@ export const ExpandableCapsuleTabBar: React.FC<BottomTabBarProps> = ({
                 accessibilityLabel="Expand navigation"
                 accessibilityHint="Opens the full navigation menu"
               >
-                <Icon name="menu" size={24} color={COLLAPSED_ICON_COLOR} />
+                <MenuOpenIcon width={20} height={14} />
               </Pressable>
             </Animated.View>
           )}
@@ -192,15 +193,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 66,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 24,
+    borderRadius: 28,
     gap: 2,
   },
   itemLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: INACTIVE_ICON_COLOR,
     marginTop: 2,
   },
 });

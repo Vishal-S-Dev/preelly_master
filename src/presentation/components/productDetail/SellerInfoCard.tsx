@@ -44,7 +44,7 @@ export const SellerInfoCard = memo<Props>(({ seller, onViewAll, onPressSeller })
           />
         )}
         <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '800', fontSize: 16, color: '#111827' }}>{seller.name}</Text>
+          <Text style={{ fontWeight: '600', fontSize: 16, color: '#111827' }}>{seller.name}</Text>
           <Text style={{ color: '#6B7280', marginTop: 2 }}>{seller.role}</Text>
           {seller.postsCount > 0 || seller.followingCount > 0 ? (
             <Text style={{ color: '#6B7280', marginTop: 4, fontSize: 12 }}>

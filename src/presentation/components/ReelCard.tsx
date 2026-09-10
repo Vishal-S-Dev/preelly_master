@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -13,12 +14,17 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Product } from '../../domain/models/Product';
+import { PromotedBadge } from './common/PromotedBadge';
 import { shouldSkipProductView } from '../../services/productView.service';
+import { formatPostedDate } from '../../services/product.service';
+import { getProductFieldIcon } from '../../utils/productFieldIcons';
+import { getShortLocationLabel } from '../../utils/locationLabel';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
 import { markProductViewed } from '../redux/slices/productSlice';
 import { ActionButtons } from './ActionButtons';
 import { GradientPriceBadge } from './common/GradientPriceBadge';
 import { VideoPlayer, VideoPlayerFullscreen } from './VideoPlayer';
+import { pdStyles } from './productDetail/productDetailStyles';
 import LinearGradient from "react-native-linear-gradient";
 
 interface Props {
@@ -57,6 +63,10 @@ const DOUBLE_TAP_GUARD_MS = 400;
 // ~56pt + its own bottom margin) — the device's bottom safe-area inset (home indicator /
 // gesture-nav bar) is added on top of this per-device, not baked into the constant itself.
 const FLOATING_NAV_CLEARANCE = 70;
+
+// The meta row is a single-line, horizontally scrollable strip, so all available chips
+// (location first) can be shown — this just bounds it against unbounded future field growth.
+const REEL_META_MAX_FIELDS = 5;
 
 const areReelCardPropsEqual = (prev: Props, next: Props): boolean =>
   prev.product.id === next.product.id &&
@@ -97,6 +107,48 @@ export const ReelCard: React.FC<Props> = React.memo(
     const insets = useSafeAreaInsets();
     const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
     const isGuest = useAppSelector(state => state.auth.isGuest);
+
+    // Meta chip row (year / mileage / regional specs / posted date) shown in place of the
+    // raw location text — mirrors ProductHeaderCard's metaRow, built from the lighter fields
+    // available on the feed Product (no productAttributes on this shape).
+    const metaFields = useMemo(() => {
+      const fields: { key: string; icon: string; value: string }[] = [];
+      const shortLocation = getShortLocationLabel(product.location);
+      if (shortLocation) {
+        fields.push({
+          key: 'location',
+          icon: getProductFieldIcon('location'),
+          value: shortLocation,
+        });
+      }
+      if (product.year) {
+        fields.push({ key: 'year', icon: getProductFieldIcon('year'), value: product.year });
+      }
+      if (typeof product.mileage === 'number' && Number.isFinite(product.mileage)) {
+        fields.push({
+          key: 'mileage',
+          icon: getProductFieldIcon('mileage'),
+          value: `${product.mileage.toLocaleString('en-US')} km`,
+        });
+      }
+      if (product.regionalSpecs) {
+        fields.push({
+          key: 'regionalSpecs',
+          icon: getProductFieldIcon('regionalSpecs'),
+          value: product.regionalSpecs,
+        });
+      }
+      fields.push({
+        key: 'postedOn',
+        icon: getProductFieldIcon('postedOn'),
+        value: formatPostedDate(product.createdAt),
+      });
+      // The reel card's meta row shares its line with the availability badge (unlike
+      // ProductHeaderCard's full-width row), so keep it to the 2 most relevant chips —
+      // otherwise the row overflows past the badge instead of truncating gracefully.
+      fields.length = Math.min(fields.length, REEL_META_MAX_FIELDS);
+      return fields;
+    }, [product.location, product.year, product.mileage, product.regionalSpecs, product.createdAt]);
     const heartScale = useSharedValue(0);
     const heartOpacity = useSharedValue(0);
 
@@ -298,6 +350,10 @@ export const ReelCard: React.FC<Props> = React.memo(
         <View style={styles.topOverlay} />
         <View style={styles.bottomOverlay} />
 
+        {product.isPromoted ? (
+          <PromotedBadge style={[styles.promotedBadge, { top: insets.top + 12 }]} />
+        ) : null}
+
         <Animated.Text style={[styles.heart, heartStyle]}>❤️</Animated.Text>
 
         {centerIcon ? (
@@ -347,29 +403,34 @@ export const ReelCard: React.FC<Props> = React.memo(
           style={styles.bottomShadow}
         />
         <View style={[styles.bottom, { paddingBottom: FLOATING_NAV_CLEARANCE + insets.bottom }]}>
-          <View style={styles.row}>
-            <Pressable
-              style={styles.titlePressable}
-              onPress={() => onOpenDetail(product)}
-              accessibilityRole="button"
-              accessibilityLabel={`View details for ${product.title}`}>
-              <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
-                {product.title}
-              </Text>
-            </Pressable>
-            <GradientPriceBadge
-              currency={product.currency}
-              price={product.price}
-              size="compact"
-            />
-          </View>
-          <View style={styles.descRow}>
-            <View style={styles.specsRow}>
+          <View style={styles.bottomStack}>
+            {/* Row 1: title (left) — price badge (right). */}
+            <View style={styles.titleRow}>
+              <Pressable
+                style={styles.titlePressable}
+                onPress={() => onOpenDetail(product)}
+                accessibilityRole="button"
+                accessibilityLabel={`View details for ${product.title}`}>
+                <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+                  {product.title}
+                </Text>
+              </Pressable>
+              <GradientPriceBadge
+                currency={product.currency}
+                price={product.price}
+                size="compact"
+              />
+            </View>
+
+            {/* Row 2: meta chip row (left) — availability badge (right), same line so the two
+                stay left/right aligned with each other regardless of the title/price row's height. */}
+            <View style={styles.metaAvailabilityRow}>
               {/*<Text style={styles.description}>2022</Text>
               <Text style={styles.dot}>•</Text>
               <Text style={styles.description}>76,500 km</Text>
               <Text style={styles.dot}>•</Text>
               <Text style={styles.description}>American Specs</Text>*/}
+              {/* Replaced by the metaRow chip row below (year / mileage / regional specs / posted date).
               <Pressable
                 style={styles.locationPressable}
                 onPress={() => onOpenDetail(product)}
@@ -383,14 +444,34 @@ export const ReelCard: React.FC<Props> = React.memo(
                   {product.location}
                 </Text>
               </Pressable>
-            </View>
-            <View
-              style={[
-                styles.locationBadge,
-                isSold ? styles.soldBadge : styles.availableBadge,
-              ]}
-            >
-              <Text style={styles.locationText}>{availabilityLabel}</Text>
+              */}
+              {/* Single-line, horizontally scrollable meta strip (Instagram-tag-row style):
+                  each chip still ellipses if its own text is too long, and the whole strip
+                  scrolls to reveal further chips instead of wrapping or clipping the row. */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.metaScroll}
+                contentContainerStyle={styles.metaScrollContent}
+              >
+                {metaFields.map(field => (
+                  <View key={field.key} style={pdStyles.metaItem}>
+                    <Icon name={field.icon} size={14} color="#E2E8F0" />
+                    <Text style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
+                      {field.value}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+              <View
+                style={[
+                  styles.locationBadge,
+                  isSold ? styles.soldBadge : styles.availableBadge,
+                  styles.availabilityAlign,
+                ]}
+              >
+                <Text style={styles.locationText}>{availabilityLabel}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -436,6 +517,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     top: '45%',
     //backgroundColor: 'rgba(0,0,0,0.34)',
+  },
+  promotedBadge: {
+    position: 'absolute',
+    left: 12,
   },
   heart: {
     position: 'absolute',
@@ -542,18 +627,30 @@ const styles = StyleSheet.create({
     height: 240, // adjust as needed
     justifyContent: 'flex-end',
   },
-  row: {
+  // Vertical stack of the two rows below.
+  bottomStack: {
+    width: '100%',
+    gap: 6,
+  },
+  // Row 1: title (left) — price badge (right).
+  titleRow: {
     flexDirection: 'row',
     width: '100%',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  descRow: {
+  // Row 2: meta chip row (left) — availability badge (right), on the same line so they stay
+  // aligned with each other independent of the title/price row's height.
+  metaAvailabilityRow: {
     flexDirection: 'row',
     width: '100%',
-    marginTop: 6,
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  // locationBadge's shared `alignSelf: 'center'` is for its other (row) usages — override so it
+  // sits on the metaAvailabilityRow's cross-axis center instead of stretching/centering oddly.
+  availabilityAlign: {
+    alignSelf: 'center',
   },
   priceRow: {
     flexDirection: 'row',
@@ -604,5 +701,27 @@ const styles = StyleSheet.create({
   // instead of letting `numberOfLines`/`ellipsizeMode` on the Text below actually truncate it.
   locationPressable: {
     flexShrink: 1,
+  },
+  // Overrides pdStyles.metaRow's wrap/margin (tuned for a light detail-page card) so the chip
+  // row stays on one line and sits flush inside ReelCard's dark video overlay.
+  metaScroll: {
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 10,
+  },
+  metaScrollContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingRight: 4,
+  },
+  metaText: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    fontWeight: '600',
+    // Defensive cap so a single unexpectedly long chip value (e.g. an unshortened address)
+    // still ellipses via numberOfLines instead of stretching the row — the strip itself
+    // handles overall overflow by scrolling, this just bounds one chip's own width.
+    maxWidth: 160,
   },
 });

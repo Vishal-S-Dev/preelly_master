@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { PackageApi } from '../../data/api/PackageApi';
 import { AdPackage } from '../../types/package.types';
 
-export const useAdPackages = () => {
+/** Passing `productId` scopes the returned packages to that product's category + price
+ * band (mirrors web's `SelectPackagePage`, which always calls with `productId`) instead of
+ * the full, category-agnostic package list. */
+export const useAdPackages = (productId?: string) => {
   const [packages, setPackages] = useState<AdPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,7 +15,7 @@ export const useAdPackages = () => {
     setLoading(true);
     setError(null);
     try {
-      const list = await PackageApi.getActivePackages();
+      const list = await PackageApi.getActivePackages(productId);
       setPackages(list);
       const recommended = list.find(item => item.isRecommended);
       setSelectedId(prev => prev ?? recommended?.id ?? list[0]?.id ?? null);
@@ -22,7 +25,7 @@ export const useAdPackages = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [productId]);
 
   useEffect(() => {
     load();

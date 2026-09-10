@@ -18,8 +18,14 @@ export interface SearchListingItem {
   location: string;
   imageUrl: string;
   hasVideo: boolean;
+  /** Absolute preview video URL, present only when `hasVideo` is true. */
+  videoUrl?: string;
   isSaved?: boolean;
-  isFeatured?: boolean;
+  /** True only while this listing occupies a paid, currently-valid, budget-available
+   * promoted slot — server-computed per search request (mirrors web's "Promoted" badge). */
+  isPromoted?: boolean;
+  isSold?: boolean;
+  status?: string;
 }
 
 export type SearchCity =

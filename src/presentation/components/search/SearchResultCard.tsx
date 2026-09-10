@@ -8,7 +8,6 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import Video from 'react-native-video';
 import Animated, {
@@ -17,6 +16,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { SearchListingItem } from '../../../types/search.types';
+import { PromotedBadge } from '../common/PromotedBadge';
 import {
   LISTING_STATUS_TONE_STYLES,
   resolveListingStatusBadge,
@@ -159,11 +159,7 @@ export const SearchResultCard = memo<Props>(
             pointerEvents="none"
           />
 
-          {item.isFeatured ? (
-            <View style={styles.featuredBadge} pointerEvents="none">
-              <Text style={styles.featuredText}>Featured</Text>
-            </View>
-          ) : null}
+          {item.isPromoted ? <PromotedBadge style={styles.promotedBadge} /> : null}
 
           {/*{item.hasVideo ? (
         <View style={styles.playBadge} pointerEvents="none">
@@ -349,20 +345,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'right',
   },
-  featuredBadge: {
+  promotedBadge: {
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: 'rgba(0,0,255,0.88)',
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  featuredText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '800',
-    textTransform: 'uppercase',
   },
   playBadge: {
     position: 'absolute',

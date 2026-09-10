@@ -38,7 +38,9 @@ export const PaymentSuccessScreen: React.FC<Props> = ({ navigation, route }) => 
         message ||
         (paymentFlow === 'cart'
           ? 'Your purchase was completed successfully. The seller will be notified.'
-          : 'Your payment was completed successfully. An invoice is available in Transactions.')
+          : paymentFlow === 'boost'
+            ? 'Your ad has been boosted and is now getting extra visibility.'
+            : 'Your payment was completed successfully. An invoice is available in Transactions.')
       }
       orderId={orderId}
       amount={amount}

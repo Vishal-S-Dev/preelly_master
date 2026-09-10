@@ -26,10 +26,14 @@ export const createPostService = {
   ): Promise<{ id?: string }> {
     const contactName = await resolveContactName();
     // Compressed only at the point of upload — preview/trim keep working against the original
-    // file untouched, this just shrinks what actually goes over the wire.
-    const uploadDraft = draft.video
-      ? { ...draft, video: await compressVideoForUpload(draft.video) }
-      : draft;
+    // file untouched, this just shrinks what actually goes over the wire. Written as plain
+    // sequential statements rather than a ternary embedded in an object spread — that shape
+    // previously caused the compressed video to silently vanish from the outgoing draft.
+    let uploadVideo = draft.video;
+    if (draft.video) {
+      uploadVideo = await compressVideoForUpload(draft.video);
+    }
+    const uploadDraft = { ...draft, video: uploadVideo };
     const formData = buildProductFormData(uploadDraft, {
       contactName,
       formFields: options?.formFields,

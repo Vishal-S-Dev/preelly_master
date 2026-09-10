@@ -70,5 +70,20 @@ target 'Preelly' do
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
       end
     end
+
+    # React-jsitooling and React-RuntimeCore both set `header_dir = "react/runtime"`
+    # (upstream react-native podspec bug — their `module_name:` overrides only apply under
+    # `use_frameworks!`), so under static linkage + `use_modular_headers!` CocoaPods derives the
+    # same Clang module name ("react_runtime") for both, and any target that pulls in both
+    # (e.g. React-RuntimeHermes when building RN core from source via RCT_USE_PREBUILT_RNCORE=0)
+    # fails with "Redefinition of module 'react_runtime'". React-jsitooling's headers are plain
+    # C++ (`#include`d, never `@import`ed), so disabling its module generation is safe and
+    # resolves the collision without needing use_frameworks!.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'React-jsitooling'
+      target.build_configurations.each do |config|
+        config.build_settings['DEFINES_MODULE'] = 'NO'
+      end
+    end
   end
 end

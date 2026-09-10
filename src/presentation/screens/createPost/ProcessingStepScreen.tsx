@@ -29,7 +29,7 @@ export const ProcessingStepScreen: React.FC<Props> = ({ navigation }) => {
     animate(setUploadProgress, 90);
     animate(setTranscriptionProgress, 85);
     animate(setExtractionProgress, 90);
-    mutation.mutate(undefined, {
+    mutation.mutate({}, {
       onSuccess: () => {
         if (!mounted) return;
         setUploadProgress(100);

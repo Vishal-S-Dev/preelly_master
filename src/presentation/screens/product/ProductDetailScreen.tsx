@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert, Dimensions,
   Linking,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -72,6 +73,32 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     dispatch(saveProduct(detail.product.id));
     setLocalSaved(prev => !(prev ?? detail.product.isSaved));
   }, [detail, dispatch]);
+
+  const handleShowMap = useCallback(async () => {
+    if (!detail) {
+      return;
+    }
+    const lat = detail.locationLatitude;
+    const lng = detail.locationLongitude;
+    if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      Alert.alert('Location unavailable', 'This listing does not have a map location set.');
+      return;
+    }
+    const label = encodeURIComponent(detail.locationTitle || detail.locationAddress || 'Location');
+    const nativeUrl = Platform.select({
+      ios: `maps:0,0?q=${label}@${lat},${lng}`,
+      android: `geo:${lat},${lng}?q=${lat},${lng}(${label})`,
+      default: undefined,
+    });
+    const webUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+    try {
+      const canOpenNative = nativeUrl ? await Linking.canOpenURL(nativeUrl) : false;
+      await Linking.openURL(canOpenNative && nativeUrl ? nativeUrl : webUrl);
+    } catch {
+      Alert.alert('Unable to open map', 'Please try again later.');
+    }
+  }, [detail]);
 
   const openSimilar = useCallback(
     (id: string) => {
@@ -245,9 +272,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
               address={detail.locationAddress}
               latitude={detail.locationLatitude}
               longitude={detail.locationLongitude}
-              onShowMap={() =>
-                Alert.alert('Map', 'Map navigation will open here.')
-              }
+              onShowMap={handleShowMap}
             />
           </View>
 
@@ -255,7 +280,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
             <SellerInfoCard
               seller={detail.seller}
               onViewAll={() =>
-                Alert.alert('Seller', 'Seller listings will open here.')
+                navigation.navigate('OtherProfile', { userId: detail.seller.id })
               }
               onPressSeller={(sellerId) =>
                 navigation.navigate('OtherProfile', { userId: sellerId })

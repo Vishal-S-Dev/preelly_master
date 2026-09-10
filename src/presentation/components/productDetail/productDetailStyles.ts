@@ -59,7 +59,7 @@ export const pdStyles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: wp('4.6%'),
-    fontWeight: '800',
+    fontWeight: '700',
     color: PD_COLORS.text,
     marginBottom: hp('1.2%'),
   },
@@ -176,6 +176,7 @@ export const pdStyles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 14,
     marginTop: hp('1.2%'),
+    marginRight: wp('30%'),
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   metaText: { color: PD_COLORS.muted, fontSize: wp('3.2%'), fontWeight: '600' },
@@ -258,7 +259,7 @@ export const pdStyles = StyleSheet.create({
     fontSize: wp('3.1%'),
   },
   mapCard: {
-    height: hp('18%'),
+    height: hp('28%'),
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#E5E7EB',

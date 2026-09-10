@@ -1,6 +1,15 @@
-import React, { memo, useMemo } from 'react';
-import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import React, { memo, useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Video from 'react-native-video';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -11,6 +20,9 @@ import { SimilarAdItem } from '../../../types/product.types';
 interface Props {
   item: SimilarAdItem;
   onPress?: (id: string) => void;
+  /** Whether this card is currently visible in the carousel viewport — same contract as
+   * SearchResultCard's `isVisible`: mounted (and playing) only while true. */
+  isVisible?: boolean;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -26,9 +38,11 @@ const resolveAvailabilityStyle = (availability: string) => {
   return { backgroundColor: '#22C55E', label: availability || 'Available' };
 };
 
-export const SimilarAdCard = memo<Props>(({ item, onPress }) => {
+export const SimilarAdCard = memo<Props>(({ item, onPress, isVisible = false }) => {
   const { width } = useWindowDimensions();
   const scale = useSharedValue(1);
+  const [videoError, setVideoError] = useState(false);
+  const [videoBuffering, setVideoBuffering] = useState(false);
 
   const cardWidth = useMemo(() => width * 0.48, [width]);
   const cardHeight = useMemo(() => cardWidth * 1.60, [cardWidth]);
@@ -37,6 +51,18 @@ export const SimilarAdCard = memo<Props>(({ item, onPress }) => {
     () => resolveAvailabilityStyle(item.availability ?? 'Available'),
     [item.availability],
   );
+
+  const videoUrl = item.videoUrl;
+  const isPlaying = Boolean(videoUrl) && !videoError && isVisible;
+
+  const handleVideoError = useCallback(() => {
+    setVideoError(true);
+    setVideoBuffering(false);
+  }, []);
+
+  const handleVideoBuffer = useCallback(({ isBuffering }: { isBuffering: boolean }) => {
+    setVideoBuffering(isBuffering);
+  }, []);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -65,6 +91,31 @@ export const SimilarAdCard = memo<Props>(({ item, onPress }) => {
       ) : (
         <View style={[styles.image, styles.imageFallback]} />
       )}
+
+      {/* Mounted only while visible — same rationale as SearchResultCard: releases the decoder
+          on scroll-out and restarts the preview from the beginning on re-entry. */}
+      {isPlaying && videoUrl ? (
+        <Video
+          source={{ uri: videoUrl }}
+          style={styles.image}
+          resizeMode="cover"
+          muted
+          repeat
+          paused={false}
+          playInBackground={false}
+          playWhenInactive={false}
+          poster={item.imageUrl || undefined}
+          posterResizeMode="cover"
+          onError={handleVideoError}
+          onBuffer={handleVideoBuffer}
+        />
+      ) : null}
+
+      {isPlaying && videoBuffering ? (
+        <View style={styles.videoLoader} pointerEvents="none">
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        </View>
+      ) : null}
 
       <LinearGradient
         colors={['rgba(0,0,0,0.72)', 'rgba(0,0,0,0.28)', 'transparent']}
@@ -110,12 +161,17 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   image: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
   imageFallback: {
     backgroundColor: '#374151',
+  },
+  videoLoader: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   topGradient: {
     position: 'absolute',

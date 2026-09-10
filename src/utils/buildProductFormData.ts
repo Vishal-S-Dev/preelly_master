@@ -180,7 +180,7 @@ export const buildProductFormData = (
     } as unknown as Blob);
   }
 
-  draft.images.forEach((image, index) => {
+  (draft.images ?? []).forEach((image, index) => {
     formData.append('images', {
       uri: image.uri,
       name: `photo_${index}.jpg`,

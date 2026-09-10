@@ -51,6 +51,8 @@ const mapProductToGrid = (dto: ProductDTO, seed: number): ProfileProductGridItem
     price: dto.price ?? 0,
     currency: dto.currency ?? 'AED',
     imageUrl: resolveListingImage(dto, seed),
+    isSold: dto.isSold,
+    status: dto.status,
   };
 };
 

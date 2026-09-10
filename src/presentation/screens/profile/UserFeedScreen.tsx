@@ -36,6 +36,7 @@ import { useReelPlaybackGate } from '../../hooks/useReelPlaybackGate';
 import { useUserFeedData } from '../../hooks/useUserFeedData';
 import { RootStackParamList } from '../../navigation/types';
 import { likeProduct, saveProduct } from '../../redux/slices/productSlice';
+import { CheckoutListingSnapshot } from '../../../types/checkout.types';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -43,6 +44,22 @@ const VIEWABILITY_CONFIG = {
   minimumViewTime: 200,
   itemVisiblePercentThreshold: 80,
 };
+
+/** Builds the checkout-summary snapshot shown on the package/pay screens from an already-live
+ * listing — used when entering the Boost flow, mirroring `ReelCard`'s own price/mileage
+ * formatting conventions. `categoryName` has no `Product` source field; it's decorative
+ * checkout-summary text only, not payment-critical, so a generic fallback is used. */
+const buildCheckoutListingSnapshot = (product: Product): CheckoutListingSnapshot => ({
+  productId: product.id,
+  title: product.title,
+  categoryName: 'Listing',
+  imageUrl: product.imageUrl || undefined,
+  year: product.year,
+  mileage:
+    typeof product.mileage === 'number' ? `${product.mileage.toLocaleString('en-US')} km` : undefined,
+  priceLabel: `${product.currency} ${product.price.toLocaleString()}`,
+  priceValue: product.price,
+});
 
 type UserFeedRoute = RouteProp<RootStackParamList, 'UserFeed'>;
 
@@ -222,7 +239,21 @@ export const UserFeedScreen: React.FC = () => {
             {
               text: 'Delete',
               style: 'destructive',
-              onPress: () => undefined,
+              onPress: () => {
+                ProductApi.deleteProduct(product.id)
+                  .then(() => {
+                    removeProduct(product.id);
+                    Alert.alert('Deleted', 'Ad deleted');
+                  })
+                  .catch(err => {
+                    const message =
+                      err && typeof err === 'object' && 'response' in err
+                        ? (err as { response?: { data?: { message?: string } } }).response?.data
+                            ?.message
+                        : undefined;
+                    Alert.alert('Unable to delete', message || 'Failed to delete ad');
+                  });
+              },
             },
           ],
         );
@@ -269,10 +300,68 @@ export const UserFeedScreen: React.FC = () => {
         return;
       }
 
+      if (action === 'warehouse') {
+        Alert.alert(
+          'Move to Warehouse',
+          'Move this ad to your warehouse? The ad itself stays published.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Move',
+              onPress: () => {
+                ProductApi.moveToWarehouse(product.id)
+                  .then(({ alreadyInWarehouse }) => {
+                    // Matches web: the ad is copied into the warehouse, not removed from
+                    // this list — the listing itself stays live/published, so there's no
+                    // `removeProduct` call here (unlike delete/unpublish above).
+                    Alert.alert(
+                      alreadyInWarehouse ? 'Already in Warehouse' : 'Moved to Warehouse',
+                      alreadyInWarehouse
+                        ? 'Product already exists in warehouse'
+                        : 'Product successfully moved to warehouse',
+                    );
+                  })
+                  .catch(err => {
+                    const message =
+                      err && typeof err === 'object' && 'response' in err
+                        ? (err as { response?: { data?: { message?: string } } }).response?.data
+                            ?.message
+                        : undefined;
+                    Alert.alert('Unable to move', message || 'Failed to move ad to warehouse');
+                  });
+              },
+            },
+          ],
+        );
+        return;
+      }
+
+      if (action === 'boost') {
+        Alert.alert(
+          'Boost this Ad',
+          "You'll be able to choose a package and pay to boost this ad's visibility.",
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Continue',
+              onPress: () => {
+                navigation.navigate('CreatePost', {
+                  screen: 'CreatePostPlaceAnAd',
+                  params: {
+                    productId: product.id,
+                    listing: buildCheckoutListingSnapshot(product),
+                    paymentFlow: 'boost',
+                  },
+                });
+              },
+            },
+          ],
+        );
+        return;
+      }
+
       const labels: Record<string, string> = {
-        warehouse: 'Move to Warehouse',
         insight: 'See Insight',
-        boost: 'Boost this Ad',
       };
 
       Alert.alert(

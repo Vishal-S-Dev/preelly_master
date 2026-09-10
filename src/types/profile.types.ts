@@ -38,6 +38,8 @@ export interface ProfileProductGridItem {
   price: number;
   currency: string;
   imageUrl: string;
+  isSold?: boolean;
+  status?: string;
 }
 
 export interface ProfileProductsPage {

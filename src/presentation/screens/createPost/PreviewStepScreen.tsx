@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useStableSafeAreaInsets } from '../../hooks/useStableSafeAreaInsets';
 import { useCreatePostStore } from '../../../store/createPostStore';
 import { CreatePostStackParamList } from '../../../types/createPost.types';
 import { createPostService } from '../../../services/createPost.service';
@@ -12,7 +11,7 @@ import { validatePrice } from '../../../utils/formValidation';
 import { resolveListingPrice } from '../../../utils/resolveListingPrice';
 import { buildFieldReviewRows } from '../../../utils/reviewFormUtils';
 import { buildCheckoutListingSnapshot } from '../../../utils/buildCheckoutListingSnapshot';
-import { CreatePostHeader } from '../../components/createPost/StepIndicator';
+import { CreatePostFooter, CreatePostHeader } from '../../components/createPost/StepIndicator';
 import { PhotoGrid } from '../../components/createPost/PhotoGrid';
 import { ReviewSection } from '../../components/createPost/ReviewSection';
 import { VideoPreview } from '../../components/createPost/VideoPreview';
@@ -23,7 +22,6 @@ type Props = NativeStackScreenProps<CreatePostStackParamList, 'CreatePostPreview
 
 export const PreviewStepScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useCreatePostStyles();
-  const insets = useStableSafeAreaInsets();
   const store = useCreatePostStore();
   const [publishing, setPublishing] = useState(false);
   const formCategoryId =
@@ -41,7 +39,29 @@ export const PreviewStepScreen: React.FC<Props> = ({ navigation }) => {
   const formFields = useMemo(() => getProductFormFields(formData?.steps), [formData?.steps]);
 
   const onPublish = useCallback(async () => {
+    // Guards a real crash: if the app was relaunched (e.g. after being reclaimed in the
+    // background) and the user's tap lands before the persisted draft finishes rehydrating,
+    // `getDraft()` below would silently return the empty default draft — category/subcategory
+    // fall back to hardcoded defaults, video/images/dynamicFields come back empty — and the
+    // request reaches the server with none of the user's actual listing data, surfacing as a
+    // confusing "Video is required" error even though the screen still shows everything
+    // correctly (it re-renders correctly once hydration finishes moments later).
+    if (!useCreatePostStore.persist.hasHydrated()) {
+      Alert.alert('One moment', 'Your draft is still loading — please try again in a second.');
+      return;
+    }
+
     const draft = store.getDraft();
+    // Defense-in-depth for the same race, and for any other future cause of a hollowed-out
+    // draft: video is mandatory from step 1 onward (MediaUploadStepScreen won't let you past
+    // it without one), so if it's missing here despite reaching Preview, the draft snapshot
+    // itself is untrustworthy — fail fast client-side with an actionable message instead of
+    // letting the server reject a request that's silently missing the user's actual listing.
+    if (!draft.video) {
+      Alert.alert('Draft not ready', 'Your video wasn’t found. Please go back and re-check it, then try again.');
+      return;
+    }
+
     const listingPrice = resolveListingPrice(draft, draft.dynamicFields, formFields);
     if (!listingPrice) {
       Alert.alert('Price required', 'Please enter a valid price before posting your ad.');
@@ -95,14 +115,14 @@ export const PreviewStepScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.subtitle}>{store.description}</Text>
         <PhotoGrid images={store.images} onRemove={() => undefined} styles={styles} readOnly />
       </ScrollView>
-      <View style={{ backgroundColor: styles.screen.backgroundColor, paddingBottom: Math.max(insets.bottom, 12) }}>
-        <View style={styles.footer}>
-          <Text style={styles.progressText}>5 of 5</Text>
-          <Pressable onPress={onPublish} disabled={publishing} style={[styles.primaryBtn, publishing && styles.primaryBtnDisabled]}>
-            <Text style={styles.primaryBtnText}>{publishing ? 'Posting...' : 'Post Ad'}</Text>
-          </Pressable>
-        </View>
-      </View>
+      <CreatePostFooter
+        backgroundColor={styles.screen.backgroundColor}
+        step={5}
+        total={5}
+        onNext={onPublish}
+        nextLabel={publishing ? 'Posting...' : 'Post Ad'}
+        disabled={publishing}
+      />
     </View>
   );
 };

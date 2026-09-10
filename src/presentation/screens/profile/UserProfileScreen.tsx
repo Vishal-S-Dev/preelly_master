@@ -43,6 +43,31 @@ const GridSkeleton: React.FC = () => {
   );
 };
 
+const ProfileHeaderSkeleton: React.FC = () => {
+  const { styles } = useProfileStyles();
+  return (
+    <View style={styles.headerBlock}>
+      <View style={styles.skeletonAvatar} />
+      <View style={styles.skeletonNameBar} />
+      <View style={styles.skeletonRatingBar} />
+      <View style={[styles.statsRow, { marginTop: 20 }]}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <View key={`stat_sk_${i}`} style={styles.statCol}>
+            <View style={styles.skeletonStatBar} />
+            <View style={styles.skeletonStatLabelBar} />
+          </View>
+        ))}
+      </View>
+      <View style={styles.skeletonActionsRow}>
+        <View style={styles.skeletonActionPill} />
+        <View style={styles.skeletonActionPill} />
+        <View style={[styles.skeletonActionPill, { flex: 0.4 }]} />
+      </View>
+      <View style={styles.skeletonBioBar} />
+    </View>
+  );
+};
+
 const EmptyGrid: React.FC = () => {
   const { styles, colors } = useProfileStyles();
   return (
@@ -66,6 +91,7 @@ export const UserProfileScreen: React.FC = () => {
     items,
     reelProducts,
     loading,
+    profileLoading,
     refreshing,
     loadingMore,
     followLoading,
@@ -245,26 +271,32 @@ export const UserProfileScreen: React.FC = () => {
           </Pressable>
         </View>
         {error ? <Text style={styles.visitorErrorText}>{error}</Text> : null}
-        <ProfileHeader profile={profile} />
-        <View style={{ paddingHorizontal: 20 }}>
-          <ProfileStats
-            stats={profile.stats}
-            onPressFollowers={openFollowers}
-            onPressFollowing={openFollowing}
-          />
-          {!isOwnProfile ? (
-            <UserProfileActionButtons
-              followState={followState}
-              followLoading={followLoading}
-              followStatusLoading={followStatusLoading}
-              messageLoading={openingChat}
-              onFollow={toggleFollow}
-              onMessage={onMessageUser}
-              onMore={openMoreMenu}
-            />
-          ) : null}
-          <ProfileBio lines={profile.bioLines} />
-        </View>
+        {profileLoading ? (
+          <ProfileHeaderSkeleton />
+        ) : (
+          <>
+            <ProfileHeader profile={profile} />
+            <View style={{ paddingHorizontal: 20 }}>
+              <ProfileStats
+                stats={profile.stats}
+                onPressFollowers={openFollowers}
+                onPressFollowing={openFollowing}
+              />
+              {!isOwnProfile ? (
+                <UserProfileActionButtons
+                  followState={followState}
+                  followLoading={followLoading}
+                  followStatusLoading={followStatusLoading}
+                  messageLoading={openingChat}
+                  onFollow={toggleFollow}
+                  onMessage={onMessageUser}
+                  onMore={openMoreMenu}
+                />
+              ) : null}
+              <ProfileBio lines={profile.bioLines} />
+            </View>
+          </>
+        )}
         {loading && items.length === 0 ? <GridSkeleton /> : null}
       </Animated.View>
     ),
@@ -275,6 +307,7 @@ export const UserProfileScreen: React.FC = () => {
       followState,
       items.length,
       loading,
+      profileLoading,
       navigation,
       onMessageUser,
       openingChat,

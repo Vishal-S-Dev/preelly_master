@@ -43,6 +43,8 @@ export interface SimilarAdItem {
   price: number;
   currency: string;
   imageUrl: string;
+  /** Absolute preview video URL, when the listing has one. */
+  videoUrl?: string;
   location: string;
   postedAgo: string;
   availability?: string;

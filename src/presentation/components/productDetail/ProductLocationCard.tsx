@@ -1,6 +1,7 @@
 import React, { memo, useMemo, useState } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -9,6 +10,8 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { buildStaticMapPreviewUrl } from '../../../utils/staticMapUrl';
 import { resolveLocationCoordinates } from '../../../utils/resolveLocationCoordinates';
+import { getMapsNativeModule } from '../../../utils/mapsNativeModule';
+import { resolveGoogleMapsProvider } from '../../../utils/mapProvider';
 import { AppText } from '../common/AppText';
 import { pdStyles } from './productDetailStyles';
 
@@ -26,6 +29,11 @@ export const ProductLocationCard = memo<Props>(
     const { width: screenWidth } = useWindowDimensions();
     const [mapLoadFailed, setMapLoadFailed] = useState(false);
 
+    // Native map is only used when react-native-maps is actually linked into the
+    // running build; otherwise we fall back to a static Google/OSM map image.
+    const mapsModule = useMemo(() => getMapsNativeModule(), []);
+    const googleProvider = useMemo(() => resolveGoogleMapsProvider(), []);
+
     const coordinates = useMemo(
       () =>
         resolveLocationCoordinates({
@@ -34,6 +42,16 @@ export const ProductLocationCard = memo<Props>(
           locationHint: [title, address].filter(Boolean).join(', '),
         }),
       [address, latitude, longitude, title],
+    );
+
+    const region = useMemo(
+      () => ({
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }),
+      [coordinates.latitude, coordinates.longitude],
     );
 
     const mapPreviewUrl = useMemo(() => {
@@ -48,31 +66,82 @@ export const ProductLocationCard = memo<Props>(
       );
     }, [coordinates.latitude, coordinates.longitude, screenWidth]);
 
-    return (
-      <View>
-        {!hideTitle ? <AppText style={pdStyles.sectionTitle}>Location</AppText> : null}
-        <AppText style={styles.subtitle} numberOfLines={2}>
-          {title}
-        </AppText>
+    const renderNativePreview = () => {
+      if (!mapsModule) {
+        return null;
+      }
 
-        <View style={pdStyles.mapCard}>
-          {!mapLoadFailed ? (
-            <Image
-              source={{ uri: mapPreviewUrl }}
-              style={styles.mapImage}
-              resizeMode="cover"
-              onError={() => setMapLoadFailed(true)}
-              accessibilityIgnoresInvertColors
-            />
-          ) : (
-            <View style={styles.mapFallback}>
-              <Icon name="map-marker" size={36} color="#2563EB" />
-            </View>
-          )}
+      const MapView = mapsModule.default;
+      const { Marker } = mapsModule;
 
+      return (
+        <MapView
+          style={styles.mapImage}
+          provider={googleProvider}
+          region={region}
+          scrollEnabled={false}
+          zoomEnabled={false}
+          rotateEnabled={false}
+          pitchEnabled={false}
+          toolbarEnabled={false}
+          showsCompass={false}
+          showsUserLocation={false}
+          showsMyLocationButton={false}
+          loadingEnabled
+          {...(Platform.OS === 'android' ? { liteMode: true } : null)}
+        >
+          <Marker
+            coordinate={{ latitude: region.latitude, longitude: region.longitude }}
+            pinColor="#2563EB"
+            tracksViewChanges={false}
+          />
+        </MapView>
+      );
+    };
+
+    const renderStaticPreview = () => {
+      if (mapLoadFailed) {
+        return (
+          <View style={styles.mapFallback}>
+            <Icon name="map-marker" size={36} color="#2563EB" />
+          </View>
+        );
+      }
+
+      return (
+        <>
+          <Image
+            source={{ uri: mapPreviewUrl }}
+            style={styles.mapImage}
+            resizeMode="cover"
+            onError={() => setMapLoadFailed(true)}
+            accessibilityIgnoresInvertColors
+          />
           <View style={styles.pinOverlay} pointerEvents="none">
             <Icon name="map-marker" size={28} color="#2563EB" />
           </View>
+        </>
+      );
+    };
+
+    return (
+      <View>
+        {!hideTitle ? <AppText style={pdStyles.sectionTitle}>Location</AppText> : null}
+        {/* <AppText style={styles.subtitle} numberOfLines={2}>
+          {title}
+        </AppText> */}
+        <AppText style={styles.subtitle} numberOfLines={3}>
+           {address}
+        </AppText>
+        <View style={pdStyles.mapCard}>
+          {mapsModule ? renderNativePreview() : renderStaticPreview()}
+
+          <Pressable
+            style={styles.mapTapOverlay}
+            onPress={onShowMap}
+            accessibilityRole="button"
+            accessibilityLabel="Open map to view location"
+          />
 
           <Pressable
             style={pdStyles.mapBtn}
@@ -87,9 +156,9 @@ export const ProductLocationCard = memo<Props>(
           </Pressable>
         </View>
 
-        <AppText style={styles.address} numberOfLines={3}>
+        {/* <AppText style={styles.address} numberOfLines={3}>
           {address}
-        </AppText>
+        </AppText> */}
       </View>
     );
   },
@@ -119,6 +188,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: 28,
+  },
+  mapTapOverlay: {
+    ...StyleSheet.absoluteFill,
   },
   showMapText: {
     color: '#2563EB',

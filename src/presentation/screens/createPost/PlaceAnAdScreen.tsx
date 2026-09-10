@@ -21,6 +21,7 @@ export const PlaceAnAdScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useStableSafeAreaInsets();
   const productId = route.params?.productId;
   const listing = route.params?.listing;
+  const paymentFlow = route.params?.paymentFlow;
   const {
     packages,
     loading,
@@ -29,7 +30,7 @@ export const PlaceAnAdScreen: React.FC<Props> = ({ navigation, route }) => {
     selectedPackage,
     setSelectedId,
     reload,
-  } = useAdPackages();
+  } = useAdPackages(productId);
 
   const closeFlow = useCallback(() => {
     navigation.getParent()?.goBack();
@@ -55,8 +56,9 @@ export const PlaceAnAdScreen: React.FC<Props> = ({ navigation, route }) => {
         priceValue: 0,
         productId,
       },
+      paymentFlow,
     });
-  }, [listing, navigation, productId, selectedPackage]);
+  }, [listing, navigation, paymentFlow, productId, selectedPackage]);
 
   return (
     <View style={placeAdStyles.screen}>

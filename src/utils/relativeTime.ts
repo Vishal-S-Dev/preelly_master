@@ -41,4 +41,4 @@ export const formatRelativeTimeShort = (dateStr?: string | null): string => {
 };
 
 export const formatPinCountLabel = (count: number): string =>
-  `${count.toLocaleString()} ${count === 1 ? 'Pin' : 'Pins'}`;
+  `${count.toLocaleString()} ${count === 1 ? 'Item' : 'Items'}`;

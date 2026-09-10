@@ -28,9 +28,12 @@ const mapPackage = (dto: AdPackageApiDto): AdPackage => ({
 });
 
 export const PackageApi = {
-  async getActivePackages(): Promise<AdPackage[]> {
+  /** Backend scopes packages by the product's category + price when `productId` is given
+   * (matches web's `SelectPackagePage`); omitting it returns the full, unscoped package list. */
+  async getActivePackages(productId?: string): Promise<AdPackage[]> {
     const { data } = await httpClient.get<AdPackagesResponse | AdPackageApiDto[]>(
       API_ENDPOINTS.PACKAGES,
+      productId ? { params: { productId } } : undefined,
     );
 
     const list = Array.isArray(data)

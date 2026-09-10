@@ -113,6 +113,15 @@ export const sendOtp = createAsyncThunk(
       if (apiError?.message) {
         return rejectWithValue(apiError);
       }
+      // A client-side timeout (no `response` at all) doesn't mean the OTP wasn't sent — the
+      // backend's WhatsApp/SMS dispatch can still complete and deliver it after our request
+      // gave up waiting. Say so instead of a flat "Failed", which reads as "nothing happened"
+      // when the code is often already on its way.
+      if (error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message ?? '')) {
+        return rejectWithValue({
+          message: "This is taking longer than expected. If you don't receive a code shortly, please try again.",
+        });
+      }
       return rejectWithValue({ message: 'Failed to send OTP' });
     }
   },

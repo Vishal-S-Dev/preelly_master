@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Platform, StyleSheet, Text, View } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomSheetScrollView, useBottomSheet } from '@gorhom/bottom-sheet';
@@ -68,7 +68,7 @@ export const ProductQuickViewBody: React.FC<Props> = ({
   onTitlePress,
   navigation,
 }) => {
-  const { animatedIndex } = useBottomSheet();
+  const { animatedIndex, close } = useBottomSheet();
   const { product: activeProduct } = quickViewData;
   const [isExpanded, setIsExpanded] = useState(false);
   const [shouldLoadDetail, setShouldLoadDetail] = useState(false);
@@ -96,6 +96,16 @@ export const ProductQuickViewBody: React.FC<Props> = ({
   const { detail } = useProductDetail(
     shouldLoadDetail ? activeProduct.id : '',
     activeProduct,
+  );
+
+  // Closes the sheet before handing off to a full-screen route, matching the
+  // onTitlePress → onOpenDetail flow in ProductQuickViewSheet.
+  const navigateAndClose = useCallback(
+    (navigate: () => void) => {
+      close();
+      navigate();
+    },
+    [close],
   );
 
   const quickViewLayerStyle = useAnimatedStyle(() => ({
@@ -182,8 +192,14 @@ export const ProductQuickViewBody: React.FC<Props> = ({
       <View style={pdStyles.section}>
         <SellerInfoCard
           seller={detail.seller}
-          onViewAll={() => Alert.alert('Seller', 'Seller listings will open here.')}
-          onPressSeller={sellerId => navigation?.navigate('OtherProfile', { userId: sellerId })}
+          onViewAll={() =>
+            navigateAndClose(() =>
+              navigation?.navigate('OtherProfile', { userId: detail.seller.id }),
+            )
+          }
+          onPressSeller={sellerId =>
+            navigateAndClose(() => navigation?.navigate('OtherProfile', { userId: sellerId }))
+          }
         />
       </View>
 
@@ -191,7 +207,9 @@ export const ProductQuickViewBody: React.FC<Props> = ({
         <View style={pdStyles.section}>
           <SimilarAdsCarousel
             items={detail.similarAds}
-            onPressItem={id => navigation?.push('ProductDetail', { productId: id })}
+            onPressItem={id =>
+              navigateAndClose(() => navigation?.push('ProductDetail', { productId: id }))
+            }
           />
         </View>
       ) : null}

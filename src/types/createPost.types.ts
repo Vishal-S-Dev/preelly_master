@@ -1,5 +1,6 @@
 import { AdPackage } from './package.types';
 import { CheckoutListingSnapshot } from './checkout.types';
+import { PaymentFlowKind } from './payment.types';
 
 export interface CreatePostCategory {
   id: string;
@@ -69,11 +70,25 @@ export interface AiListingExtraction {
   confidence?: Record<string, number>;
 }
 
-export interface TranscribeVideoResponse {
+export interface VideoAnalysisScreenshot {
+  url?: string;
+  path?: string;
+  timestamp?: number | null;
+  shotType?: string | null;
+}
+
+/**
+ * Response of `POST /api/video/analyze` — a single-upload replacement for the previous pair of
+ * `/api/video/transcribe` + `/api/ai/auto-capture-screenshots` calls, so it carries both the
+ * transcript/extraction fields the old transcribe endpoint returned AND the curated screenshots
+ * the old auto-capture endpoint returned.
+ */
+export interface VideoAnalyzeResponse {
   transcript?: string;
   extractedData?: TranscriptExtractedData;
   suggestedFilters?: SuggestedFilters;
   categoryValidation?: Record<string, unknown>;
+  screenshots?: VideoAnalysisScreenshot[];
   errors?: {
     transcription?: string;
     extraction?: string;
@@ -124,10 +139,15 @@ export type CreatePostStackParamList = {
   CreatePostPlaceAnAd: {
     productId?: string;
     listing?: CheckoutListingSnapshot;
+    /** Set when entering this flow to boost an already-live ad rather than promote a
+     * freshly-created one — forwarded through to the payment result screens for accurate
+     * copy. Defaults to the standard post-ad flow when omitted. */
+    paymentFlow?: PaymentFlowKind;
   };
   CreatePostBuyPackage: {
     productId?: string;
     listing: CheckoutListingSnapshot;
     adPackage: AdPackage;
+    paymentFlow?: PaymentFlowKind;
   };
 };

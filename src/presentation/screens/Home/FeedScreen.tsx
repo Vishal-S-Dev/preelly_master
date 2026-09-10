@@ -349,8 +349,10 @@ export const FeedScreen: React.FC = () => {
     navigation.getParent()?.navigate('Search');
   }, [navigation]);
 
+  const isActionSheetOpen = quickViewProduct !== null || commentsProduct !== null;
+
   return (
-    <ReelPlaybackProvider value={isPlaybackAllowed}>
+    <ReelPlaybackProvider value={isPlaybackAllowed && !isActionSheetOpen}>
       <View style={styles.container}>
         <TopHeader
           muted={muted}

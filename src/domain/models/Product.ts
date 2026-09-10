@@ -32,6 +32,9 @@ export interface Product {
   /** True when the current user has already counted as a view (e.g. watched ≥70%). */
   isViewed?: boolean;
   isSold?: boolean;
+  /** True only while this listing occupies a paid, currently-valid, budget-available
+   * promoted slot — server-computed (mirrors web's/search-results' "Promoted" badge). */
+  isPromoted?: boolean;
   createdAt: string;
   user?: ProductUser;
   liked: boolean;

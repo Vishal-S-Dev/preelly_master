@@ -29,8 +29,11 @@ const mapProductDtoToListing = (dto: ProductDTO): SearchListingItem => {
     location: dto.location ?? dto.city ?? 'UAE',
     imageUrl: imagePath ? ProductApi.withBase(imagePath) : '',
     hasVideo: Boolean(dto.video),
+    videoUrl: dto.video ? ProductApi.withBase(dto.video) : undefined,
     isSaved: Boolean(dto.saved ?? dto.isSaved),
-    isFeatured: dto.status === 'featured' || dto.status === 'promoted',
+    isPromoted: Boolean(dto.isPromoted),
+    isSold: dto.isSold,
+    status: dto.status,
   };
 };
 

@@ -16,6 +16,12 @@ export interface ProductSellerDTO {
   identityVerificationStatus?: string;
 }
 
+export interface ProductSellerStatsDTO {
+  postCount?: number;
+  followerCount?: number;
+  followingCount?: number;
+}
+
 export interface ProductCategoryRefDTO {
   _id?: string;
   name?: string;
@@ -102,6 +108,7 @@ export interface ProductDTO {
   updatedAt?: string;
   user?: ProductUserDTO;
   seller?: ProductSellerDTO;
+  sellerStats?: ProductSellerStatsDTO;
   views?: number;
   isViewed?: boolean;
   viewed?: boolean;
@@ -124,6 +131,10 @@ export interface ProductDTO {
   area?: string;
   isSold?: boolean;
   status?: string;
+  /** Server-computed per search request — true only while this listing occupies a paid,
+   * currently-valid, budget-available promoted slot (mirrors web's `PromotedBadge`). */
+  isPromoted?: boolean;
+  promotedLabel?: string | null;
   category?: ProductCategoryRefDTO;
   subcategory?: string;
   categoryPath?: ProductCategoryRefDTO[];

@@ -1,7 +1,8 @@
 import RNFS from 'react-native-fs';
+import { AxiosProgressEvent } from 'axios';
 import { ENV } from '../../constants/env';
 import { STORAGE_KEYS } from '../../constants/appConstants';
-import { TranscribeVideoResponse } from '../../types/createPost.types';
+import { VideoAnalyzeResponse } from '../../types/createPost.types';
 import { storage } from '../../utils/storage';
 import { httpClient } from './httpClient';
 
@@ -83,7 +84,7 @@ const downloadTrimmedVideo = async (remoteUrl: string, fileName: string): Promis
   return `file://${destPath}`;
 };
 
-export interface TranscribeVideoParams {
+export interface AnalyzeVideoParams {
   videoUri: string;
   videoName: string;
   videoType: string;
@@ -92,10 +93,20 @@ export interface TranscribeVideoParams {
   categoryId?: string;
   subcategoryId?: string;
   childCategoryId?: string;
+  /** Real multipart upload progress (0-100 available via progressEvent.loaded/total). */
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void;
+  /** Lets callers cancel the in-flight upload (e.g. a "Cancel" button on a progress sheet). */
+  signal?: AbortSignal;
 }
 
 export const VideoApi = {
-  async transcribeVideo(params: TranscribeVideoParams): Promise<TranscribeVideoResponse> {
+  /**
+   * Single-upload replacement for the previous `transcribeVideo` + `autoCaptureScreenshots`
+   * pair — each of those uploaded the full video separately, doubling upload time/bandwidth for
+   * every create-post run. This uploads the video ONCE and gets back transcript/AI-extraction
+   * data plus curated screenshots in one response.
+   */
+  async analyzeVideo(params: AnalyzeVideoParams): Promise<VideoAnalyzeResponse> {
     const formData = new FormData();
     formData.append('video', {
       uri: params.videoUri,
@@ -118,45 +129,16 @@ export const VideoApi = {
       formData.append('childCategoryId', params.childCategoryId);
     }
 
-    const { data } = await httpClient.post<TranscribeVideoResponse>('/api/video/transcribe', formData, {
+    const { data } = await httpClient.post<VideoAnalyzeResponse>('/api/video/analyze', formData, {
       baseURL: API_BASE,
       headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120000,
+      // Longer than either individual call's old timeout since this single request now does
+      // both transcription/extraction AND screenshot capture server-side.
+      timeout: 180000,
+      onUploadProgress: params.onUploadProgress,
+      signal: params.signal,
     });
     return data;
-  },
-
-  /**
-   * AI-guided cinematic multi-shot capture — uploads the video ONCE and gets back several
-   * curated screenshots server-side (mirrors web's `/ai/auto-capture-screenshots`), instead of
-   * re-uploading the whole video per timestamp like `captureScreenshot` below.
-   */
-  async autoCaptureScreenshots(
-    videoUri: string,
-    videoName: string,
-    videoType: string,
-  ): Promise<string[]> {
-    const formData = new FormData();
-    formData.append('video', {
-      uri: videoUri,
-      name: videoName,
-      type: videoType,
-    } as unknown as Blob);
-
-    const { data } = await httpClient.post<{
-      success?: boolean;
-      count?: number;
-      screenshots?: Array<{ url?: string; path?: string; timestamp?: number | null; shotType?: string | null }>;
-    }>('/api/ai/auto-capture-screenshots', formData, {
-      baseURL: API_BASE,
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120000,
-    });
-
-    return (data.screenshots ?? [])
-      .map(shot => shot.url?.trim())
-      .filter((url): url is string => Boolean(url))
-      .map(url => withMediaBase(url));
   },
 
   async captureScreenshot(

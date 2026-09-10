@@ -45,6 +45,12 @@ export const authApi = {
     const { data } = await httpClient.post<SendOtpResponseDto>(
       API_ENDPOINTS.SEND_OTP,
       toSendOtpApiPayload(payload),
+      // Dispatching through WhatsApp's Business API (the default phone channel) can take well
+      // longer than the app's general-purpose API timeout — the backend waits on WhatsApp's own
+      // response before replying to us. A client-side timeout here doesn't mean the OTP wasn't
+      // sent (it usually was, arriving a few seconds later), so it was surfacing a false
+      // "Failed to send OTP" for a request that was actually still succeeding server-side.
+      { timeout: 30000 },
     );
     return data;
   },

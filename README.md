@@ -121,6 +121,7 @@ This builds the debug APK, installs it on the emulator/device, and launches the 
 ## Run on iOS
 
 > iOS builds require **macOS** with **Xcode** installed.
+> npm run ios -- --device="Your iPhone Name"
 
 ### Step 1: Install Xcode
 

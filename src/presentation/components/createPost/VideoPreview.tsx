@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Video from 'react-native-video';
 import { CreatePostMediaFile } from '../../../types/createPost.types';
@@ -16,10 +17,19 @@ export const VideoPreview = memo<Props>(({ video, onDelete, onReplace }) => {
   // Large picked/trimmed videos can take a moment to buffer their first frame — show a spinner
   // until then instead of a blank black box.
   const [loading, setLoading] = useState(true);
+  // Screen stays mounted (pushed underneath) when navigating to the next create-post step,
+  // so playback must be gated on focus or it keeps running in the background.
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     setLoading(true);
   }, [video.uri]);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setPaused(true);
+    }
+  }, [isFocused]);
 
   const handleLoad = useCallback(() => setLoading(false), []);
 
@@ -28,7 +38,7 @@ export const VideoPreview = memo<Props>(({ video, onDelete, onReplace }) => {
       <Video
         source={{ uri: video.uri }}
         style={styles.video}
-        paused={paused}
+        paused={paused || !isFocused}
         muted={muted}
         resizeMode="cover"
         repeat

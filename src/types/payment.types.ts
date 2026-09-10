@@ -66,7 +66,7 @@ export interface PaymentHistoryPage {
 
 export type PaymentWebViewOutcome = 'success' | 'failure' | 'cancel' | 'unknown';
 
-export type PaymentFlowKind = 'cart' | 'post-ad';
+export type PaymentFlowKind = 'cart' | 'post-ad' | 'boost';
 
 export interface PaymentResultParams {
   orderId: string;

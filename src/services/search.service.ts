@@ -16,7 +16,11 @@ const mapProductDtoToListing = (dto: ProductDTO): SearchListingItem => {
     location: dto.location ?? dto.city ?? 'UAE',
     imageUrl: imagePath ? ProductApi.withBase(imagePath) : '',
     hasVideo: Boolean(dto.video),
+    videoUrl: dto.video ? ProductApi.withBase(dto.video) : undefined,
     isSaved: Boolean(dto.saved ?? dto.isSaved),
+    isPromoted: Boolean(dto.isPromoted),
+    isSold: dto.isSold,
+    status: dto.status,
   };
 };
 
@@ -31,7 +35,10 @@ const mapFeedReelToListing = (item: FeedReelDto): SearchListingItem => {
     location: item.location ?? 'UAE',
     imageUrl: imagePath ? ProductApi.withBase(imagePath) : '',
     hasVideo: Boolean(item.video),
+    videoUrl: item.video ? ProductApi.withBase(item.video) : undefined,
     isSaved: Boolean(item.saved),
+    isSold: item.isSold,
+    status: item.status,
   };
 };
 

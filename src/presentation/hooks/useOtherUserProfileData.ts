@@ -106,6 +106,7 @@ export const useOtherUserProfileData = (userId: string) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -155,6 +156,7 @@ export const useOtherUserProfileData = (userId: string) => {
     if (!userId) {
       setError('Missing user id');
       setProfile(emptyProfile(''));
+      setProfileLoading(false);
       return;
     }
 
@@ -217,6 +219,8 @@ export const useOtherUserProfileData = (userId: string) => {
     } catch {
       setError('Could not load profile');
       setProfile(emptyProfile(userId));
+    } finally {
+      setProfileLoading(false);
     }
   }, [userId, viewerUserId]);
 
@@ -386,6 +390,7 @@ export const useOtherUserProfileData = (userId: string) => {
     items,
     reelProducts,
     loading,
+    profileLoading,
     refreshing,
     loadingMore,
     followLoading,

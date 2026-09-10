@@ -58,7 +58,7 @@ const CATEGORY_ICON_BY_NAME: Record<string, string> = {
   'furniture & garden': 'sofa-outline',
 };
 
-const formatPostedDate = (isoDate?: string): string => {
+export const formatPostedDate = (isoDate?: string): string => {
   if (!isoDate) {
     return 'Recently';
   }
@@ -378,6 +378,7 @@ const buildLocation = (dto: ProductDTO) => {
 
 const buildSeller = (dto: ProductDTO, product: Product): ProductSellerInfo => {
   const seller = dto.seller;
+  const stats = dto.sellerStats;
   return {
     id: seller?._id ?? seller?.id ?? product.seller?.id ?? 'seller_1',
     name: seller?.name ?? product.user?.name ?? 'Seller',
@@ -386,8 +387,8 @@ const buildSeller = (dto: ProductDTO, product: Product): ProductSellerInfo => {
       (seller?.avatar ? ProductApi.withBase(seller.avatar) : undefined) ??
       product.user?.avatar ??
       product.seller?.avatar,
-    postsCount: 0,
-    followingCount: 0,
+    postsCount: stats?.postCount ?? 0,
+    followingCount: stats?.followingCount ?? 0,
   };
 };
 
@@ -420,10 +421,12 @@ const buildCategories = (dto: ProductDTO) => {
 
 const buildSimilar = async (productId: string): Promise<SimilarAdItem[]> => {
   try {
-    const response = await ProductApi.getProducts(1, 8);
+    // Fetch extra headroom beyond the 6 we want to show — some of these will have no image
+    // (filtered out below) or be the current product itself, and without the padding a listing
+    // feed with several image-less items could return fewer than 6 cards, or none.
+    const response = await ProductApi.getProducts(1, 16);
     return response.products
       .filter(item => (item._id ?? item.id) !== productId)
-      .slice(0, 6)
       .map((item, index) => {
         const id = item._id ?? item.id ?? `sim_${index}`;
         const image = item.images?.[0] ? ProductApi.withBase(item.images[0]) : '';
@@ -435,11 +438,16 @@ const buildSimilar = async (productId: string): Promise<SimilarAdItem[]> => {
           price: item.price ?? 0,
           currency: item.currency ?? 'AED',
           imageUrl: image,
+          videoUrl: item.video ? ProductApi.withBase(item.video) : undefined,
           location: item.location ?? item.city ?? 'UAE',
           postedAgo: formatPostedDate(item.createdAt),
           availability: resolveAvailability(item),
         };
-      });
+      })
+      // Mirrors search.service.ts's guard — an image-less card renders as a bare placeholder
+      // block (no way to tell listings apart), so it's better left out of "similar ads" entirely.
+      .filter(item => item.imageUrl)
+      .slice(0, 6);
   } catch {
     return [];
   }

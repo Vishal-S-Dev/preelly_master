@@ -145,7 +145,11 @@ export const ProductApi = {
       {
         baseURL: PRODUCTS_BASE_URL,
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 120000,
+        // Video listings allow up to 250MB — on a slow/mobile connection that alone can take
+        // several minutes to upload, well past the old 2-minute timeout (which was sized for
+        // a much smaller video cap and was observed timing out on real devices with a full-size
+        // video + several photos in one multipart request).
+        timeout: 600000,
       },
     );
     return { id: data?._id ?? data?.id ?? data?.data?._id };
@@ -158,7 +162,11 @@ export const ProductApi = {
       {
         baseURL: PRODUCTS_BASE_URL,
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 120000,
+        // Video listings allow up to 250MB — on a slow/mobile connection that alone can take
+        // several minutes to upload, well past the old 2-minute timeout (which was sized for
+        // a much smaller video cap and was observed timing out on real devices with a full-size
+        // video + several photos in one multipart request).
+        timeout: 600000,
       },
     );
     return { id: data?._id ?? data?.id ?? data?.data?._id ?? productId };
@@ -225,6 +233,20 @@ export const ProductApi = {
     await httpClient.delete(`${API_ENDPOINTS.PRODUCTS}/${productId}`, {
       baseURL: PRODUCTS_BASE_URL,
     });
+  },
+
+  /**
+   * Backend: POST /api/products/:id/move-to-warehouse — copies the ad into the seller's
+   * warehouse; the ad itself stays live/published (not an unpublish/archive). Idempotent —
+   * a repeat call reports `alreadyInWarehouse: true` instead of erroring.
+   */
+  async moveToWarehouse(productId: string): Promise<{ alreadyInWarehouse: boolean }> {
+    const { data } = await httpClient.post<{ alreadyInWarehouse?: boolean }>(
+      `${API_ENDPOINTS.PRODUCTS}/${productId}/move-to-warehouse`,
+      undefined,
+      { baseURL: PRODUCTS_BASE_URL },
+    );
+    return { alreadyInWarehouse: Boolean(data?.alreadyInWarehouse) };
   },
 
   withBase,

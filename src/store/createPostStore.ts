@@ -212,7 +212,22 @@ export const useCreatePostStore = create<CreatePostStore>()(
           fuelType: state.fuelType || String(nextFields.fuelType ?? ''),
         });
       },
-      reset: () => set(emptyDraft()),
+      // `set()` shallow-merges, so fields not present in `emptyDraft()` (category/subcategory
+      // ids+names, video, AI extraction results) must be explicitly nulled out here too —
+      // otherwise a "cleared" draft would still resume with its old category and video.
+      reset: () =>
+        set({
+          ...emptyDraft(),
+          categoryId: undefined,
+          categoryName: undefined,
+          subcategoryId: undefined,
+          subcategoryName: undefined,
+          dynamicFormCategoryId: undefined,
+          video: null,
+          extractedData: null,
+          suggestedFilters: null,
+          aiExtraction: null,
+        }),
       getDraft: () => {
         const s = get();
         return {
